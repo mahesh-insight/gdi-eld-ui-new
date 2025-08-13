@@ -1,3 +1,39 @@
+
+@font-face {
+  font-family: "klinic-slab";
+  src: url("../../public/fonts/klinicslabbook-webfont.eot");
+  src: url("../../public/fonts/klinicslabbook-webfont.eot?#iefix")
+      format("embedded-opentype"),
+    url("../../public/fonts/klinicslabbook-webfont.woff") format("woff"),
+    url("../../public/fonts/klinicslabbook-webfont.ttf") format("truetype"),
+    url("../../public/fonts/klinicslabbook-webfont.svg#klinic-slab")
+      format("svg");
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "klinic-slab";
+  src: url("../../public/fonts/klinicslablight-webfont.eot");
+  src: url("../../public/fonts/klinicslablight-webfont.eot?#iefix")
+      format("embedded-opentype"),
+    url("../../public/fonts/klinicslablight-webfont.woff") format("woff"),
+    url("../../public/fonts/klinicslablight-webfont.ttf") format("truetype"),
+    url("../../public/fonts/klinicslablight-webfont.svg#klinic-slab")
+      format("svg");
+  font-weight: 100;
+  font-style: normal;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: "klinic-slab";
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -17,11 +53,11 @@ body {
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: #3e332d;
+  background: #f0eeed;
+  font-family: "allumi-2-std", Verdana, sans-serif;
+  font-weight: 100;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 * {

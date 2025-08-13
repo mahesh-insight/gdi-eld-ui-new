@@ -9,13 +9,26 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@progress/kendo-data-query": "^1.7.1",
+    "@progress/kendo-licensing": "^1.7.0",
+    "@progress/kendo-react-dateinputs": "^11.3.1",
+    "@progress/kendo-react-dropdowns": "^11.3.1",
+    "@progress/kendo-react-grid": "^11.3.1",
+    "@progress/kendo-react-inputs": "^11.3.1",
+    "@progress/kendo-react-intl": "^11.3.1",
+    "@progress/kendo-theme-default": "^11.3.2",
+    "@tailwindcss/postcss": "^4.1.11",
+    "Insight-Theme": "file:./kendo-insight-theme",
+    "next": "15.4.6",
+    "postcss": "^8.5.6",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "next": "15.4.6"
+    "tailwindcss": "^4.1.11"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@types/react": "^19.1.10",
     "eslint": "^9",
-    "eslint-config-next": "15.4.6",
-    "@eslint/eslintrc": "^3"
+    "eslint-config-next": "15.4.6"
   }
 }

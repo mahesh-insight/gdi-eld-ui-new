@@ -1,0 +1,3084 @@
+// Compatible with @progress/kendo-theme-default v.10.2.0
+
+@use 'tokens' as *;
+  @use 'placeholders' as *;
+
+  @use 'kendo' as *;
+
+    .k-grid.k-grid-md .k-toolbar.k-grid-toolbar.k-toolbar-md{
+    justify-content: start;
+            align-items: center;
+            background-color: $tb-kendo-grid-alternate-row;
+            background-image: none;
+        
+}
+    .k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table.k-grid-md .k-table-thead .k-table-row .k-header.k-table-th .k-cell-inner .k-link,.k-grid.k-grid-md .k-grid-header .k-grid-header-wrap  .k-table.k-grid-header-table .k-table-thead .k-table-row .k-header.k-table-th .k-cell-inner .k-link{
+    outline-color: $tb-kendo-base-text;
+            border-top-width: $tb-kendo-border-radius;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table-wrap .k-table.k-grid-table.k-grid-md .k-table-tbody .k-master-row.k-table-row td.k-focus,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table-wrap .k-table.k-grid-table.k-grid-md .k-table-tbody .k-master-row.k-table-row  td.k-state-focus,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table-wrap .k-table.k-grid-table.k-grid-md .k-table-tbody .k-master-row.k-table-row  td.k-state-focused,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table-wrap .k-table.k-grid-table.k-grid-md .k-table-tbody .k-master-row.k-table-row  td:focus,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table-wrap  .k-table.k-grid-table .k-table-tbody .k-master-row.k-table-row td.k-focus,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table-wrap  .k-table.k-grid-table .k-table-tbody .k-master-row.k-table-row  td.k-state-focus,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table-wrap  .k-table.k-grid-table .k-table-tbody .k-master-row.k-table-row  td.k-state-focused,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table-wrap  .k-table.k-grid-table .k-table-tbody .k-master-row.k-table-row  td:focus{
+                    @extend %tb-typography-kendo-grid-header-typography;
+          border-bottom-width: $tb-kendo-border-radius;
+            border-left-width: $tb-kendo-border-radius;
+            border-right-width: $tb-kendo-border-radius;
+            border-top-width: $tb-kendo-border-radius;
+            border-bottom-color: $tb-kendo-base-text;
+            border-left-color: $tb-kendo-base-text;
+            border-right-color: $tb-kendo-base-text;
+            border-top-color: $tb-kendo-base-text;
+        
+}
+    .k-button.k-rounded-md{
+    border-top-left-radius: unset;
+            border-top-right-radius: unset;
+            border-bottom-right-radius: unset;
+            border-bottom-left-radius: unset;
+        
+}
+    .k-button{
+    border-bottom-width: 2px;
+            border-left-width: 2px;
+            border-right-width: 2px;
+            border-top-width: 2px;
+            border-bottom-style: solid;
+            border-left-style: solid;
+            border-right-style: solid;
+            border-top-style: solid;
+            outline-style: solid;
+            outline-width: $tb-kendo-border-radius;
+            outline-color: $tb-kendo-color-secondary;
+        
+}
+    .k-button.k-button-solid-base{
+    color: $tb-kendo-color-primary;
+            background-color: $tb-kendo-body-bg;
+            background-image: none;
+            border-bottom-color: $tb-kendo-color-secondary;
+            border-left-color: $tb-kendo-color-secondary;
+            border-right-color: $tb-kendo-color-secondary;
+            border-top-color: $tb-kendo-color-secondary;
+        
+}
+    .k-button.k-button-md{
+    padding-top: 10px;
+            padding-right: 22px;
+            padding-bottom: 10px;
+            padding-left: 22px;
+        
+}
+    .k-button.k-button-solid-primary{
+    background-color: $tb-kendo-color-primary;
+            background-image: none;
+            outline-style: solid;
+            outline-color: $tb-kendo-color-primary;
+            outline-width: $tb-kendo-border-radius;
+            color: #FFFFFF;
+        
+}
+    .k-button.k-button-solid-primary.k-button-md{
+                    @extend %tb-typography-kendo-default-typography;
+          padding-top: 10px;
+            padding-right: 22px;
+            padding-bottom: 10px;
+            padding-left: 22px;
+        
+}
+    .k-button.k-hover, .k-button.k-state-hover, .k-button.k-state-hovered, .k-button:hover{
+    color: $tb-kendo-body-bg;
+            background-color: $tb-kendo-color-secondary;
+            background-image: none;
+        
+}
+    .k-button.k-active, .k-button.k-state-active, .k-button:active{
+    color: $tb-kendo-body-bg;
+            background-color: $tb-kendo-color-secondary;
+            background-image: none;
+        
+}
+    .k-button.k-selected{
+    background-color: $tb-kendo-color-secondary;
+            background-image: none;
+            color: $tb-kendo-body-bg;
+        
+}
+    .k-button.k-focus, .k-button.k-state-focus, .k-button.k-state-focused, .k-button:focus{
+    background-color: $tb-kendo-color-secondary;
+            background-image: none;
+            color: #FFFFFF;
+        
+}
+    .k-button.k-button-solid-primary.k-hover, .k-button.k-button-solid-primary.k-state-hover, .k-button.k-button-solid-primary.k-state-hovered, .k-button.k-button-solid-primary:hover{
+    background-color: $tb-kendo-button-primary-hover;
+            background-image: none;
+            border-bottom-style: none;
+            border-left-style: none;
+            border-right-style: none;
+            border-top-style: none;
+            border-top-color: $tb-kendo-button-primary-hover;
+            border-top-width: 2px;
+            border-bottom-color: $tb-kendo-button-primary-hover;
+            border-left-color: $tb-kendo-button-primary-hover;
+            border-right-color: $tb-kendo-button-primary-hover;
+            outline-color: $tb-kendo-button-primary-hover;
+            outline-width: unset;
+            border-bottom-left-radius: unset;
+            border-bottom-right-radius: unset;
+            border-top-left-radius: unset;
+            border-top-right-radius: unset;
+            border-bottom-width: 2px;
+            border-left-width: 2px;
+            border-right-width: 2px;
+        
+}
+    .k-button.k-button-solid-primary.k-active, .k-button.k-button-solid-primary.k-state-active, .k-button.k-button-solid-primary:active{
+    background-color: $tb-kendo-button-primary-hover;
+            background-image: none;
+            border-top-color: $tb-kendo-button-primary-hover;
+            border-top-style: solid;
+            border-top-width: 2px;
+            border-bottom-color: $tb-kendo-button-primary-hover;
+            border-left-color: $tb-kendo-button-primary-hover;
+            border-right-color: $tb-kendo-button-primary-hover;
+        
+}
+    .k-button.k-button-solid-primary.k-selected{
+    background-color: $tb-kendo-button-primary-hover;
+            background-image: none;
+            border-top-color: $tb-kendo-button-primary-hover;
+            border-top-style: solid;
+            border-top-width: 2px;
+            border-bottom-color: $tb-kendo-button-primary-hover;
+            border-left-color: $tb-kendo-button-primary-hover;
+            border-right-color: $tb-kendo-button-primary-hover;
+        
+}
+    .k-button.k-button-solid-primary.k-focus, .k-button.k-button-solid-primary.k-state-focus, .k-button.k-button-solid-primary.k-state-focused, .k-button.k-button-solid-primary:focus{
+    border-top-color: $tb-kendo-button-primary-hover;
+            border-top-style: solid;
+            border-top-width: 2px;
+            background-color: $tb-kendo-button-primary-hover;
+            background-image: none;
+            border-bottom-color: $tb-kendo-button-primary-hover;
+            border-left-color: $tb-kendo-button-primary-hover;
+            border-right-color: $tb-kendo-button-primary-hover;
+        
+}
+    .k-button.k-button-outline.k-button-outline-primary.k-focus, .k-button.k-button-outline.k-button-outline-primary.k-state-focus, .k-button.k-button-outline.k-button-outline-primary.k-state-focused, .k-button.k-button-outline.k-button-outline-primary:focus{
+    outline-width: unset;
+            box-shadow: none;
+            border-bottom-color: $tb-kendo-button-primary-hover;
+            border-left-color: $tb-kendo-button-primary-hover;
+            border-right-color: $tb-kendo-button-primary-hover;
+            border-top-color: $tb-kendo-button-primary-hover;
+            outline-color: $tb-kendo-button-primary-hover;
+            background-color: $tb-kendo-button-primary-hover;
+            background-image: none;
+        
+}
+    .k-button.k-button-outline.k-button-outline-primary{
+    border-bottom-color: $tb-kendo-color-primary;
+            border-left-color: $tb-kendo-color-primary;
+            border-right-color: $tb-kendo-color-primary;
+            border-top-color: $tb-kendo-color-primary;
+            background-color: $tb-kendo-color-primary;
+            background-image: none;
+            color: #FFFFFF;
+            outline-color: $tb-kendo-color-primary;
+        
+}
+    .k-button.k-button-outline.k-button-outline-base{
+    color: $tb-kendo-button-bg;
+            border-bottom-color: $tb-kendo-body-text;
+            border-left-color: $tb-kendo-body-text;
+            border-right-color: $tb-kendo-body-text;
+            border-top-color: $tb-kendo-body-text;
+        
+}
+    .k-button.k-button-outline{
+    row-gap: $tb-kendo-border-radius;
+            column-gap: $tb-kendo-border-radius;
+        
+}
+    .k-button.k-button-outline.k-button-md{
+                    @extend %tb-typography-kendo-default-typography;
+      
+}
+    .k-button.k-button-outline.k-hover, .k-button.k-button-outline.k-state-hover, .k-button.k-button-outline.k-state-hovered, .k-button.k-button-outline:hover{
+    color: #FFFFFF;
+        
+}
+    .k-button.k-button-outline.k-hover.k-button-md, .k-button.k-button-outline.k-state-hover.k-button-md, .k-button.k-button-outline.k-state-hovered.k-button-md, .k-button.k-button-outline:hover.k-button-md{
+                    @extend %tb-typography-kendo-default-typography;
+      
+}
+    .k-dropdownlist.k-picker{
+                    @extend %tb-typography-kendo-default-typography;
+          border-bottom-width: 1px;
+            border-left-width: 1px;
+            border-right-width: 1px;
+            border-top-width: 1px;
+            padding-top: 0px;
+            padding-right: 0px;
+            padding-bottom: 0px;
+            padding-left: 0px;
+            margin-top: 0px;
+            margin-bottom: 0px;
+            outline-color: $tb-kendo-input-border;
+            outline-style: solid;
+            outline-width: $tb-kendo-border-radius;
+        
+}
+    .k-dropdownlist.k-picker-solid{
+    border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+            color: $tb-kendo-base-text;
+            background-color: #FFFFFF;
+            background-image: none;
+        
+}
+    .k-dropdownlist.k-rounded-md{
+    border-bottom-left-radius: $tb-kendo-border-radius;
+            border-bottom-right-radius: $tb-kendo-border-radius;
+            border-top-left-radius: $tb-kendo-border-radius;
+            border-top-right-radius: $tb-kendo-border-radius;
+        
+}
+    .k-dropdownlist .k-input-button{
+    border-bottom-width: $tb-kendo-border-radius;
+            border-left-width: $tb-kendo-border-radius;
+            border-right-width: $tb-kendo-border-radius;
+            border-top-width: $tb-kendo-border-radius;
+            border-bottom-left-radius: $tb-kendo-border-radius;
+            border-bottom-right-radius: $tb-kendo-border-radius;
+            border-top-left-radius: $tb-kendo-border-radius;
+            border-top-right-radius: $tb-kendo-border-radius;
+            border-left-color: $tb-kendo-color-secondary;
+            border-left-style: solid;
+            border-top-color: $tb-kendo-color-secondary;
+            border-top-style: solid;
+            outline-color: $tb-kendo-button-text;
+            outline-width: $tb-kendo-border-radius;
+        
+}
+    .k-multiselect.k-input{
+    padding-bottom: 6px;
+            padding-left: 5px;
+            padding-right: 5px;
+            padding-top: 6px;
+            border-bottom-width: 1px;
+            border-left-width: 1px;
+            border-right-width: 1px;
+            border-top-width: 1px;
+            outline-color: $tb-kendo-input-border;
+            outline-style: solid;
+            outline-width: $tb-kendo-border-radius;
+        
+}
+    .k-multiselect.k-input.k-input-solid{
+    border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+            color: $tb-kendo-base-text;
+        
+}
+    .k-multiselect.k-input .k-input-values{
+    border-bottom-width: 1px;
+            border-left-width: 1px;
+            border-right-width: 1px;
+            border-top-width: 1px;
+        
+}
+    .k-multiselect .k-input-values .k-chip-list.k-chip-list-md .k-chip.k-chip-md{
+                    @extend %tb-typography-kendo-default-typography;
+          padding-bottom: 0px;
+            padding-left: 0px;
+            padding-right: 0px;
+            padding-top: 0px;
+        
+}
+    .k-multiselect .k-input-values .k-chip-list.k-chip-list-md .k-chip{
+    border-bottom-width: $tb-kendo-border-radius;
+            border-left-width: $tb-kendo-border-radius;
+            border-right-width: $tb-kendo-border-radius;
+            border-top-width: $tb-kendo-border-radius;
+        
+}
+    .k-multiselect .k-input-values .k-chip-list.k-chip-list-md .k-chip.k-chip-solid-base{
+    color: $tb-kendo-base-text;
+            background-color: #FFFFFF;
+            background-image: none;
+        
+}
+    .k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table.k-grid-md .k-table-thead .k-table-row .k-header.k-table-th,.k-grid.k-grid-md .k-grid-header .k-grid-header-wrap  .k-table.k-grid-header-table .k-table-thead .k-table-row .k-header.k-table-th{
+    color: $tb-kendo-body-text;
+            background-color: $tb-kendo-body-bg;
+            background-image: none;
+            border-bottom-width: $tb-kendo-border-radius;
+            border-left-width: $tb-kendo-border-radius;
+            border-right-width: $tb-kendo-border-radius;
+            border-top-width: $tb-kendo-border-radius;
+            font-family: Verdana;
+            font-size: 12px;
+            font-weight: 600;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table-wrap .k-table.k-grid-table.k-grid-md .k-table-tbody .k-master-row.k-table-row >td,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table-wrap  .k-table.k-grid-table .k-table-tbody .k-master-row.k-table-row >td{
+                    @extend %tb-typography-kendo-grid-cell-typography;
+      
+}
+    .k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table.k-grid-md .k-table-thead .k-table-row .k-header.k-table-th.k-sorted .k-cell-inner .k-link,.k-grid.k-grid-md .k-grid-header .k-grid-header-wrap  .k-table.k-grid-header-table .k-table-thead .k-table-row .k-header.k-table-th.k-sorted .k-cell-inner .k-link{
+                    @extend %tb-typography-kendo-grid-header-typography;
+      
+}
+    .k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table.k-grid-md .k-table-thead .k-table-row .k-header.k-table-th .k-cell-inner .k-link .k-column-title,.k-grid.k-grid-md .k-grid-header .k-grid-header-wrap  .k-table.k-grid-header-table .k-table-thead .k-table-row .k-header.k-table-th .k-cell-inner .k-link .k-column-title{
+                    @extend %tb-typography-kendo-grid-header-typography;
+      
+}
+    .k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table.k-grid-md .k-table-thead .k-table-row .k-header.k-table-th.k-focus .k-cell-inner .k-link,.k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table.k-grid-md .k-table-thead .k-table-row  .k-header.k-table-th.k-state-focus .k-cell-inner .k-link,.k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table.k-grid-md .k-table-thead .k-table-row  .k-header.k-table-th.k-state-focused .k-cell-inner .k-link,.k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table.k-grid-md .k-table-thead .k-table-row  .k-header.k-table-th:focus .k-cell-inner .k-link,.k-grid.k-grid-md .k-grid-header .k-grid-header-wrap  .k-table.k-grid-header-table .k-table-thead .k-table-row .k-header.k-table-th.k-focus .k-cell-inner .k-link,.k-grid.k-grid-md .k-grid-header .k-grid-header-wrap  .k-table.k-grid-header-table .k-table-thead .k-table-row  .k-header.k-table-th.k-state-focus .k-cell-inner .k-link,.k-grid.k-grid-md .k-grid-header .k-grid-header-wrap  .k-table.k-grid-header-table .k-table-thead .k-table-row  .k-header.k-table-th.k-state-focused .k-cell-inner .k-link,.k-grid.k-grid-md .k-grid-header .k-grid-header-wrap  .k-table.k-grid-header-table .k-table-thead .k-table-row  .k-header.k-table-th:focus .k-cell-inner .k-link{
+                    @extend %tb-typography-kendo-grid-header-typography;
+      
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-table.k-grid-table.k-grid-md .k-table-tbody .k-master-row.k-table-row td.k-first-child,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-table.k-grid-table.k-grid-md .k-table-tbody .k-master-row.k-table-row  td:first-child,.k-grid.k-grid-md .k-grid-container .k-grid-content  .k-table.k-grid-table .k-table-tbody .k-master-row.k-table-row td.k-first-child,.k-grid.k-grid-md .k-grid-container .k-grid-content  .k-table.k-grid-table .k-table-tbody .k-master-row.k-table-row  td:first-child{
+                    @extend %tb-typography-kendo-grid-cell-typography;
+      
+}
+    .k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table.k-grid-md .k-table-thead .k-table-row,.k-grid.k-grid-md .k-grid-header .k-grid-header-wrap  .k-table.k-grid-header-table .k-table-thead .k-table-row{
+    border-top-color: inherit;
+            border-top-style: solid;
+            border-top-width: $tb-kendo-border-radius;
+        
+}
+    .k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table .k-table-thead .k-table-row.k-filter-row .k-table-th .k-filtercell .k-filtercell-wrapper .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-icon-button.k-clear-button-visible{
+    padding-bottom: 10px;
+            padding-left: 10px;
+            padding-right: 10px;
+            padding-top: 10px;
+            color: $tb-kendo-color-primary;
+            border-bottom-width: 1px;
+            border-left-width: 1px;
+            border-right-width: 1px;
+            border-top-width: 1px;
+            border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+            outline-color: $tb-kendo-button-text;
+            outline-width: unset;
+        
+}
+    .k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table .k-table-thead .k-table-row.k-filter-row{
+                    @extend %tb-typography-kendo-grid-cell-typography;
+          background-color: $tb-kendo-grid-alternate-row;
+            background-image: none;
+            padding-bottom: $tb-kendo-border-radius;
+            padding-left: $tb-kendo-border-radius;
+            padding-right: $tb-kendo-border-radius;
+            padding-top: $tb-kendo-border-radius;
+            border-top-color: inherit;
+            border-top-style: solid;
+            border-top-width: $tb-kendo-border-radius;
+            border-bottom-left-radius: $tb-kendo-border-radius;
+            border-bottom-right-radius: $tb-kendo-border-radius;
+            border-top-left-radius: $tb-kendo-border-radius;
+            border-top-right-radius: $tb-kendo-border-radius;
+        
+}
+    .k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table .k-table-thead .k-table-row.k-filter-row .k-table-th .k-filtercell .k-filtercell-wrapper .k-filtercell-operator{
+    background-color: $tb-kendo-body-bg;
+            background-image: none;
+            padding-bottom: 0px;
+            padding-left: 0px;
+            padding-right: 0px;
+            padding-top: 0px;
+            border-bottom-left-radius: unset;
+            border-bottom-right-radius: unset;
+            border-top-left-radius: unset;
+            border-top-right-radius: unset;
+        
+}
+    .k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table .k-table-thead .k-table-row.k-filter-row .k-table-th .k-filtercell .k-filtercell-wrapper .k-filtercell-operator .k-dropdownlist.k-picker.k-dropdown-operator.k-picker-md.k-rounded-md.k-picker-solid .k-input-button.k-button.k-icon-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md,.k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table .k-table-thead .k-table-row.k-filter-row .k-table-th .k-filtercell .k-filtercell-wrapper .k-filtercell-operator .k-dropdownlist.k-picker.k-dropdown-operator.k-picker-md.k-rounded-md.k-picker-solid  .k-input-button.k-button.k-icon-button.k-button-md.k-button-solid.k-button-solid-base{
+    color: $tb-kendo-color-primary;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table-wrap .k-grid-table.k-table .k-table-tbody .k-table-row.k-master-row{
+                    @extend %tb-typography-kendo-grid-cell-typography;
+          background-color: $tb-kendo-body-bg;
+            background-image: none;
+            color: $tb-kendo-color-secondary;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table-wrap .k-grid-table.k-table .k-table-tbody .k-table-row.k-master-row.k-hover,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table-wrap .k-grid-table.k-table .k-table-tbody  .k-table-row.k-master-row.k-state-hover,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table-wrap .k-grid-table.k-table .k-table-tbody  .k-table-row.k-master-row.k-state-hovered,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table-wrap .k-grid-table.k-table .k-table-tbody  .k-table-row.k-master-row:hover{
+    background-color: $tb-kendo-grid-selected;
+            background-image: none;
+            color: $tb-kendo-color-primary;
+            font-weight: bolder;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table.k-table .k-table-tbody .k-master-row.k-table-row.k-alt >td{
+                    @extend %tb-typography-kendo-grid-cell-typography;
+          background-color: $tb-kendo-grid-alternate-row;
+            background-image: none;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table.k-table .k-table-tbody .k-master-row.k-table-row.k-alt.k-hover >td,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table.k-table .k-table-tbody  .k-master-row.k-table-row.k-alt.k-state-hover >td,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table.k-table .k-table-tbody  .k-master-row.k-table-row.k-alt.k-state-hovered >td,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table.k-table .k-table-tbody  .k-master-row.k-table-row.k-alt:hover >td{
+    background-color: $tb-kendo-grid-selected;
+            background-image: none;
+        
+}
+    .k-popup .k-grid-columnmenu-popup .k-columnmenu-item-wrapper .k-columnmenu-item{
+                    @extend %tb-typography-kendo-grid-header-typography;
+      
+}
+    .k-popup .k-grid-columnmenu-popup .k-columnmenu-item-wrapper .k-columnmenu-item-content{
+                    @extend %tb-typography-kendo-grid-cell-typography;
+      
+}
+    .k-popup .k-grid-columnmenu-popup .k-columnmenu-item-wrapper .k-columnmenu-item-content .kendo-grid-filter-menu-container .k-filter-menu.k-group.k-reset.k-state-border-up .k-filter-menu-container .k-actions.k-actions-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md{
+                    @extend %tb-typography-kendo-grid-header-typography;
+          padding-top: 5px;
+            padding-right: 11px;
+            padding-bottom: 5px;
+            padding-left: 11px;
+        
+}
+    .k-popup .k-grid-columnmenu-popup .k-columnmenu-item-wrapper .k-columnmenu-item-content .kendo-grid-filter-menu-container .k-filter-menu.k-group.k-reset.k-state-border-up .k-filter-menu-container .k-actions.k-actions-stretched .k-button.k-button-md.k-button-solid.k-button-solid-primary.k-rounded-md{
+    padding-top: 5px;
+            padding-right: 11px;
+            padding-bottom: 5px;
+            padding-left: 11px;
+            font-size: 12px;
+        
+}
+    .k-popup .k-grid-columnmenu-popup .k-columnmenu-item-wrapper .k-columnmenu-item-content .kendo-grid-filter-menu-container .k-filter-menu.k-group.k-reset.k-state-border-up .k-filter-menu-container .k-actions.k-actions-stretched .k-button.k-button-md.k-button-solid.k-button-solid-primary.k-rounded-md .k-button-text{
+                    @extend %tb-typography-kendo-grid-header-typography;
+      
+}
+    .k-popup .k-grid-columnmenu-popup .k-columnmenu-item-wrapper .k-columnmenu-item-content .kendo-grid-filter-menu-container .k-filter-menu.k-group.k-reset.k-state-border-up .k-filter-menu-container .k-actions.k-actions-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md .k-button-text{
+                    @extend %tb-typography-kendo-grid-header-typography;
+      
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table-wrap .k-grid-table.k-table.k-grid-md .k-table-tbody .k-table-row.k-master-row.k-grid-edit-row .k-command-cell .k-grid-edit-command .k-button-text{
+                    @extend %tb-typography-kendo-grid-header-typography;
+      
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table-wrap .k-grid-table.k-table.k-grid-md .k-table-tbody .k-table-row.k-master-row.k-grid-edit-row .k-command-cell .k-grid-save-command .k-button-text{
+                    @extend %tb-typography-kendo-grid-header-typography;
+      
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table-wrap .k-grid-table.k-table.k-grid-md .k-table-tbody .k-table-row.k-master-row.k-grid-edit-row .k-command-cell .k-grid-remove-command .k-button-text{
+                    @extend %tb-typography-kendo-grid-header-typography;
+      
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table-wrap .k-grid-table.k-table.k-grid-md .k-table-tbody .k-table-row.k-master-row.k-grid-edit-row .k-command-cell .k-grid-remove-command{
+    padding-top: 5px;
+            padding-right: 11px;
+            padding-bottom: 5px;
+            padding-left: 11px;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table-wrap .k-grid-table.k-table.k-grid-md .k-table-tbody .k-table-row.k-master-row.k-grid-edit-row .k-command-cell .k-grid-edit-command{
+    padding-top: 5px;
+            padding-right: 11px;
+            padding-bottom: 5px;
+            padding-left: 11px;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table-wrap .k-grid-table.k-table.k-grid-md .k-table-tbody .k-table-row.k-master-row.k-grid-edit-row .k-command-cell .k-grid-save-command{
+    padding-top: 5px;
+            padding-right: 11px;
+            padding-bottom: 5px;
+            padding-left: 11px;
+        
+}
+    .k-pager{
+                    @extend %tb-typography-kendo-grid-cell-typography;
+      
+}
+    .k-pager .k-pager-numbers-wrap .k-pager-numbers{
+                    @extend %tb-typography-kendo-grid-cell-typography;
+          color: $tb-kendo-base-text;
+        
+}
+    .k-button.k-button-solid-primary.k-icon-button{
+    padding-right: 10px;
+            padding-left: 10px;
+        
+}
+    .k-button.k-icon-button{
+    padding-right: 10px;
+            padding-left: 10px;
+        
+}
+    .k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table .k-table-thead .k-table-row.k-filter-row .k-table-th .k-filtercell .k-filtercell-wrapper .k-filtercell-operator .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-icon-button.k-disabled,.k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table .k-table-thead .k-table-row.k-filter-row .k-table-th .k-filtercell .k-filtercell-wrapper .k-filtercell-operator  .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-icon-button.k-state-disabled,.k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table .k-table-thead .k-table-row.k-filter-row .k-table-th .k-filtercell .k-filtercell-wrapper .k-filtercell-operator  .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-icon-button:disabled{
+    padding-bottom: 10px;
+            padding-left: 10px;
+            padding-right: 10px;
+            padding-top: 10px;
+            border-bottom-width: 1px;
+            border-left-width: 1px;
+            border-right-width: 1px;
+            border-top-width: 1px;
+            border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table.k-table .k-table-tbody .k-grid-norecords.k-table-row >td{
+                    @extend %tb-typography-kendo-default-typography;
+      
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table.k-table .k-table-tbody .k-master-row.k-table-row.k-selected.k-hover >td,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table.k-table .k-table-tbody  .k-master-row.k-table-row.k-selected.k-state-hover >td,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table.k-table .k-table-tbody  .k-master-row.k-table-row.k-selected.k-state-hovered >td,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table.k-table .k-table-tbody  .k-master-row.k-table-row.k-selected:hover >td{
+                    @extend %tb-typography-kendo-grid-header-typography;
+      
+}
+    .k-button.k-disabled, .k-button.k-state-disabled, .k-button:disabled{
+    outline-color: $tb-kendo-color-secondary;
+        
+}
+    .k-button.k-button-solid-primary .k-button-text{
+                    @extend %tb-typography-kendo-default-typography;
+      
+}
+    .k-button.k-button-flat.k-hover .k-button-text, .k-button.k-button-flat.k-state-hover .k-button-text, .k-button.k-button-flat.k-state-hovered .k-button-text, .k-button.k-button-flat:hover .k-button-text{
+                    @extend %tb-typography-kendo-default-typography;
+          color: $tb-kendo-button-bg;
+        
+}
+    .k-button.k-button-flat.k-selected .k-button-text{
+                    @extend %tb-typography-kendo-default-typography;
+          color: $tb-kendo-button-bg;
+        
+}
+    .k-button.k-button-flat.k-active .k-button-text, .k-button.k-button-flat.k-state-active .k-button-text, .k-button.k-button-flat:active .k-button-text{
+                    @extend %tb-typography-kendo-default-typography;
+          color: $tb-kendo-button-bg;
+        
+}
+    .k-button.k-button-flat.k-button-flat-primary .k-button-text{
+                    @extend %tb-typography-kendo-default-typography;
+          color: $tb-kendo-button-bg;
+        
+}
+    .k-button.k-button-flat.k-button-flat-primary.k-hover .k-button-text, .k-button.k-button-flat.k-button-flat-primary.k-state-hover .k-button-text, .k-button.k-button-flat.k-button-flat-primary.k-state-hovered .k-button-text, .k-button.k-button-flat.k-button-flat-primary:hover .k-button-text{
+    color: $tb-kendo-color-secondary;
+        
+}
+    .k-button.k-button-flat.k-button-flat-primary.k-active .k-button-text, .k-button.k-button-flat.k-button-flat-primary.k-state-active .k-button-text, .k-button.k-button-flat.k-button-flat-primary:active .k-button-text{
+    color: $tb-kendo-color-secondary;
+        
+}
+    .k-button.k-button-flat.k-button-flat-primary.k-selected .k-button-text{
+    color: $tb-kendo-button-secondary-hover;
+        
+}
+    .k-button.k-button-flat.k-hover.k-icon-button, .k-button.k-button-flat.k-state-hover.k-icon-button, .k-button.k-button-flat.k-state-hovered.k-icon-button, .k-button.k-button-flat:hover.k-icon-button{
+    color: #FFFFFF;
+        
+}
+    .k-button.k-button-flat.k-active.k-icon-button, .k-button.k-button-flat.k-state-active.k-icon-button, .k-button.k-button-flat:active.k-icon-button{
+    color: #FFFFFF;
+        
+}
+    .k-button.k-button-flat.k-selected.k-icon-button{
+    color: #FFFFFF;
+        
+}
+    .k-button.k-button-flat.k-active .k-button-icon.k-icon, .k-button.k-button-flat.k-state-active .k-button-icon.k-icon, .k-button.k-button-flat:active .k-button-icon.k-icon{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-button.k-button-flat.k-hover .k-button-icon.k-icon, .k-button.k-button-flat.k-state-hover .k-button-icon.k-icon, .k-button.k-button-flat.k-state-hovered .k-button-icon.k-icon, .k-button.k-button-flat:hover .k-button-icon.k-icon{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-button.k-button-flat.k-selected.k-icon-button .k-button-icon.k-icon{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-button.k-button-flat.k-button-flat-primary .k-button-icon.k-icon{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-button.k-button-flat.k-button-flat-primary.k-hover .k-button-icon.k-icon, .k-button.k-button-flat.k-button-flat-primary.k-state-hover .k-button-icon.k-icon, .k-button.k-button-flat.k-button-flat-primary.k-state-hovered .k-button-icon.k-icon, .k-button.k-button-flat.k-button-flat-primary:hover .k-button-icon.k-icon{
+    color: $tb-kendo-color-secondary;
+        
+}
+    .k-button.k-button-flat.k-button-flat-primary.k-active .k-button-icon.k-icon, .k-button.k-button-flat.k-button-flat-primary.k-state-active .k-button-icon.k-icon, .k-button.k-button-flat.k-button-flat-primary:active .k-button-icon.k-icon{
+    color: $tb-kendo-color-secondary;
+        
+}
+    .k-button.k-button-flat.k-button-flat-primary.k-focus .k-button-text, .k-button.k-button-flat.k-button-flat-primary.k-state-focus .k-button-text, .k-button.k-button-flat.k-button-flat-primary.k-state-focused .k-button-text, .k-button.k-button-flat.k-button-flat-primary:focus .k-button-text{
+    color: $tb-kendo-button-secondary-hover;
+        
+}
+    .k-button.k-button-flat.k-button-flat-primary.k-focus .k-button-icon.k-icon, .k-button.k-button-flat.k-button-flat-primary.k-state-focus .k-button-icon.k-icon, .k-button.k-button-flat.k-button-flat-primary.k-state-focused .k-button-icon.k-icon, .k-button.k-button-flat.k-button-flat-primary:focus .k-button-icon.k-icon{
+    color: $tb-kendo-button-secondary-hover;
+        
+}
+    .k-button.k-button-flat.k-button-flat-primary.k-disabled .k-button-text, .k-button.k-button-flat.k-button-flat-primary.k-state-disabled .k-button-text, .k-button.k-button-flat.k-button-flat-primary:disabled .k-button-text{
+    color: $tb-kendo-button-secondary-hover;
+        
+}
+    .k-button.k-button-flat.k-button-flat-primary.k-selected .k-button-icon.k-icon{
+    color: $tb-kendo-button-secondary-hover;
+        
+}
+    .k-button.k-button-flat.k-focus .k-button-text, .k-button.k-button-flat.k-state-focus .k-button-text, .k-button.k-button-flat.k-state-focused .k-button-text, .k-button.k-button-flat:focus .k-button-text{
+                    @extend %tb-typography-kendo-default-typography;
+          color: $tb-kendo-button-bg;
+        
+}
+    .k-button.k-button-flat.k-selected .k-button-icon.k-icon{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-button.k-button-flat.k-focus .k-button-icon.k-icon, .k-button.k-button-flat.k-state-focus .k-button-icon.k-icon, .k-button.k-button-flat.k-state-focused .k-button-icon.k-icon, .k-button.k-button-flat:focus .k-button-icon.k-icon{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-button.k-button-flat.k-disabled .k-button-text, .k-button.k-button-flat.k-state-disabled .k-button-text, .k-button.k-button-flat:disabled .k-button-text{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-button.k-button-flat.k-disabled .k-button-icon.k-icon, .k-button.k-button-flat.k-state-disabled .k-button-icon.k-icon, .k-button.k-button-flat:disabled .k-button-icon.k-icon{
+                    @extend %tb-typography-kendo-default-typography;
+          color: #FFFFFF;
+        
+}
+    .k-button.k-button-flat .k-button-text{
+                    @extend %tb-typography-kendo-default-typography;
+          color: $tb-kendo-color-secondary;
+        
+}
+    .k-button.k-button-flat .k-button-icon.k-icon{
+    color: $tb-kendo-color-secondary;
+        
+}
+    .k-button.k-button-outline.k-active, .k-button.k-button-outline.k-state-active, .k-button.k-button-outline:active{
+    color: #FFFFFF;
+        
+}
+    .k-button.k-button-outline.k-selected{
+    color: #FFFFFF;
+        
+}
+    .k-button.k-button-outline.k-focus, .k-button.k-button-outline.k-state-focus, .k-button.k-button-outline.k-state-focused, .k-button.k-button-outline:focus{
+    color: #FFFFFF;
+        
+}
+    .k-button.k-button-outline.k-button-outline-primary.k-hover, .k-button.k-button-outline.k-button-outline-primary.k-state-hover, .k-button.k-button-outline.k-button-outline-primary.k-state-hovered, .k-button.k-button-outline.k-button-outline-primary:hover{
+    background-color: $tb-kendo-button-primary-hover;
+            background-image: none;
+            border-bottom-color: $tb-kendo-button-primary-hover;
+            border-left-color: $tb-kendo-button-primary-hover;
+            border-right-color: $tb-kendo-button-primary-hover;
+            border-top-color: $tb-kendo-button-primary-hover;
+            outline-color: $tb-kendo-button-primary-hover;
+        
+}
+    .k-button.k-button-outline.k-button-outline-primary.k-active, .k-button.k-button-outline.k-button-outline-primary.k-state-active, .k-button.k-button-outline.k-button-outline-primary:active{
+    border-bottom-color: $tb-kendo-button-primary-hover;
+            border-left-color: $tb-kendo-button-primary-hover;
+            border-right-color: $tb-kendo-button-primary-hover;
+            border-top-color: $tb-kendo-button-primary-hover;
+            outline-color: $tb-kendo-button-primary-hover;
+            background-color: $tb-kendo-button-primary-hover;
+            background-image: none;
+        
+}
+    .k-button.k-button-outline.k-button-outline-primary.k-selected{
+    background-color: $tb-kendo-button-primary-hover;
+            background-image: none;
+            border-bottom-color: $tb-kendo-button-primary-hover;
+            border-left-color: $tb-kendo-button-primary-hover;
+            border-right-color: $tb-kendo-button-primary-hover;
+            border-top-color: $tb-kendo-button-primary-hover;
+            outline-color: $tb-kendo-button-primary-hover;
+        
+}
+    .k-dropdown-button.k-focus .k-button, .k-dropdown-button.k-state-focus .k-button, .k-dropdown-button.k-state-focused .k-button, .k-dropdown-button:focus .k-button{
+    color: #FFFFFF;
+            background-color: $tb-kendo-button-primary-hover;
+            background-image: none;
+            border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+            border-bottom-width: 1px;
+            border-left-width: 1px;
+            border-right-width: 1px;
+            border-top-width: 1px;
+            padding-top: 11px;
+            padding-right: 23px;
+            padding-bottom: 11px;
+            padding-left: 23px;
+        
+}
+    .k-list.k-list-md .k-list-content .k-list-ul .k-list-item .k-list-item-text{
+                    @extend %tb-typography-kendo-default-typography;
+      
+}
+    .k-list.k-list-md .k-list-content .k-list-ul .k-list-item.k-hover,.k-list.k-list-md .k-list-content .k-list-ul  .k-list-item.k-state-hover,.k-list.k-list-md .k-list-content .k-list-ul  .k-list-item.k-state-hovered,.k-list.k-list-md .k-list-content .k-list-ul  .k-list-item:hover{
+    color: $tb-kendo-color-primary;
+        
+}
+    .k-list.k-list-md .k-list-content .k-list-ul .k-list-item.k-hover,.k-list.k-list-md .k-list-content .k-list-ul .k-list-item.k-state-hover,.k-list.k-list-md .k-list-content .k-list-ul .k-list-item.k-state-hovered,.k-list.k-list-md .k-list-content .k-list-ul .k-list-item:hover{
+    background-color: $tb-kendo-hover-bg;
+            background-image: none;
+        
+}
+    .k-list.k-list-md .k-list-content .k-list-ul .k-list-item.k-selected{
+    color: #FFFFFF;
+            background-color: $tb-kendo-color-primary;
+            background-image: none;
+        
+}
+    .k-list.k-list-md .k-list-content .k-list-ul .k-list-item.k-focus,.k-list.k-list-md .k-list-content .k-list-ul  .k-list-item.k-state-focus,.k-list.k-list-md .k-list-content .k-list-ul  .k-list-item.k-state-focused,.k-list.k-list-md .k-list-content .k-list-ul  .k-list-item:focus{
+                    @extend %tb-typography-kendo-default-typography;
+          color: #FFFFFF;
+            background-color: $tb-kendo-selected-bg;
+            background-image: none;
+        
+}
+    .k-menu-popup .k-group.k-menu-group .k-item.k-menu-item .k-link.k-menu-link.k-hover .k-menu-link-text,.k-menu-popup .k-group.k-menu-group .k-item.k-menu-item  .k-link.k-menu-link.k-state-hover .k-menu-link-text,.k-menu-popup .k-group.k-menu-group .k-item.k-menu-item  .k-link.k-menu-link.k-state-hovered .k-menu-link-text,.k-menu-popup .k-group.k-menu-group .k-item.k-menu-item  .k-link.k-menu-link:hover .k-menu-link-text{
+                    @extend %tb-typography-kendo-default-typography;
+          color: $tb-kendo-color-primary;
+        
+}
+    .k-menu-popup .k-group.k-menu-group .k-item.k-menu-item.k-focus .k-link.k-menu-link,.k-menu-popup .k-group.k-menu-group  .k-item.k-menu-item.k-state-focus .k-link.k-menu-link,.k-menu-popup .k-group.k-menu-group  .k-item.k-menu-item.k-state-focused .k-link.k-menu-link,.k-menu-popup .k-group.k-menu-group  .k-item.k-menu-item:focus .k-link.k-menu-link{
+                    @extend %tb-typography-kendo-default-typography;
+          color: #FFFFFF;
+            background-color: $tb-kendo-color-primary;
+            background-image: none;
+        
+}
+    .k-autocomplete.k-input.k-input-solid{
+    color: $tb-kendo-base-text;
+            border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+        
+}
+    .k-autocomplete.k-input{
+    padding-top: 6px;
+            padding-bottom: 6px;
+            outline-color: $tb-kendo-input-border;
+            outline-style: solid;
+            outline-width: $tb-kendo-border-radius;
+        
+}
+    .k-autocomplete.k-input.k-input-md{
+                    @extend %tb-typography-kendo-default-typography;
+      
+}
+    .k-autocomplete .k-clear-value.k-hover,.k-autocomplete  .k-clear-value.k-state-hover,.k-autocomplete  .k-clear-value.k-state-hovered,.k-autocomplete  .k-clear-value:hover{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-combobox.k-input.k-input-solid{
+    color: $tb-kendo-base-text;
+            border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+        
+}
+    .k-combobox.k-input{
+    padding-top: 0px;
+            padding-bottom: 0px;
+            outline-color: $tb-kendo-input-border;
+            outline-style: solid;
+            outline-width: $tb-kendo-border-radius;
+        
+}
+    .k-combobox.k-input.k-hover .k-clear-value .k-icon.k-i-x, .k-combobox.k-input.k-state-hover .k-clear-value .k-icon.k-i-x, .k-combobox.k-input.k-state-hovered .k-clear-value .k-icon.k-i-x, .k-combobox.k-input:hover .k-clear-value .k-icon.k-i-x{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-dropdownlist.k-picker.k-picker-md.k-rounded-md.k-picker-solid .k-input-button{
+    padding-bottom: 0px;
+            padding-left: 0px;
+            padding-right: 0px;
+            padding-top: 0px;
+            margin-bottom: 0px;
+            margin-left: 0px;
+            margin-right: 0px;
+            margin-top: 0px;
+            height: auto;
+            border-top-color: $tb-kendo-button-text;
+            border-top-style: solid;
+            border-top-width: $tb-kendo-border-radius;
+        
+}
+    .k-dropdownlist .k-input-inner{
+    padding-top: 10px;
+            padding-bottom: 10px;
+        
+}
+    .k-dropdowntree.k-picker-solid{
+    background-color: #FFFFFF;
+            background-image: none;
+            color: $tb-kendo-base-text;
+            border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+        
+}
+    .k-dropdowntree.k-picker{
+    outline-color: $tb-kendo-input-border;
+            outline-style: solid;
+            outline-width: $tb-kendo-border-radius;
+        
+}
+    .k-dropdowntree .k-input-button.k-button.k-icon-button{
+    border-bottom-width: 0px;
+            border-left-width: 0px;
+            border-right-width: 0px;
+            border-top-width: 0px;
+            border-right-color: $tb-kendo-color-secondary;
+            border-right-style: solid;
+            border-bottom-color: $tb-kendo-color-secondary;
+            border-bottom-style: solid;
+            border-left-color: $tb-kendo-color-secondary;
+            border-left-style: solid;
+            border-top-color: $tb-kendo-color-secondary;
+            border-top-style: solid;
+            outline-color: $tb-kendo-button-text;
+            outline-width: $tb-kendo-border-radius;
+            border-bottom-left-radius: $tb-kendo-border-radius;
+            border-bottom-right-radius: $tb-kendo-border-radius;
+            border-top-left-radius: $tb-kendo-border-radius;
+            border-top-right-radius: $tb-kendo-border-radius;
+        
+}
+    .k-combobox .k-input-button{
+    border-top-color: $tb-kendo-input-border;
+            border-top-style: solid;
+            border-top-width: 0px;
+            border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-right-style: solid;
+            border-right-width: 0px;
+            border-bottom-style: solid;
+            border-bottom-width: 0px;
+            border-left-style: solid;
+            border-left-width: 0px;
+        
+}
+    .k-multiselect .k-clear-value.k-hover,.k-multiselect  .k-clear-value.k-state-hover,.k-multiselect  .k-clear-value.k-state-hovered,.k-multiselect  .k-clear-value:hover{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-multiselect .k-input-values .k-chip-list.k-chip-list-md .k-chip.k-hover,.k-multiselect .k-input-values .k-chip-list.k-chip-list-md  .k-chip.k-state-hover,.k-multiselect .k-input-values .k-chip-list.k-chip-list-md  .k-chip.k-state-hovered,.k-multiselect .k-input-values .k-chip-list.k-chip-list-md  .k-chip:hover{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-multiselect .k-input-values .k-chip-list.k-chip-list-md .k-chip.k-active,.k-multiselect .k-input-values .k-chip-list.k-chip-list-md  .k-chip.k-state-active,.k-multiselect .k-input-values .k-chip-list.k-chip-list-md  .k-chip:active{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-calendar .k-calendar-header .k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-calendar-title{
+                    @extend %tb-typography-kendo-default-typography;
+      
+}
+    .k-dateinput.k-input.k-input-solid{
+    color: $tb-kendo-base-text;
+            border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+        
+}
+    .k-dateinput.k-input{
+    padding-top: 6px;
+            padding-bottom: 6px;
+        
+}
+    .k-datepicker.k-input.k-input-solid{
+    color: $tb-kendo-base-text;
+            border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+        
+}
+    .k-datepicker.k-input{
+    border-bottom-width: 1px;
+            border-left-width: 1px;
+            border-right-width: 1px;
+            border-top-width: 1px;
+        
+}
+    .k-datepicker.k-input .k-button.k-button-md.k-button-solid.k-button-solid-base.k-icon-button.k-input-button{
+    border-bottom-width: 0px;
+            border-left-width: 0px;
+            border-right-width: 0px;
+            border-top-width: 0px;
+            border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+        
+}
+    .k-daterangepicker .k-floating-label-container .k-label{
+                    @extend %tb-typography-kendo-default-bold-typography;
+          padding-bottom: 0px;
+            margin-bottom: 0px;
+            margin-left: 0px;
+            margin-right: 0px;
+            margin-top: -5px;
+            padding-top: 0px;
+        
+}
+    .k-datetimepicker.k-input .k-button.k-button-md.k-button-solid.k-button-solid-base.k-icon-button.k-input-button{
+    border-bottom-width: 0px;
+            border-left-width: 0px;
+            border-right-width: 0px;
+            border-top-width: 0px;
+            border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+        
+}
+    .k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-group-start,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched  .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md:first-child{
+    padding-top: 5px;
+            padding-right: 11px;
+            padding-bottom: 5px;
+            padding-left: 11px;
+        
+}
+    .k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-group-end.k-hover,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched  .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md:last-child.k-hover,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched  .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-group-end.k-state-hover,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched  .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-group-end.k-state-hovered,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched  .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-group-end:hover,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched  .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md:last-child.k-state-hover,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched  .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md:last-child.k-state-hovered,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched  .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md:last-child:hover{
+    padding-right: 11px;
+            padding-bottom: 5px;
+            padding-left: 11px;
+        
+}
+    .k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-group-end.k-hover,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md:last-child.k-hover,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-group-end.k-state-hover,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-group-end.k-state-hovered,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-group-end:hover,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md:last-child.k-state-hover,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md:last-child.k-state-hovered,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md:last-child:hover{
+    border-bottom-color: k-color( secondary-active );
+            border-left-color: k-color( secondary-active );
+            border-right-color: k-color( secondary-active );
+            border-top-color: k-color( secondary-active );
+            background-color: $tb-kendo-color-secondary;
+            background-image: none;
+            color: #FFFFFF;
+        
+}
+    .k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-group-end,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched  .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md:last-child{
+    padding-top: 5px;
+            padding-right: 11px;
+            padding-bottom: 5px;
+            padding-left: 11px;
+        
+}
+    .k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-group-end,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md:last-child{
+    color: $tb-kendo-color-primary;
+            background-color: $tb-kendo-base-bg;
+            background-image: none;
+            border-bottom-color: $tb-kendo-color-secondary;
+            border-left-color: $tb-kendo-color-secondary;
+            border-right-color: $tb-kendo-color-secondary;
+            border-top-color: $tb-kendo-color-secondary;
+        
+}
+    .k-datetime-footer.k-actions.k-actions-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-time-cancel{
+    padding-top: 5px;
+            padding-right: 11px;
+            padding-bottom: 5px;
+            padding-left: 11px;
+        
+}
+    .k-datetime-footer.k-actions.k-actions-stretched .k-button.k-button-md.k-button-solid.k-button-solid-primary.k-rounded-md.k-time-accept{
+    padding-top: 5px;
+            padding-right: 11px;
+            padding-bottom: 5px;
+            padding-left: 11px;
+            border-bottom-width: 0px;
+            border-left-width: 0px;
+            border-right-width: 0px;
+            border-top-width: 0px;
+        
+}
+    .k-datetimepicker.k-input.k-input-solid{
+    color: $tb-kendo-base-text;
+            border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+        
+}
+    .k-timepicker.k-input.k-input-solid{
+    color: $tb-kendo-base-text;
+            border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+        
+}
+    .k-timepicker.k-input .k-button.k-button-md.k-button-solid.k-button-solid-base.k-icon-button.k-input-button{
+    border-bottom-width: 0px;
+            border-left-width: 0px;
+            border-right-width: 0px;
+            border-top-width: 0px;
+            border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+        
+}
+    .k-timeselector .k-time-footer.k-actions.k-actions-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-time-cancel{
+    padding-right: 11px;
+            padding-top: 5px;
+            padding-bottom: 5px;
+            padding-left: 11px;
+        
+}
+    .k-timeselector .k-time-footer.k-actions.k-actions-stretched .k-button.k-button-md.k-button-solid.k-button-solid-primary.k-rounded-md.k-time-accept{
+    padding-top: 5px;
+            padding-right: 11px;
+            padding-bottom: 5px;
+            padding-left: 11px;
+        
+}
+    .k-dialog-wrapper .k-window.k-dialog .k-window-titlebar.k-dialog-titlebar{
+    color: #FFFFFF;
+            background-color: $tb-kendo-color-secondary;
+            background-image: none;
+        
+}
+    .k-dialog-wrapper .k-window.k-dialog .k-window-titlebar.k-dialog-titlebar .k-window-titlebar-actions.k-dialog-titlebar-actions .k-window-titlebar-action.k-dialog-titlebar-action.k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-icon-button .k-button-icon.k-icon.k-i-x{
+    color: #FFFFFF;
+        
+}
+    .k-dialog-wrapper .k-window.k-dialog .k-window-titlebar.k-dialog-titlebar .k-window-titlebar-actions.k-dialog-titlebar-actions .k-window-titlebar-action.k-dialog-titlebar-action.k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-icon-button.k-hover,.k-dialog-wrapper .k-window.k-dialog .k-window-titlebar.k-dialog-titlebar .k-window-titlebar-actions.k-dialog-titlebar-actions  .k-window-titlebar-action.k-dialog-titlebar-action.k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-icon-button.k-state-hover,.k-dialog-wrapper .k-window.k-dialog .k-window-titlebar.k-dialog-titlebar .k-window-titlebar-actions.k-dialog-titlebar-actions  .k-window-titlebar-action.k-dialog-titlebar-action.k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-icon-button.k-state-hovered,.k-dialog-wrapper .k-window.k-dialog .k-window-titlebar.k-dialog-titlebar .k-window-titlebar-actions.k-dialog-titlebar-actions  .k-window-titlebar-action.k-dialog-titlebar-action.k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-icon-button:hover{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-dialog-wrapper .k-window.k-dialog .k-window-titlebar.k-dialog-titlebar .k-window-titlebar-actions.k-dialog-titlebar-actions .k-window-titlebar-action.k-dialog-titlebar-action.k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-icon-button.k-focus,.k-dialog-wrapper .k-window.k-dialog .k-window-titlebar.k-dialog-titlebar .k-window-titlebar-actions.k-dialog-titlebar-actions  .k-window-titlebar-action.k-dialog-titlebar-action.k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-icon-button.k-state-focus,.k-dialog-wrapper .k-window.k-dialog .k-window-titlebar.k-dialog-titlebar .k-window-titlebar-actions.k-dialog-titlebar-actions  .k-window-titlebar-action.k-dialog-titlebar-action.k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-icon-button.k-state-focused,.k-dialog-wrapper .k-window.k-dialog .k-window-titlebar.k-dialog-titlebar .k-window-titlebar-actions.k-dialog-titlebar-actions  .k-window-titlebar-action.k-dialog-titlebar-action.k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-icon-button:focus{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-dialog-wrapper .k-window.k-dialog .k-window-titlebar.k-dialog-titlebar .k-window-titlebar-actions.k-dialog-titlebar-actions .k-window-titlebar-action.k-dialog-titlebar-action.k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-icon-button.k-active,.k-dialog-wrapper .k-window.k-dialog .k-window-titlebar.k-dialog-titlebar .k-window-titlebar-actions.k-dialog-titlebar-actions  .k-window-titlebar-action.k-dialog-titlebar-action.k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-icon-button.k-state-active,.k-dialog-wrapper .k-window.k-dialog .k-window-titlebar.k-dialog-titlebar .k-window-titlebar-actions.k-dialog-titlebar-actions  .k-window-titlebar-action.k-dialog-titlebar-action.k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-icon-button:active{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-dialog-wrapper .k-window.k-dialog .k-window-actions.k-dialog-actions.k-actions.k-actions-stretched{
+    padding-bottom: 8px;
+            padding-left: 8px;
+            padding-right: 8px;
+            padding-top: 8px;
+        
+}
+    .k-dialog-wrapper .k-window.k-dialog .k-window-content.k-dialog-content{
+                    @extend %tb-typography-kendo-default-typography;
+      
+}
+    .k-window .k-window-titlebar{
+                    @extend %tb-typography-kendo-title-typography;
+          color: #FFFFFF;
+            background-color: $tb-kendo-color-secondary;
+            background-image: none;
+        
+}
+    .k-window .k-window-titlebar .k-window-titlebar-actions .k-window-titlebar-action.k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-icon-button{
+    color: $tb-kendo-body-bg;
+        
+}
+    .k-window .k-window-titlebar .k-window-titlebar-actions .k-window-titlebar-action.k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-icon-button .k-icon.k-i-window-minimize.k-button-icon{
+    color: $tb-kendo-button-text;
+        
+}
+    .k-window .k-window-titlebar .k-window-titlebar-actions .k-window-titlebar-action.k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-icon-button .k-icon.k-i-window.k-button-icon{
+    color: $tb-kendo-button-text;
+        
+}
+    .k-window .k-window-titlebar .k-window-titlebar-actions .k-window-titlebar-action.k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-icon-button .k-icon.k-i-x.k-button-icon{
+    color: $tb-kendo-button-text;
+        
+}
+    .k-window .k-window-titlebar .k-window-titlebar-actions .k-window-titlebar-action.k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-icon-button.k-hover::after,.k-window .k-window-titlebar .k-window-titlebar-actions  .k-window-titlebar-action.k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-icon-button.k-state-hover::after,.k-window .k-window-titlebar .k-window-titlebar-actions  .k-window-titlebar-action.k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-icon-button.k-state-hovered::after,.k-window .k-window-titlebar .k-window-titlebar-actions  .k-window-titlebar-action.k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-icon-button:hover::after{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-grid.k-grid-md .k-grouping-header .k-chip-list.k-chip-list-md{
+    color: $tb-kendo-base-text;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table.k-table.k-table-md .k-table-tbody .k-table-row.k-master-row.k-grid-edit-row .k-command-cell .k-grid-edit-command{
+    padding-top: 5px;
+            padding-right: 11px;
+            padding-bottom: 5px;
+            padding-left: 11px;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table.k-table.k-table-md .k-table-tbody .k-table-row.k-master-row.k-grid-edit-row .k-command-cell .k-grid-save-command{
+    padding-top: 5px;
+            padding-right: 11px;
+            padding-bottom: 5px;
+            padding-left: 11px;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table.k-table.k-table-md .k-table-tbody .k-table-row.k-master-row.k-grid-edit-row .k-command-cell .k-grid-remove-command{
+    padding-top: 5px;
+            padding-right: 11px;
+            padding-bottom: 5px;
+            padding-left: 11px;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table.k-table.k-table-md .k-table-tbody .k-table-row.k-master-row.k-grid-edit-row .k-command-cell .k-grid-cancel-command{
+    padding-top: 5px;
+            padding-right: 11px;
+            padding-bottom: 5px;
+            padding-left: 11px;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table .k-master-row.k-table-row.k-grid-edit-row .k-grid-edit-cell .k-input{
+    border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table .k-grouping-row .k-reset .k-icon.k-i-caret-alt-right{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table .k-grouping-row .k-reset .k-icon.k-i-caret-alt-down{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table .k-table-thead .k-table-row.k-filter-row .k-table-th .k-filtercell .k-filtercell-wrapper .k-filtercell-operator .k-dropdownlist.k-picker.k-dropdown-operator.k-picker-md.k-rounded-md.k-picker-solid .k-input-button.k-button.k-icon-button.k-button-md.k-button-solid.k-button-solid-base{
+    margin-bottom: 0px;
+            margin-left: 0px;
+            margin-right: 0px;
+            margin-top: 0px;
+            padding-bottom: 10px;
+            padding-left: 10px;
+            padding-right: 10px;
+            padding-top: 10px;
+            border-bottom-width: 0px;
+            border-left-width: 0px;
+            border-right-width: 0px;
+            border-top-width: 0px;
+            border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+            outline-color: $tb-kendo-base-text;
+            outline-width: $tb-kendo-border-radius;
+            border-bottom-left-radius: $tb-kendo-border-radius;
+            border-bottom-right-radius: $tb-kendo-border-radius;
+            border-top-left-radius: $tb-kendo-border-radius;
+            border-top-right-radius: $tb-kendo-border-radius;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table .k-grouping-row >td{
+                    @extend %tb-typography-kendo-grid-header-typography;
+          color: $tb-kendo-base-text;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table.k-table .k-table-tbody .k-group-footer.k-table-row .k-group-cell.k-table-td{
+                    @extend %tb-typography-kendo-grid-header-typography;
+          color: $tb-kendo-base-text;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table.k-table .k-table-tbody .k-group-footer.k-table-row >td{
+                    @extend %tb-typography-kendo-grid-header-typography;
+          color: $tb-kendo-button-bg;
+        
+}
+    .k-pager .k-pager-numbers-wrap{
+                    @extend %tb-typography-kendo-grid-cell-typography;
+      
+}
+    .k-checkbox-wrap .k-checkbox-label{
+                    @extend %tb-typography-kendo-default-typography;
+      
+}
+    .k-checkbox-wrap .k-checkbox{
+    border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+        
+}
+    .k-maskedtextbox.k-input{
+    padding-top: 6px;
+            padding-bottom: 6px;
+        
+}
+    .k-maskedtextbox.k-input-solid{
+    color: $tb-kendo-base-text;
+            border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+        
+}
+    .k-numerictextbox.k-input-solid{
+    border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+        
+}
+    .k-numerictextbox .k-input-spinner.k-spin-button{
+    border-bottom-width: 0px;
+            border-left-width: 0px;
+            border-right-width: 0px;
+            border-top-width: 0px;
+        
+}
+    .k-numerictextbox .k-input-spinner.k-spin-button .k-button.k-button-md.k-button-solid.k-button-solid-base.k-icon-button.k-spinner-increase{
+    border-bottom-width: 0px;
+            border-left-width: 0px;
+            border-right-width: 0px;
+            border-top-width: 0px;
+        
+}
+    .k-numerictextbox .k-input-spinner.k-spin-button .k-button.k-button-md.k-button-solid.k-button-solid-base.k-icon-button.k-spinner-decrease{
+    border-bottom-width: 0px;
+            border-left-width: 0px;
+            border-right-width: 0px;
+            border-top-width: 0px;
+        
+}
+    .k-switch.k-switch-off .k-switch-track{
+    color: $tb-kendo-button-bg;
+            border-bottom-width: 1px;
+            border-left-width: 1px;
+            border-right-width: 1px;
+            border-top-width: 1px;
+            border-bottom-color: $tb-kendo-color-secondary;
+            border-left-color: $tb-kendo-color-secondary;
+            border-right-color: $tb-kendo-color-secondary;
+            border-top-color: $tb-kendo-color-secondary;
+            background-color: $tb-kendo-grid-selected;
+            background-image: none;
+        
+}
+    .k-switch.k-switch-off .k-switch-track .k-switch-label-off{
+                    @extend %tb-typography-kendo-default-typography;
+          padding-bottom: 0px;
+            padding-left: 0px;
+            padding-right: 0px;
+            padding-top: 0px;
+            color: $tb-kendo-button-bg;
+        
+}
+    .k-switch.k-switch-off .k-switch-thumb-wrap .k-switch-thumb{
+    border-bottom-width: 1px;
+            border-left-width: 1px;
+            border-right-width: 1px;
+            border-top-width: 1px;
+            border-bottom-color: $tb-kendo-color-secondary;
+            border-left-color: $tb-kendo-color-secondary;
+            border-right-color: $tb-kendo-color-secondary;
+            border-top-color: $tb-kendo-color-secondary;
+            background-color: $tb-kendo-body-bg;
+            background-image: none;
+        
+}
+    .k-switch.k-switch-off{
+    padding-bottom: 10px;
+            padding-left: 10px;
+            padding-right: 10px;
+            padding-top: 10px;
+            border-bottom-width: 1px;
+            border-left-width: 1px;
+            border-right-width: 1px;
+            border-top-width: 1px;
+            border-bottom-color: $tb-kendo-input-border;
+            border-bottom-style: solid;
+            border-left-color: $tb-kendo-input-border;
+            border-left-style: solid;
+            border-right-color: $tb-kendo-input-border;
+            border-right-style: solid;
+            border-top-color: $tb-kendo-input-border;
+            border-top-style: solid;
+        
+}
+    .k-switch.k-switch-off.k-hover .k-switch-track, .k-switch.k-switch-off.k-state-hover .k-switch-track, .k-switch.k-switch-off.k-state-hovered .k-switch-track, .k-switch.k-switch-off:hover .k-switch-track{
+    background-color: $tb-kendo-color-secondary;
+            background-image: none;
+            color: $tb-kendo-base-bg;
+        
+}
+    .k-switch.k-switch-off.k-hover .k-switch-track .k-switch-label-off, .k-switch.k-switch-off.k-state-hover .k-switch-track .k-switch-label-off, .k-switch.k-switch-off.k-state-hovered .k-switch-track .k-switch-label-off, .k-switch.k-switch-off:hover .k-switch-track .k-switch-label-off{
+    color: $tb-kendo-body-bg;
+        
+}
+    .k-switch.k-switch-on{
+    padding-bottom: 0px;
+            padding-left: 0px;
+            padding-right: 0px;
+            padding-top: 0px;
+        
+}
+    .k-switch.k-switch-on.k-switch-md{
+                    @extend %tb-typography-kendo-default-typography;
+      
+}
+    .k-switch.k-switch-on .k-switch-track{
+    padding-bottom: 10px;
+            padding-left: 10px;
+            padding-right: 10px;
+            padding-top: 10px;
+        
+}
+    .k-switch.k-switch-off.k-focus .k-switch-track, .k-switch.k-switch-off.k-state-focus .k-switch-track, .k-switch.k-switch-off.k-state-focused .k-switch-track, .k-switch.k-switch-off:focus .k-switch-track{
+    color: $tb-kendo-color-secondary;
+            background-color: $tb-kendo-color-secondary;
+            background-image: none;
+        
+}
+    .k-switch.k-switch-off.k-focus .k-switch-track .k-switch-label-off, .k-switch.k-switch-off.k-state-focus .k-switch-track .k-switch-label-off, .k-switch.k-switch-off.k-state-focused .k-switch-track .k-switch-label-off, .k-switch.k-switch-off:focus .k-switch-track .k-switch-label-off{
+    color: $tb-kendo-body-bg;
+        
+}
+    .k-switch.k-switch-on .k-switch-thumb-wrap .k-switch-thumb{
+    border-bottom-color: $tb-kendo-button-bg;
+            border-left-color: $tb-kendo-button-bg;
+            border-right-color: $tb-kendo-button-bg;
+            border-top-color: $tb-kendo-button-bg;
+        
+}
+    .k-switch.k-switch-on.k-hover .k-switch-track, .k-switch.k-switch-on.k-state-hover .k-switch-track, .k-switch.k-switch-on.k-state-hovered .k-switch-track, .k-switch.k-switch-on:hover .k-switch-track{
+    border-bottom-color: $tb-kendo-button-primary-hover;
+            border-left-color: $tb-kendo-button-primary-hover;
+            border-right-color: $tb-kendo-button-primary-hover;
+            border-top-color: $tb-kendo-button-primary-hover;
+            background-color: $tb-kendo-button-primary-hover;
+            background-image: none;
+        
+}
+    .k-switch.k-switch-on.k-hover .k-switch-thumb-wrap .k-switch-thumb, .k-switch.k-switch-on.k-state-hover .k-switch-thumb-wrap .k-switch-thumb, .k-switch.k-switch-on.k-state-hovered .k-switch-thumb-wrap .k-switch-thumb, .k-switch.k-switch-on:hover .k-switch-thumb-wrap .k-switch-thumb{
+    border-bottom-color: $tb-kendo-button-primary-hover;
+            border-left-color: $tb-kendo-button-primary-hover;
+            border-right-color: $tb-kendo-button-primary-hover;
+            border-top-color: $tb-kendo-button-primary-hover;
+        
+}
+    .k-switch.k-switch-on.k-focus .k-switch-track, .k-switch.k-switch-on.k-state-focus .k-switch-track, .k-switch.k-switch-on.k-state-focused .k-switch-track, .k-switch.k-switch-on:focus .k-switch-track{
+    border-bottom-color: $tb-kendo-button-primary-hover;
+            border-left-color: $tb-kendo-button-primary-hover;
+            border-right-color: $tb-kendo-button-primary-hover;
+            border-top-color: $tb-kendo-button-primary-hover;
+            background-color: $tb-kendo-button-primary-hover;
+            background-image: none;
+        
+}
+    .k-textbox.k-input.k-input-solid{
+    padding-top: 6px;
+            padding-bottom: 6px;
+            border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+            color: $tb-kendo-base-text;
+        
+}
+    .k-textbox.k-input.k-input-solid .k-input-inner{
+    padding-top: 4px;
+            padding-bottom: 4px;
+        
+}
+    .k-textbox.k-input.k-input-solid.k-invalid, .k-textbox.k-input.k-input-solid.ng-invalid.ng-touched, .k-textbox.k-input.k-input-solid.ng-invalid.ng-dirty{
+    border-bottom-color: $tb-kendo-color-error;
+            border-left-color: $tb-kendo-color-error;
+            border-right-color: $tb-kendo-color-error;
+            border-top-color: $tb-kendo-color-error;
+            border-bottom-width: 2px;
+            border-left-width: 2px;
+            border-right-width: 2px;
+            border-top-width: 2px;
+        
+}
+    .k-textbox.k-input.k-input-solid.k-invalid.k-rounded-md, .k-textbox.k-input.k-input-solid.ng-invalid.ng-touched.k-rounded-md, .k-textbox.k-input.k-input-solid.ng-invalid.ng-dirty.k-rounded-md{
+    border-bottom-left-radius: unset;
+            border-bottom-right-radius: unset;
+            border-top-left-radius: unset;
+            border-top-right-radius: unset;
+        
+}
+    .k-textarea.k-input-solid{
+    color: $tb-kendo-base-text;
+            border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+        
+}
+    .k-textarea.k-input{
+                    @extend %tb-typography-kendo-default-typography;
+      
+}
+    .k-textarea.k-invalid, .k-textarea.ng-invalid.ng-touched, .k-textarea.ng-invalid.ng-dirty{
+    border-bottom-color: $tb-kendo-color-error;
+            border-left-color: $tb-kendo-color-error;
+            border-right-color: $tb-kendo-color-error;
+            border-top-color: $tb-kendo-color-error;
+        
+}
+    .k-textarea.k-invalid.k-input, .k-textarea.ng-invalid.ng-touched.k-input, .k-textarea.ng-invalid.ng-dirty.k-input{
+    border-bottom-width: 2px;
+            border-left-width: 2px;
+            border-right-width: 2px;
+            border-top-width: 2px;
+        
+}
+    .k-numerictextbox.k-invalid.k-input, .k-numerictextbox.ng-invalid.ng-touched.k-input, .k-numerictextbox.ng-invalid.ng-dirty.k-input{
+    border-bottom-width: 2px;
+            border-left-width: 2px;
+            border-right-width: 2px;
+            border-top-width: 2px;
+        
+}
+    .k-numerictextbox.k-invalid, .k-numerictextbox.ng-invalid.ng-touched, .k-numerictextbox.ng-invalid.ng-dirty{
+    border-bottom-color: $tb-kendo-color-error;
+            border-left-color: $tb-kendo-color-error;
+            border-right-color: $tb-kendo-color-error;
+            border-top-color: $tb-kendo-color-error;
+        
+}
+    .k-maskedtextbox.k-invalid.k-input, .k-maskedtextbox.ng-invalid.ng-touched.k-input, .k-maskedtextbox.ng-invalid.ng-dirty.k-input{
+    border-bottom-width: 2px;
+            border-left-width: 2px;
+            border-right-width: 2px;
+            border-top-width: 2px;
+        
+}
+    .k-maskedtextbox.k-invalid, .k-maskedtextbox.ng-invalid.ng-touched, .k-maskedtextbox.ng-invalid.ng-dirty{
+    border-bottom-color: $tb-kendo-color-error;
+            border-left-color: $tb-kendo-color-error;
+            border-right-color: $tb-kendo-color-error;
+            border-top-color: $tb-kendo-color-error;
+        
+}
+    .k-checkbox-wrap .k-checkbox.k-invalid.k-invalid,.k-checkbox-wrap  .k-checkbox.ng-invalid.ng-touched.ng-invalid.ng-touched,.k-checkbox-wrap  .k-checkbox.ng-invalid.ng-dirty.ng-invalid.ng-dirty,.k-checkbox-wrap  .k-checkbox.ng-invalid.ng-touched.ng-invalid.ng-touched,.k-checkbox-wrap  .k-checkbox.ng-invalid.ng-dirty.ng-invalid.ng-dirty,.k-checkbox-wrap  .k-checkbox.ng-invalid.ng-touched.ng-invalid.ng-touched,.k-checkbox-wrap  .k-checkbox.ng-invalid.ng-touched.ng-invalid.ng-touched,.k-checkbox-wrap  .k-checkbox.ng-invalid.ng-dirty.ng-invalid.ng-dirty,.k-checkbox-wrap  .k-checkbox.ng-invalid.ng-dirty.ng-invalid.ng-dirty{
+    border-bottom-width: 2px;
+            border-left-width: 2px;
+            border-right-width: 2px;
+            border-top-width: 2px;
+            border-bottom-color: $tb-kendo-color-error;
+            border-left-color: $tb-kendo-color-error;
+            border-right-color: $tb-kendo-color-error;
+            border-top-color: $tb-kendo-color-error;
+        
+}
+    .k-radio.k-invalid, .k-radio.ng-invalid.ng-touched, .k-radio.ng-invalid.ng-dirty{
+    border-bottom-width: 2px;
+            border-left-width: 2px;
+            border-right-width: 2px;
+            border-top-width: 2px;
+            border-bottom-color: $tb-kendo-color-error;
+            border-left-color: $tb-kendo-color-error;
+            border-right-color: $tb-kendo-color-error;
+            border-top-color: $tb-kendo-color-error;
+        
+}
+    .k-label{
+                    @extend %tb-typography-kendo-default-typography;
+          color: $tb-kendo-base-text;
+            padding-bottom: 4px;
+            padding-left: 4px;
+            padding-right: 4px;
+            padding-top: 4px;
+        
+}
+    .k-label.k-text-error{
+    color: $tb-kendo-color-error;
+        
+}
+    .k-label.k-text-disabled{
+    color: $tb-kendo-disabled-text;
+        
+}
+    .k-form-error.k-text-start{
+    color: $tb-kendo-color-error;
+            padding-bottom: 4px;
+            padding-left: 4px;
+            padding-right: 4px;
+            padding-top: 4px;
+        
+}
+    .k-form-hint.k-text-start{
+                    @extend %tb-typography-kendo-grid-cell-typography;
+          color: $tb-kendo-color-secondary;
+            padding-bottom: 4px;
+            padding-left: 4px;
+            padding-right: 4px;
+            padding-top: 4px;
+        
+}
+    .k-floating-label-container .k-label{
+    padding-bottom: 0px;
+            padding-left: 0px;
+            padding-right: 0px;
+            padding-top: 0px;
+        
+}
+    .k-treeview.k-treeview-md{
+                    @extend %tb-typography-kendo-default-typography;
+      
+}
+    .k-treeview .k-treeview-lines.k-treeview-group .k-treeview-item .k-treeview-toggle .k-icon.k-i-caret-alt-down{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-treeview .k-treeview-lines.k-treeview-group .k-treeview-item .k-treeview-toggle .k-icon.k-i-caret-alt-right{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-grid.k-treelist-scrollable{
+                    @extend %tb-typography-kendo-default-typography;
+      
+}
+    .k-grid.k-treelist-scrollable .k-table.k-grid-table .k-table-thead.k-grid-header{
+                    @extend %tb-typography-kendo-grid-header-typography;
+      
+}
+    .k-grid.k-treelist-scrollable .k-table.k-grid-table .k-table-tbody{
+    color: $tb-kendo-base-text;
+        
+}
+    .k-grid.k-grid-md.k-treelist-scrollable .k-table.k-table-md.k-grid-table .k-table-tbody .k-table-row.k-master-row .k-table-td.k-text-nowrap .k-icon.k-i-caret-alt-right{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-grid.k-grid-md.k-treelist-scrollable .k-table.k-table-md.k-grid-table .k-table-tbody .k-table-row.k-master-row .k-table-td.k-text-nowrap .k-icon.k-i-caret-alt-down{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-grid.k-grid-md.k-treelist-scrollable .k-table.k-table-md.k-grid-table .k-table-tbody .k-table-row.k-master-row{
+                    @extend %tb-typography-kendo-grid-cell-typography;
+      
+}
+    .k-grid.k-grid-md.k-treelist-scrollable .k-table.k-table-md.k-grid-table .k-table-tbody .k-table-row.k-master-row.k-alt{
+    background-color: $tb-kendo-grid-alternate-row;
+            background-image: none;
+        
+}
+    .k-grid.k-grid-md.k-treelist-scrollable .k-table.k-table-md.k-grid-table .k-table-tbody .k-table-row.k-master-row.k-selected .k-table-td.k-text-nowrap{
+    color: $tb-kendo-button-bg;
+            background-color: $tb-kendo-grid-selected;
+            background-image: none;
+            font-weight: 600;
+        
+}
+    .k-grid.k-grid-md.k-treelist-scrollable .k-table.k-table-md.k-grid-table .k-table-tbody .k-table-row.k-master-row.k-selected{
+    background-color: $tb-kendo-button-bg;
+            background-image: none;
+            color: #FFFFFF;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table.k-table .k-table-tbody .k-table-row.k-master-row{
+                    @extend %tb-typography-kendo-grid-cell-typography;
+          color: $tb-kendo-body-text;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table.k-table .k-table-tbody .k-table-row.k-master-row.k-hover,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table.k-table .k-table-tbody  .k-table-row.k-master-row.k-state-hover,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table.k-table .k-table-tbody  .k-table-row.k-master-row.k-state-hovered,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table.k-table .k-table-tbody  .k-table-row.k-master-row:hover{
+    background-color: $tb-kendo-hover-bg;
+            background-image: none;
+            color: $tb-kendo-button-bg;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table.k-table .k-table-tbody .k-master-row.k-table-row.k-alt{
+    background-color: $tb-kendo-grid-alternate-row;
+            background-image: none;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table.k-table .k-table-tbody .k-master-row.k-table-row.k-selected{
+    background-color: $tb-kendo-grid-selected;
+            background-image: none;
+            color: $tb-kendo-button-bg;
+            font-weight: 600;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table.k-table .k-table-tbody .k-master-row.k-table-row.k-selected >td{
+    background-color: initial;
+            background-image: none;
+            font-weight: 600;
+        
+}
+    .k-popup .k-grid-columnmenu-popup .k-columnmenu-item-wrapper .k-columnmenu-item .k-icon.k-i-filter{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-popup .k-grid-columnmenu-popup .k-columnmenu-item-wrapper .k-columnmenu-item .k-icon.k-i-sort-asc-small{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table.k-table-md .k-table-thead .k-table-row .k-header.k-table-th.k-filterable .k-cell-inner .k-grid-column-menu.k-grid-header-menu .k-icon.k-i-more-vertical{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table.k-table-md .k-table-thead .k-table-row .k-header.k-table-th.k-filterable .k-cell-inner .k-grid-column-menu.k-grid-header-menu{
+    background-color: $tb-kendo-body-bg;
+            background-image: none;
+        
+}
+    .k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table.k-table-md .k-table-thead .k-table-row .k-header.k-table-th.k-filterable.k-focus .k-cell-inner .k-grid-column-menu.k-grid-header-menu,.k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table.k-table-md .k-table-thead .k-table-row  .k-header.k-table-th.k-filterable.k-state-focus .k-cell-inner .k-grid-column-menu.k-grid-header-menu,.k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table.k-table-md .k-table-thead .k-table-row  .k-header.k-table-th.k-filterable.k-state-focused .k-cell-inner .k-grid-column-menu.k-grid-header-menu,.k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table.k-table-md .k-table-thead .k-table-row  .k-header.k-table-th.k-filterable:focus .k-cell-inner .k-grid-column-menu.k-grid-header-menu{
+    background-color: $tb-kendo-button-secondary-hover;
+            background-image: none;
+            color: $tb-kendo-body-bg;
+        
+}
+    .k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table.k-table-md .k-table-thead .k-table-row .k-header.k-table-th.k-filterable.k-focus .k-cell-inner .k-grid-column-menu.k-grid-header-menu .k-icon.k-i-more-vertical,.k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table.k-table-md .k-table-thead .k-table-row  .k-header.k-table-th.k-filterable.k-state-focus .k-cell-inner .k-grid-column-menu.k-grid-header-menu .k-icon.k-i-more-vertical,.k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table.k-table-md .k-table-thead .k-table-row  .k-header.k-table-th.k-filterable.k-state-focused .k-cell-inner .k-grid-column-menu.k-grid-header-menu .k-icon.k-i-more-vertical,.k-grid.k-grid-md .k-grid-header .k-grid-header-wrap .k-table.k-grid-header-table.k-table-md .k-table-thead .k-table-row  .k-header.k-table-th.k-filterable:focus .k-cell-inner .k-grid-column-menu.k-grid-header-menu .k-icon.k-i-more-vertical{
+    color: $tb-kendo-body-bg;
+        
+}
+    .k-grid.k-grid-md.k-treelist-scrollable .k-toolbar.k-grid-toolbar{
+    background-color: $tb-kendo-grid-alternate-row;
+            background-image: none;
+        
+}
+    .k-grid.k-grid-md.k-treelist-scrollable .k-table.k-table-md.k-grid-table .k-table-tbody .k-table-row.k-master-row .k-table-td.k-text-nowrap{
+                    @extend %tb-typography-kendo-grid-cell-typography;
+      
+}
+    .k-grid.k-grid-md.k-treelist-scrollable .k-table.k-table-md.k-grid-table .k-table-tbody .k-table-row.k-master-row.k-hover .k-table-td.k-text-nowrap,.k-grid.k-grid-md.k-treelist-scrollable .k-table.k-table-md.k-grid-table .k-table-tbody  .k-table-row.k-master-row.k-state-hover .k-table-td.k-text-nowrap,.k-grid.k-grid-md.k-treelist-scrollable .k-table.k-table-md.k-grid-table .k-table-tbody  .k-table-row.k-master-row.k-state-hovered .k-table-td.k-text-nowrap,.k-grid.k-grid-md.k-treelist-scrollable .k-table.k-table-md.k-grid-table .k-table-tbody  .k-table-row.k-master-row:hover .k-table-td.k-text-nowrap{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-grid.k-grid-md.k-treelist-scrollable .k-table.k-table-md.k-grid-table .k-table-tbody .k-table-row.k-master-row.k-hover .k-table-td,.k-grid.k-grid-md.k-treelist-scrollable .k-table.k-table-md.k-grid-table .k-table-tbody  .k-table-row.k-master-row.k-state-hover .k-table-td,.k-grid.k-grid-md.k-treelist-scrollable .k-table.k-table-md.k-grid-table .k-table-tbody  .k-table-row.k-master-row.k-state-hovered .k-table-td,.k-grid.k-grid-md.k-treelist-scrollable .k-table.k-table-md.k-grid-table .k-table-tbody  .k-table-row.k-master-row:hover .k-table-td{
+    color: $tb-kendo-button-bg;
+        
+}
+    .k-grid.k-grid-md.k-treelist-scrollable .k-table.k-table-md.k-grid-table .k-table-tbody .k-table-row.k-master-row.k-selected .k-table-td{
+    color: $tb-kendo-button-bg;
+            background-color: $tb-kendo-grid-selected;
+            background-image: none;
+            font-weight: 600;
+        
+}
+    .k-grid.k-grid-md.k-treelist-scrollable .k-table.k-table-md.k-grid-table .k-table-tbody .k-table-row.k-master-row .k-button{
+    padding-top: 5px;
+            padding-right: 11px;
+            padding-bottom: 5px;
+            padding-left: 11px;
+        
+}
+    .k-scheduler .k-scheduler-layout-flex.k-scheduler-layout .k-scheduler-cell.k-selected{
+    background-color: $tb-kendo-grid-selected;
+            background-image: none;
+            color: $tb-kendo-button-bg;
+            font-weight: 600;
+        
+}
+    .k-tooltip{
+    background-color: $tb-kendo-button-secondary-hover;
+            background-image: none;
+        
+}
+    .k-tooltip .k-callout.k-callout-n{
+    color: $tb-kendo-button-secondary-hover;
+        
+}
+    .k-tooltip .k-callout.k-callout-s{
+    color: $tb-kendo-color-secondary;
+        
+}
+    .k-tooltip .k-callout.k-callout-w{
+    color: $tb-kendo-color-secondary;
+        
+}
+    .k-tooltip .k-callout.k-callout-e{
+    color: $tb-kendo-color-secondary;
+        
+}
+    .k-textbox.k-input.k-input-solid.k-focus, .k-textbox.k-input.k-input-solid.k-state-focus, .k-textbox.k-input.k-input-solid.k-state-focused, .k-textbox.k-input.k-input-solid:focus{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+        
+}
+    .k-textbox.k-input.k-input-outline.k-focus .k-input-inner, .k-textbox.k-input.k-input-outline.k-state-focus .k-input-inner, .k-textbox.k-input.k-input-outline.k-state-focused .k-input-inner, .k-textbox.k-input.k-input-outline:focus .k-input-inner{
+    border-bottom-color: initial;
+            border-bottom-style: solid;
+            border-bottom-width: 1px;
+            border-left-color: initial;
+            border-left-style: solid;
+            border-left-width: 1px;
+            border-right-color: initial;
+            border-right-style: solid;
+            border-right-width: 1px;
+            border-top-color: initial;
+            border-top-style: solid;
+            border-top-width: 1px;
+        
+}
+    .k-textbox.k-input.k-input-solid.k-invalid.k-focus, .k-textbox.k-input.k-input-solid.ng-invalid.ng-touched.k-focus, .k-textbox.k-input.k-input-solid.ng-invalid.ng-dirty.k-focus, .k-textbox.k-input.k-input-solid.k-invalid.k-state-focus, .k-textbox.k-input.k-input-solid.k-invalid.k-state-focused, .k-textbox.k-input.k-input-solid.k-invalid:focus, .k-textbox.k-input.k-input-solid.ng-invalid.ng-touched.k-state-focus, .k-textbox.k-input.k-input-solid.ng-invalid.ng-touched.k-state-focused, .k-textbox.k-input.k-input-solid.ng-invalid.ng-touched:focus, .k-textbox.k-input.k-input-solid.ng-invalid.ng-dirty.k-state-focus, .k-textbox.k-input.k-input-solid.ng-invalid.ng-dirty.k-state-focused, .k-textbox.k-input.k-input-solid.ng-invalid.ng-dirty:focus{
+    border-bottom-width: 1px;
+            border-left-width: 1px;
+            border-right-width: 1px;
+            border-top-width: 1px;
+            border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+        
+}
+    .k-numerictextbox.k-state-focus-within, .k-numerictextbox:focus-within{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+        
+}
+    .k-maskedtextbox.k-state-focus-within, .k-maskedtextbox:focus-within{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+        
+}
+    .k-textarea.k-state-focus-within, .k-textarea:focus-within{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+        
+}
+    .k-dropdownlist.k-focus, .k-dropdownlist.k-state-focus, .k-dropdownlist.k-state-focused, .k-dropdownlist:focus{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+            border-bottom-left-radius: $tb-kendo-border-radius;
+            border-bottom-right-radius: $tb-kendo-border-radius;
+            border-top-left-radius: $tb-kendo-border-radius;
+            border-top-right-radius: $tb-kendo-border-radius;
+            outline-color: $tb-kendo-input-focus-border;
+        
+}
+    .k-dropdownlist.k-focus.k-picker, .k-dropdownlist.k-state-focus.k-picker, .k-dropdownlist.k-state-focused.k-picker, .k-dropdownlist:focus.k-picker{
+    outline-style: solid;
+            outline-width: $tb-kendo-border-radius;
+        
+}
+    .k-autocomplete.k-input.k-state-focus-within, .k-autocomplete.k-input:focus-within{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+            outline-color: $tb-kendo-input-focus-border;
+        
+}
+    .k-dropdowntree.k-focus, .k-dropdowntree.k-state-focus, .k-dropdowntree.k-state-focused, .k-dropdowntree:focus{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+            outline-color: $tb-kendo-input-focus-border;
+        
+}
+    .k-multiselect.k-input.k-focus, .k-multiselect.k-input.k-state-focus, .k-multiselect.k-input.k-state-focused, .k-multiselect.k-input:focus{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+            outline-color: $tb-kendo-input-focus-border;
+        
+}
+    .k-combobox.k-input.k-state-focus-within, .k-combobox.k-input:focus-within{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+            outline-color: $tb-kendo-input-focus-border;
+        
+}
+    .k-checkbox-wrap .k-checkbox.k-focus,.k-checkbox-wrap  .k-checkbox.k-state-focus,.k-checkbox-wrap  .k-checkbox.k-state-focused,.k-checkbox-wrap  .k-checkbox:focus{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+        
+}
+    .k-checkbox-wrap .k-checkbox.k-checked.k-focus,.k-checkbox-wrap  .k-checkbox:checked.k-focus,.k-checkbox-wrap  .k-checkbox.k-checked.k-state-focus,.k-checkbox-wrap  .k-checkbox.k-checked.k-state-focused,.k-checkbox-wrap  .k-checkbox.k-checked:focus,.k-checkbox-wrap  .k-checkbox:checked.k-state-focus,.k-checkbox-wrap  .k-checkbox:checked.k-state-focused,.k-checkbox-wrap  .k-checkbox:checked:focus{
+    border-bottom-color: $tb-kendo-color-primary;
+            border-left-color: $tb-kendo-color-primary;
+            border-right-color: $tb-kendo-color-primary;
+            border-top-color: $tb-kendo-color-primary;
+        
+}
+    .k-radio.k-focus, .k-radio.k-state-focus, .k-radio.k-state-focused, .k-radio:focus{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+        
+}
+    .k-radio{
+    border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+        
+}
+    .k-notification-group .k-notification-container .k-notification{
+    padding-top: 10px;
+            padding-bottom: 10px;
+            border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table .k-master-row.k-table-row.k-grid-edit-row .k-grid-edit-cell.k-focus .k-input,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table .k-master-row.k-table-row.k-grid-edit-row  .k-grid-edit-cell.k-state-focus .k-input,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table .k-master-row.k-table-row.k-grid-edit-row  .k-grid-edit-cell.k-state-focused .k-input,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-grid-table .k-master-row.k-table-row.k-grid-edit-row  .k-grid-edit-cell:focus .k-input{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+        
+}
+    .k-grid.k-grid-md .k-grid-container .k-grid-content .k-table.k-grid-table.k-table-md .k-table-tbody .k-master-row.k-table-row td.k-focus,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-table.k-grid-table.k-table-md .k-table-tbody .k-master-row.k-table-row  td.k-state-focus,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-table.k-grid-table.k-table-md .k-table-tbody .k-master-row.k-table-row  td.k-state-focused,.k-grid.k-grid-md .k-grid-container .k-grid-content .k-table.k-grid-table.k-table-md .k-table-tbody .k-master-row.k-table-row  td:focus{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+        
+}
+    .k-dropdownlist.k-hover .k-input-button, .k-dropdownlist.k-state-hover .k-input-button, .k-dropdownlist.k-state-hovered .k-input-button, .k-dropdownlist:hover .k-input-button{
+    outline-width: $tb-kendo-border-radius;
+        
+}
+    .k-combobox.k-input .k-input-button{
+    outline-color: $tb-kendo-button-text;
+            outline-width: $tb-kendo-border-radius;
+        
+}
+    .k-combobox.k-input.k-invalid.k-state-focus-within, .k-combobox.k-input.ng-invalid.ng-touched.k-state-focus-within, .k-combobox.k-input.ng-invalid.ng-dirty.k-state-focus-within, .k-combobox.k-input.k-invalid:focus-within, .k-combobox.k-input.ng-invalid.ng-touched:focus-within, .k-combobox.k-input.ng-invalid.ng-dirty:focus-within{
+    outline-color: $tb-kendo-color-error;
+        
+}
+    .k-popup.k-list-container.k-dropdownlist-popup{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+            border-bottom-width: 1px;
+            border-left-width: 1px;
+            border-right-width: 1px;
+            border-top-width: 0px;
+            border-top-style: solid;
+        
+}
+    .k-dropdowntree.k-invalid, .k-dropdowntree.ng-invalid.ng-touched, .k-dropdowntree.ng-invalid.ng-dirty{
+    border-bottom-color: $tb-kendo-color-error;
+            border-left-color: $tb-kendo-color-error;
+            border-right-color: $tb-kendo-color-error;
+            border-top-color: $tb-kendo-color-error;
+        
+}
+    .k-dropdowntree.k-invalid.k-picker, .k-dropdowntree.ng-invalid.ng-touched.k-picker, .k-dropdowntree.ng-invalid.ng-dirty.k-picker{
+    outline-color: $tb-kendo-color-error;
+        
+}
+    .k-popup.k-dropdowntree-popup{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+            border-top-style: solid;
+            border-top-width: 0px;
+            border-bottom-left-radius: $tb-kendo-border-radius;
+            border-bottom-right-radius: $tb-kendo-border-radius;
+            border-top-left-radius: $tb-kendo-border-radius;
+            border-top-right-radius: $tb-kendo-border-radius;
+            outline-color: $tb-kendo-input-focus-border;
+            outline-style: solid;
+            outline-width: $tb-kendo-border-radius;
+        
+}
+    .k-combobox.k-input.k-invalid, .k-combobox.k-input.ng-invalid.ng-touched, .k-combobox.k-input.ng-invalid.ng-dirty{
+    border-bottom-color: $tb-kendo-color-error;
+            border-left-color: $tb-kendo-color-error;
+            border-right-color: $tb-kendo-color-error;
+            border-top-color: $tb-kendo-color-error;
+            outline-color: $tb-kendo-color-error;
+        
+}
+    .k-popup.k-list-container.k-combobox-popup .k-list.k-list-md{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-bottom-style: solid;
+            border-bottom-width: 0px;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-left-style: solid;
+            border-left-width: 0px;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-right-style: solid;
+            border-right-width: 0px;
+            border-top-color: $tb-kendo-input-focus-border;
+            border-top-style: solid;
+            border-top-width: 0px;
+        
+}
+    .k-autocomplete.k-input.k-invalid, .k-autocomplete.k-input.ng-invalid.ng-touched, .k-autocomplete.k-input.ng-invalid.ng-dirty{
+    border-bottom-color: $tb-kendo-color-error;
+            border-left-color: $tb-kendo-color-error;
+            border-right-color: $tb-kendo-color-error;
+            border-top-color: $tb-kendo-color-error;
+            outline-color: $tb-kendo-color-error;
+        
+}
+    .k-popup.k-list-container.k-autocomplete-popup .k-list.k-list-md{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-bottom-style: solid;
+            border-bottom-width: 1px;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-left-style: solid;
+            border-left-width: 1px;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-right-style: solid;
+            border-right-width: 1px;
+            border-top-color: $tb-kendo-input-focus-border;
+            border-top-style: solid;
+            border-top-width: 1px;
+        
+}
+    .k-multiselect.k-input.k-invalid, .k-multiselect.k-input.ng-invalid.ng-touched, .k-multiselect.k-input.ng-invalid.ng-dirty{
+    border-bottom-color: $tb-kendo-color-error;
+            border-left-color: $tb-kendo-color-error;
+            border-right-color: $tb-kendo-color-error;
+            border-top-color: $tb-kendo-color-error;
+            outline-color: $tb-kendo-color-error;
+        
+}
+    .k-popup.k-list-container{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+            border-top-style: solid;
+            border-top-width: 0px;
+            background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-popup.k-menu-popup .k-group.k-menu-group{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-bottom-style: solid;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-left-style: solid;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-right-style: solid;
+            border-top-color: $tb-kendo-input-focus-border;
+            border-top-style: solid;
+            background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-popup.k-menu-popup .k-group.k-menu-group.k-reset{
+    border-bottom-width: 1px;
+            border-left-width: 1px;
+            border-right-width: 1px;
+            border-top-width: 1px;
+        
+}
+    .k-list-filter .k-textbox.k-state-focus-within,.k-list-filter  .k-textbox:focus-within{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+        
+}
+    .k-dropdownlist.k-invalid, .k-dropdownlist.ng-invalid.ng-touched, .k-dropdownlist.ng-invalid.ng-dirty{
+    border-bottom-color: $tb-kendo-color-error;
+            border-left-color: $tb-kendo-color-error;
+            border-right-color: $tb-kendo-color-error;
+            border-top-color: $tb-kendo-color-error;
+        
+}
+    .k-popup.k-list-container.k-autocomplete-popup{
+    border-top-color: $tb-kendo-input-focus-border;
+            border-top-style: solid;
+            border-top-width: 0px;
+            border-bottom-left-radius: $tb-kendo-border-radius;
+            border-bottom-right-radius: $tb-kendo-border-radius;
+            border-top-left-radius: $tb-kendo-border-radius;
+            border-top-right-radius: $tb-kendo-border-radius;
+            outline-color: $tb-kendo-input-focus-border;
+            outline-style: solid;
+            outline-width: $tb-kendo-border-radius;
+            border-bottom-width: 0px;
+            border-left-width: 0px;
+            border-right-width: 0px;
+            width: auto;
+        
+}
+    .k-popup.k-menu-popup{
+    border-top-color: $tb-kendo-input-focus-border;
+            border-top-style: solid;
+            border-top-width: 0px;
+            border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-reset.k-header.k-menu.k-menu-horizontal .k-item.k-menu-item .k-link.k-menu-link.k-active,.k-reset.k-header.k-menu.k-menu-horizontal .k-item.k-menu-item  .k-link.k-menu-link.k-state-active,.k-reset.k-header.k-menu.k-menu-horizontal .k-item.k-menu-item  .k-link.k-menu-link:active{
+    background-color: $tb-kendo-body-bg;
+            background-image: none;
+            border-bottom-width: 5px;
+            border-bottom-color: $tb-kendo-color-primary;
+            border-bottom-style: solid;
+        
+}
+    .k-reset.k-header.k-menu.k-menu-horizontal .k-item.k-menu-item.k-hover .k-link.k-menu-link,.k-reset.k-header.k-menu.k-menu-horizontal  .k-item.k-menu-item.k-state-hover .k-link.k-menu-link,.k-reset.k-header.k-menu.k-menu-horizontal  .k-item.k-menu-item.k-state-hovered .k-link.k-menu-link,.k-reset.k-header.k-menu.k-menu-horizontal  .k-item.k-menu-item:hover .k-link.k-menu-link{
+    border-bottom-width: 5px;
+            border-bottom-color: $tb-kendo-button-bg;
+            border-bottom-style: solid;
+        
+}
+    .k-reset.k-header.k-menu.k-menu-horizontal .k-item.k-menu-item .k-link.k-menu-link .k-icon.k-menu-expand-arrow.k-i-caret-alt-down{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+            color: $tb-kendo-body-bg;
+        
+}
+    .k-reset.k-header.k-menu.k-menu-horizontal .k-item.k-menu-item .k-link.k-menu-link .k-menu-link-text{
+                    @extend %tb-typography-kendo-default-typography;
+          color: $tb-kendo-base-text;
+        
+}
+    .k-reset.k-header.k-menu.k-menu-horizontal .k-item.k-menu-item.k-focus,.k-reset.k-header.k-menu.k-menu-horizontal  .k-item.k-menu-item.k-state-focus,.k-reset.k-header.k-menu.k-menu-horizontal  .k-item.k-menu-item.k-state-focused,.k-reset.k-header.k-menu.k-menu-horizontal  .k-item.k-menu-item:focus{
+    color: $tb-kendo-base-text;
+            outline-color: $tb-kendo-body-bg;
+            outline-style: solid;
+            outline-width: $tb-kendo-border-radius;
+            border-bottom-left-radius: $tb-kendo-border-radius;
+            border-bottom-right-radius: $tb-kendo-border-radius;
+            border-top-left-radius: $tb-kendo-border-radius;
+            border-top-right-radius: $tb-kendo-border-radius;
+            box-shadow: inset 0px 0px 0px 0px rgba(0, 0, 0, 0.12);
+        
+}
+    .k-menu-popup.k-popup{
+    border-left-color: $tb-kendo-selected-text;
+            border-left-style: solid;
+            border-left-width: 0px;
+        
+}
+    .k-popup.k-menu-popup .k-group.k-menu-group{
+    border-left-color: $tb-kendo-input-focus-border;
+            border-left-style: solid;
+        
+}
+    .k-popup.k-menu-popup .k-group.k-menu-group.k-reset{
+    border-left-width: 0px;
+        
+}
+    .k-reset.k-header.k-menu.k-menu-horizontal .k-item.k-menu-item.k-focus .k-link.k-menu-link,.k-reset.k-header.k-menu.k-menu-horizontal  .k-item.k-menu-item.k-state-focus .k-link.k-menu-link,.k-reset.k-header.k-menu.k-menu-horizontal  .k-item.k-menu-item.k-state-focused .k-link.k-menu-link,.k-reset.k-header.k-menu.k-menu-horizontal  .k-item.k-menu-item:focus .k-link.k-menu-link{
+    border-bottom-width: 5px;
+            border-bottom-color: $tb-kendo-color-primary;
+            border-bottom-style: solid;
+        
+}
+    .k-dropdown-button .k-button{
+    background-color: $tb-kendo-button-bg;
+            background-image: none;
+            color: $tb-kendo-button-text;
+            border-bottom-width: 2px;
+            border-left-width: 2px;
+            border-right-width: 2px;
+            border-top-width: 2px;
+            border-bottom-color: $tb-kendo-color-primary;
+            border-left-color: $tb-kendo-color-primary;
+            border-right-color: $tb-kendo-color-primary;
+            border-top-color: $tb-kendo-color-primary;
+        
+}
+    .k-dropdown-button .k-button.k-hover,.k-dropdown-button  .k-button.k-state-hover,.k-dropdown-button  .k-button.k-state-hovered,.k-dropdown-button  .k-button:hover{
+    border-bottom-color: $tb-kendo-button-primary-hover;
+            border-left-color: $tb-kendo-button-primary-hover;
+            border-right-color: $tb-kendo-button-primary-hover;
+            border-top-color: $tb-kendo-button-primary-hover;
+            background-color: $tb-kendo-button-primary-hover;
+            background-image: none;
+        
+}
+    .k-dropdown-button .k-button.k-active,.k-dropdown-button  .k-button.k-state-active,.k-dropdown-button  .k-button:active{
+    background-color: $tb-kendo-button-primary-hover;
+            background-image: none;
+            border-bottom-color: $tb-kendo-button-primary-hover;
+            border-left-color: $tb-kendo-button-primary-hover;
+            border-right-color: $tb-kendo-button-primary-hover;
+            border-top-color: $tb-kendo-button-primary-hover;
+        
+}
+    .k-dropdown-button{
+    border-bottom-width: 0px;
+            border-left-width: 0px;
+            border-right-width: 0px;
+            border-top-width: 0px;
+            border-bottom-color: $tb-kendo-button-primary-hover;
+            border-bottom-style: solid;
+            border-left-color: $tb-kendo-button-primary-hover;
+            border-left-style: solid;
+            border-right-color: $tb-kendo-button-primary-hover;
+            border-right-style: solid;
+            border-top-color: $tb-kendo-button-primary-hover;
+            border-top-style: solid;
+        
+}
+    .k-textbox.k-input.k-input-solid{
+    background-color: $tb-kendo-component-bg;
+        
+}
+    .k-textbox.k-input{
+    background-image: none;
+            border-bottom-width: 1px;
+            border-left-width: 1px;
+            border-right-width: 1px;
+            border-top-width: 1px;
+        
+}
+    .k-textbox.k-input.k-rounded-md{
+    border-bottom-left-radius: k-border-radius( none );
+            border-bottom-right-radius: k-border-radius( none );
+            border-top-left-radius: k-border-radius( none );
+            border-top-right-radius: k-border-radius( none );
+        
+}
+    .k-textbox.k-input.k-hover,.k-textbox.k-input.k-state-hover,.k-textbox.k-input.k-state-hovered,.k-textbox.k-input:hover{
+    border-bottom-left-radius: k-border-radius( none );
+            border-bottom-right-radius: k-border-radius( none );
+            border-top-left-radius: k-border-radius( none );
+            border-top-right-radius: k-border-radius( none );
+            color: $tb-kendo-base-text;
+            background-color: $tb-kendo-component-bg;
+            background-image: none;
+            padding-top: 6px;
+            padding-bottom: 6px;
+            border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+        
+}
+    .k-textbox.k-input.k-focus,.k-textbox.k-input.k-state-focus,.k-textbox.k-input.k-state-focused,.k-textbox.k-input:focus{
+    color: $tb-kendo-base-text;
+            background-color: $tb-kendo-component-bg;
+            background-image: none;
+            padding-top: 6px;
+            padding-bottom: 6px;
+            border-bottom-left-radius: k-border-radius( none );
+            border-bottom-right-radius: k-border-radius( none );
+            border-top-left-radius: k-border-radius( none );
+            border-top-right-radius: k-border-radius( none );
+            border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+        
+}
+    .k-textbox.k-input.k-invalid,.k-textbox.k-input.ng-invalid.ng-touched,.k-textbox.k-input.ng-invalid.ng-dirty{
+    color: $tb-kendo-base-text;
+            background-color: $tb-kendo-component-bg;
+            background-image: none;
+            padding-top: 6px;
+            padding-bottom: 6px;
+            border-bottom-color: $tb-kendo-color-error;
+            border-left-color: $tb-kendo-color-error;
+            border-right-color: $tb-kendo-color-error;
+            border-top-color: $tb-kendo-color-error;
+            border-bottom-left-radius: k-border-radius( none );
+            border-bottom-right-radius: k-border-radius( none );
+            border-top-left-radius: k-border-radius( none );
+            border-top-right-radius: k-border-radius( none );
+        
+}
+    .k-textbox.k-input.k-invalid.k-focus,.k-textbox.k-input.ng-invalid.ng-touched.k-focus,.k-textbox.k-input.ng-invalid.ng-dirty.k-focus,.k-textbox.k-input.k-invalid.k-state-focus,.k-textbox.k-input.k-invalid.k-state-focused,.k-textbox.k-input.k-invalid:focus,.k-textbox.k-input.ng-invalid.ng-touched.k-state-focus,.k-textbox.k-input.ng-invalid.ng-touched.k-state-focused,.k-textbox.k-input.ng-invalid.ng-touched:focus,.k-textbox.k-input.ng-invalid.ng-dirty.k-state-focus,.k-textbox.k-input.ng-invalid.ng-dirty.k-state-focused,.k-textbox.k-input.ng-invalid.ng-dirty:focus{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+        
+}
+    .k-textbox.k-input.k-disabled,.k-textbox.k-input.k-state-disabled,.k-textbox.k-input:disabled{
+    color: $tb-kendo-base-text;
+            background-color: $tb-kendo-component-bg;
+            background-image: none;
+            padding-top: 6px;
+            padding-bottom: 6px;
+            border-bottom-left-radius: k-border-radius( none );
+            border-bottom-right-radius: k-border-radius( none );
+            border-top-left-radius: k-border-radius( none );
+            border-top-right-radius: k-border-radius( none );
+            border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+        
+}
+    .k-list-filter .k-searchbox.k-input-solid{
+    background-color: $tb-kendo-component-bg;
+        
+}
+    .k-list-filter .k-searchbox{
+    background-image: none;
+        
+}
+    .k-list-filter .k-searchbox.k-input{
+    padding-top: 6px;
+            padding-bottom: 6px;
+        
+}
+    .k-list-filter .k-searchbox.k-rounded-md{
+    border-bottom-left-radius: k-border-radius( none );
+            border-bottom-right-radius: k-border-radius( none );
+            border-top-left-radius: k-border-radius( none );
+            border-top-right-radius: k-border-radius( none );
+        
+}
+    .k-menu-button.k-button{
+    color: $tb-kendo-button-text;
+            background-color: $tb-kendo-color-primary;
+            background-image: none;
+            row-gap: 4px;
+            column-gap: 4px;
+            border-bottom-color: $tb-kendo-color-primary;
+            border-left-color: $tb-kendo-color-primary;
+            border-right-color: $tb-kendo-color-primary;
+            border-top-color: $tb-kendo-color-primary;
+        
+}
+    .k-menu-button.k-button.k-hover,.k-menu-button.k-button.k-state-hover,.k-menu-button.k-button.k-state-hovered,.k-menu-button.k-button:hover{
+    background-color: k-color( primary-hover );
+            background-image: none;
+            border-bottom-color: k-color( primary-hover );
+            border-left-color: k-color( primary-hover );
+            border-right-color: k-color( primary-hover );
+            border-top-color: k-color( primary-hover );
+        
+}
+    .k-menu-button.k-button.k-active,.k-menu-button.k-button.k-state-active,.k-menu-button.k-button:active{
+    border-bottom-color: k-color( primary-hover );
+            border-left-color: k-color( primary-hover );
+            border-right-color: k-color( primary-hover );
+            border-top-color: k-color( primary-hover );
+            background-color: k-color( primary-hover );
+            background-image: none;
+        
+}
+    .k-menu-button.k-button.k-focus,.k-menu-button.k-button.k-state-focus,.k-menu-button.k-button.k-state-focused,.k-menu-button.k-button:focus{
+    background-color: k-color( primary-hover );
+            background-image: none;
+            border-bottom-color: k-color( primary-hover );
+            border-left-color: k-color( primary-hover );
+            border-right-color: k-color( primary-hover );
+            border-top-color: k-color( primary-hover );
+        
+}
+    .k-numerictextbox.k-input.k-input-solid{
+    background-color: $tb-kendo-component-bg;
+        
+}
+    .k-numerictextbox.k-input{
+    background-image: none;
+            border-bottom-width: 1px;
+            border-left-width: 1px;
+            border-right-width: 1px;
+            border-top-width: 1px;
+        
+}
+    .k-numerictextbox.k-input.k-rounded-md{
+    border-bottom-left-radius: k-border-radius( none );
+            border-bottom-right-radius: k-border-radius( none );
+            border-top-left-radius: k-border-radius( none );
+            border-top-right-radius: k-border-radius( none );
+        
+}
+    .k-numerictextbox.k-input.k-invalid.k-state-focus-within,.k-numerictextbox.k-input.ng-invalid.ng-touched.k-state-focus-within,.k-numerictextbox.k-input.ng-invalid.ng-dirty.k-state-focus-within,.k-numerictextbox.k-input.k-invalid:focus-within,.k-numerictextbox.k-input.ng-invalid.ng-touched:focus-within,.k-numerictextbox.k-input.ng-invalid.ng-dirty:focus-within{
+    border-bottom-color: $tb-kendo-input-invalid-border;
+            border-left-color: $tb-kendo-input-invalid-border;
+            border-right-color: $tb-kendo-input-invalid-border;
+            border-top-color: $tb-kendo-input-invalid-border;
+        
+}
+    .k-maskedtextbox.k-input.k-input-solid{
+    background-color: $tb-kendo-component-bg;
+        
+}
+    .k-maskedtextbox.k-input{
+    background-image: none;
+            border-bottom-width: 1px;
+            border-left-width: 1px;
+            border-right-width: 1px;
+            border-top-width: 1px;
+        
+}
+    .k-maskedtextbox.k-input.k-rounded-md{
+    border-bottom-left-radius: k-border-radius( none );
+            border-bottom-right-radius: k-border-radius( none );
+            border-top-left-radius: k-border-radius( none );
+            border-top-right-radius: k-border-radius( none );
+        
+}
+    .k-maskedtextbox.k-input.k-invalid.k-state-focus-within,.k-maskedtextbox.k-input.ng-invalid.ng-touched.k-state-focus-within,.k-maskedtextbox.k-input.ng-invalid.ng-dirty.k-state-focus-within,.k-maskedtextbox.k-input.k-invalid:focus-within,.k-maskedtextbox.k-input.ng-invalid.ng-touched:focus-within,.k-maskedtextbox.k-input.ng-invalid.ng-dirty:focus-within{
+    border-bottom-color: $tb-kendo-input-invalid-border;
+            border-left-color: $tb-kendo-input-invalid-border;
+            border-right-color: $tb-kendo-input-invalid-border;
+            border-top-color: $tb-kendo-input-invalid-border;
+        
+}
+    .k-input.k-input-solid{
+    background-color: $tb-kendo-component-bg;
+            border-bottom-color: $tb-kendo-input-border;
+            border-left-color: $tb-kendo-input-border;
+            border-right-color: $tb-kendo-input-border;
+            border-top-color: $tb-kendo-input-border;
+        
+}
+    .k-input{
+    background-image: none;
+            border-bottom-width: 1px;
+            border-left-width: 1px;
+            border-right-width: 1px;
+            border-top-width: 1px;
+        
+}
+    .k-input.k-rounded-md{
+    border-bottom-left-radius: k-border-radius( none );
+            border-bottom-right-radius: k-border-radius( none );
+            border-top-left-radius: k-border-radius( none );
+            border-top-right-radius: k-border-radius( none );
+        
+}
+    .k-colorpicker.k-picker.k-icon-picker.k-picker-solid{
+    background-color: $tb-kendo-base-bg;
+            color: $tb-kendo-base-text;
+            border-bottom-color: $tb-kendo-color-secondary;
+            border-left-color: $tb-kendo-color-secondary;
+            border-right-color: $tb-kendo-color-secondary;
+            border-top-color: $tb-kendo-color-secondary;
+        
+}
+    .k-colorpicker.k-picker.k-icon-picker{
+    background-image: none;
+            padding-bottom: 8px;
+            padding-left: 8px;
+            padding-right: 8px;
+            padding-top: 8px;
+            border-bottom-width: 2px;
+            border-left-width: 2px;
+            border-right-width: 2px;
+            border-top-width: 2px;
+        
+}
+    .k-colorpicker.k-picker.k-icon-picker.k-rounded-md{
+    border-bottom-left-radius: k-border-radius( none );
+            border-bottom-right-radius: k-border-radius( none );
+            border-top-left-radius: k-border-radius( none );
+            border-top-right-radius: k-border-radius( none );
+        
+}
+    .k-colorpicker.k-picker.k-icon-picker.k-picker-md.k-picker-solid.k-rounded-md .k-button.k-icon-button.k-input-button{
+    border-bottom-width: 0px;
+            border-left-width: 0px;
+            border-right-width: 0px;
+            border-top-width: 0px;
+        
+}
+    .k-colorpicker.k-picker.k-icon-picker.k-focus,.k-colorpicker.k-picker.k-icon-picker.k-state-focus,.k-colorpicker.k-picker.k-icon-picker.k-state-focused,.k-colorpicker.k-picker.k-icon-picker:focus{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+        
+}
+    .k-flatcolorpicker.k-coloreditor .k-coloreditor-footer.k-actions.k-actions-end .k-button.k-button-solid.k-button-solid-primary.k-coloreditor-apply{
+    border-bottom-width: 0px;
+            border-left-width: 0px;
+            border-right-width: 0px;
+            border-top-width: 0px;
+        
+}
+    .k-calendar.k-calendar-range .k-calendar-header .k-button.k-button-md.k-button-flat.k-button-flat-primary.k-rounded-md.k-calendar-title{
+                    @extend %tb-typography-kendo-default-typography;
+          color: inherit;
+            background-color: $tb-kendo-base-bg !important;
+            background-image: none !important;
+            border-bottom-width: 0px;
+            border-left-width: 0px;
+            border-right-width: 0px;
+            border-top-width: 0px;
+        
+}
+    .k-calendar.k-calendar-range .k-calendar-header .k-button.k-button-md.k-button-flat.k-button-flat-primary.k-rounded-md.k-calendar-title .k-button-text{
+    color: $tb-kendo-color-secondary;
+        
+}
+    .k-calendar.k-calendar-range .k-calendar-header .k-button.k-button-md.k-button-flat.k-button-flat-primary.k-rounded-md.k-calendar-title.k-hover .k-button-text,.k-calendar.k-calendar-range .k-calendar-header .k-button.k-button-md.k-button-flat.k-button-flat-primary.k-rounded-md.k-calendar-title.k-state-hover .k-button-text,.k-calendar.k-calendar-range .k-calendar-header .k-button.k-button-md.k-button-flat.k-button-flat-primary.k-rounded-md.k-calendar-title.k-state-hovered .k-button-text,.k-calendar.k-calendar-range .k-calendar-header .k-button.k-button-md.k-button-flat.k-button-flat-primary.k-rounded-md.k-calendar-title:hover .k-button-text{
+    color: $tb-kendo-color-primary;
+            background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-calendar.k-calendar-range{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-calendar.k-calendar-range .k-calendar-header .k-calendar-nav .k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-calendar-nav-today.k-hover,.k-calendar.k-calendar-range .k-calendar-header .k-calendar-nav .k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-calendar-nav-today.k-state-hover,.k-calendar.k-calendar-range .k-calendar-header .k-calendar-nav .k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-calendar-nav-today.k-state-hovered,.k-calendar.k-calendar-range .k-calendar-header .k-calendar-nav .k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-calendar-nav-today:hover{
+    background-color: $tb-kendo-base-bg !important;
+            background-image: none !important;
+        
+}
+    .k-calendar{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-calendar .k-calendar-view::after{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-calendar .k-calendar-header .k-calendar-nav .k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-calendar-nav-today .k-button-text{
+    color: $tb-kendo-color-secondary;
+            font-weight: bold;
+        
+}
+    .k-calendar .k-calendar-header .k-calendar-nav .k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-calendar-nav-today.k-hover .k-button-text,.k-calendar .k-calendar-header .k-calendar-nav .k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-calendar-nav-today.k-state-hover .k-button-text,.k-calendar .k-calendar-header .k-calendar-nav .k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-calendar-nav-today.k-state-hovered .k-button-text,.k-calendar .k-calendar-header .k-calendar-nav .k-button.k-button-md.k-button-flat.k-button-flat-base.k-rounded-md.k-calendar-nav-today:hover .k-button-text{
+    color: $tb-kendo-color-primary;
+        
+}
+    .k-calendar .k-calendar-navigation .k-content .k-reset li.k-hover,.k-calendar .k-calendar-navigation .k-content .k-reset li.k-state-hover,.k-calendar .k-calendar-navigation .k-content .k-reset li.k-state-hovered,.k-calendar .k-calendar-navigation .k-content .k-reset li:hover{
+    color: $tb-kendo-color-primary;
+        
+}
+    .k-calendar .k-calendar-navigation .k-content .k-reset .k-calendar-navigation-marker{
+    color: $tb-kendo-color-primary;
+        
+}
+    .k-calendar .k-calendar-view.k-calendar-monthview .k-content .k-calendar-td{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-calendar .k-calendar-view.k-calendar-yearview .k-content .k-calendar-td{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-calendar .k-calendar-view .k-content.k-scrollable .k-calendar-table{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-calendar .k-calendar-view .k-content.k-scrollable{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-calendar.k-disabled .k-calendar-view .k-content.k-scrollable .k-calendar-table,.k-calendar.k-state-disabled .k-calendar-view .k-content.k-scrollable .k-calendar-table,.k-calendar:disabled .k-calendar-view .k-content.k-scrollable .k-calendar-table{
+    border-collapse: separate;
+        
+}
+    .k-datetimepicker.k-input.k-state-focus-within,.k-datetimepicker.k-input:focus-within{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+        
+}
+    .k-datetimepicker.k-input.k-invalid,.k-datetimepicker.k-input.ng-invalid.ng-touched,.k-datetimepicker.k-input.ng-invalid.ng-dirty{
+    border-bottom-color: $tb-kendo-input-invalid-border;
+            border-left-color: $tb-kendo-input-invalid-border;
+            border-right-color: $tb-kendo-input-invalid-border;
+            border-top-color: $tb-kendo-input-invalid-border;
+        
+}
+    .k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-group-end.k-focus,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md:last-child.k-focus,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-group-end.k-state-focus,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-group-end.k-state-focused,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-group-end:focus,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md:last-child.k-state-focus,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md:last-child.k-state-focused,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md:last-child:focus{
+    background-color: $tb-kendo-color-secondary;
+            background-image: none;
+            border-bottom-color: $tb-kendo-color-secondary;
+            border-left-color: $tb-kendo-color-secondary;
+            border-right-color: $tb-kendo-color-secondary;
+            border-top-color: $tb-kendo-color-secondary;
+            color: #FFFFFF;
+        
+}
+    .k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-group-end.k-active,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md:last-child.k-active,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-group-end.k-state-active,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-group-end:active,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md:last-child.k-state-active,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md:last-child:active{
+    border-bottom-color: $tb-kendo-color-secondary;
+            border-left-color: $tb-kendo-color-secondary;
+            border-right-color: $tb-kendo-color-secondary;
+            border-top-color: $tb-kendo-color-secondary;
+            background-color: $tb-kendo-color-secondary;
+            background-image: none;
+            color: #FFFFFF;
+        
+}
+    .k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-group-end.k-selected,.k-datetime-wrap .k-datetime-buttongroup .k-button-group.k-button-group-stretched .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md:last-child.k-selected{
+    background-color: $tb-kendo-color-secondary;
+            background-image: none;
+            border-bottom-color: $tb-kendo-color-secondary;
+            border-left-color: $tb-kendo-color-secondary;
+            border-right-color: $tb-kendo-color-secondary;
+            border-top-color: $tb-kendo-color-secondary;
+            color: #FFFFFF;
+        
+}
+    .k-popup.k-datetime-container .k-date-tab.k-datetime-wrap{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-popup.k-datetime-container.k-reset .k-time-tab.k-datetime-wrap .k-datetime-buttongroup{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-popup.k-datetime-container.k-reset .k-time-tab.k-datetime-wrap{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-popup.k-datetime-container.k-reset .k-time-tab.k-datetime-wrap .k-datetime-selector .k-datetime-time-wrap .k-time-header{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-popup.k-datetime-container .k-time-tab.k-datetime-wrap .k-time-list-container .k-time-list-wrapper{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-popup.k-datetime-container .k-time-tab.k-datetime-wrap .k-time-list-container .k-time-list-wrapper .k-title{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+            color: $tb-kendo-base-text;
+        
+}
+    .k-popup.k-datetime-container .k-time-list-container .k-time-list-wrapper .k-time-list .k-content.k-scrollable.k-time-container .k-reset .k-item{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-calendar.k-calendar-range .k-calendar-header .k-button.k-button-md.k-button-flat.k-button-flat-primary.k-rounded-md.k-calendar-title.k-hover,.k-calendar.k-calendar-range .k-calendar-header .k-button.k-button-md.k-button-flat.k-button-flat-primary.k-rounded-md.k-calendar-title.k-state-hover,.k-calendar.k-calendar-range .k-calendar-header .k-button.k-button-md.k-button-flat.k-button-flat-primary.k-rounded-md.k-calendar-title.k-state-hovered,.k-calendar.k-calendar-range .k-calendar-header .k-button.k-button-md.k-button-flat.k-button-flat-primary.k-rounded-md.k-calendar-title:hover{
+    background-color: #FFFFFF !important;
+            background-image: none !important;
+        
+}
+    .k-calendar .k-calendar-header .k-button.k-button-md.k-button-flat.k-button-flat-primary.k-rounded-md.k-calendar-title .k-button-text{
+    color: $tb-kendo-color-secondary;
+            font-weight: bold;
+        
+}
+    .k-calendar .k-calendar-header .k-button.k-button-md.k-button-flat.k-button-flat-primary.k-rounded-md.k-calendar-title.k-hover .k-button-text,.k-calendar .k-calendar-header .k-button.k-button-md.k-button-flat.k-button-flat-primary.k-rounded-md.k-calendar-title.k-state-hover .k-button-text,.k-calendar .k-calendar-header .k-button.k-button-md.k-button-flat.k-button-flat-primary.k-rounded-md.k-calendar-title.k-state-hovered .k-button-text,.k-calendar .k-calendar-header .k-button.k-button-md.k-button-flat.k-button-flat-primary.k-rounded-md.k-calendar-title:hover .k-button-text{
+    color: $tb-kendo-color-primary;
+        
+}
+    .k-popup.k-datetime-container .k-time-tab.k-datetime-wrap .k-time-list-container .k-time-list-wrapper .k-time-list::after{
+    display: block;
+            box-shadow: none;
+        
+}
+    .k-popup.k-datetime-container .k-time-tab.k-datetime-wrap .k-time-list-container .k-time-list-wrapper.k-focus .k-time-list,.k-popup.k-datetime-container .k-time-tab.k-datetime-wrap .k-time-list-container .k-time-list-wrapper.k-state-focus .k-time-list,.k-popup.k-datetime-container .k-time-tab.k-datetime-wrap .k-time-list-container .k-time-list-wrapper.k-state-focused .k-time-list,.k-popup.k-datetime-container .k-time-tab.k-datetime-wrap .k-time-list-container .k-time-list-wrapper:focus .k-time-list{
+    outline-color: unset;
+            z-index: 1;
+            justify-content: start;
+            align-items: stretch;
+            display: flex;
+        
+}
+    .k-popup.k-list-container .k-list.k-list-md{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-multiselecttree.k-input{
+    padding-top: 6px;
+            padding-bottom: 6px;
+        
+}
+    .k-multiselecttree.k-input.k-hover .k-clear-value.k-hover .k-icon.k-font-icon.k-i-x,.k-multiselecttree.k-input.k-hover .k-clear-value.k-state-hover .k-icon.k-font-icon.k-i-x,.k-multiselecttree.k-input.k-hover .k-clear-value.k-state-hovered .k-icon.k-font-icon.k-i-x,.k-multiselecttree.k-input.k-hover .k-clear-value:hover .k-icon.k-font-icon.k-i-x,.k-multiselecttree.k-input.k-state-hover .k-clear-value.k-hover .k-icon.k-font-icon.k-i-x,.k-multiselecttree.k-input.k-state-hover .k-clear-value.k-state-hover .k-icon.k-font-icon.k-i-x,.k-multiselecttree.k-input.k-state-hover .k-clear-value.k-state-hovered .k-icon.k-font-icon.k-i-x,.k-multiselecttree.k-input.k-state-hover .k-clear-value:hover .k-icon.k-font-icon.k-i-x,.k-multiselecttree.k-input.k-state-hovered .k-clear-value.k-hover .k-icon.k-font-icon.k-i-x,.k-multiselecttree.k-input.k-state-hovered .k-clear-value.k-state-hover .k-icon.k-font-icon.k-i-x,.k-multiselecttree.k-input.k-state-hovered .k-clear-value.k-state-hovered .k-icon.k-font-icon.k-i-x,.k-multiselecttree.k-input.k-state-hovered .k-clear-value:hover .k-icon.k-font-icon.k-i-x,.k-multiselecttree.k-input:hover .k-clear-value.k-hover .k-icon.k-font-icon.k-i-x,.k-multiselecttree.k-input:hover .k-clear-value.k-state-hover .k-icon.k-font-icon.k-i-x,.k-multiselecttree.k-input:hover .k-clear-value.k-state-hovered .k-icon.k-font-icon.k-i-x,.k-multiselecttree.k-input:hover .k-clear-value:hover .k-icon.k-font-icon.k-i-x{
+    color: $tb-kendo-color-primary;
+        
+}
+    .k-multiselecttree.k-input.k-focus,.k-multiselecttree.k-input.k-state-focus,.k-multiselecttree.k-input.k-state-focused,.k-multiselecttree.k-input:focus{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+        
+}
+    .k-multiselecttree.k-input.k-invalid,.k-multiselecttree.k-input.ng-invalid.ng-touched,.k-multiselecttree.k-input.ng-invalid.ng-dirty{
+    border-bottom-color: $tb-kendo-input-invalid-border;
+            border-left-color: $tb-kendo-input-invalid-border;
+            border-right-color: $tb-kendo-input-invalid-border;
+            border-top-color: $tb-kendo-input-invalid-border;
+        
+}
+    .k-multiselecttree.k-input .k-input-values.k-chip-list{
+    color: $tb-kendo-base-text;
+        
+}
+    .k-multiselecttree.k-input .k-input-values.k-chip-list .k-chip.k-chip-solid-base{
+    color: $tb-kendo-base-text;
+            background-color: $tb-kendo-base-bg;
+        
+}
+    .k-multiselecttree.k-input .k-input-values.k-chip-list .k-chip{
+    background-image: none;
+            border-bottom-width: 0px;
+            border-left-width: 0px;
+            border-right-width: 0px;
+            border-top-width: 0px;
+        
+}
+    .k-multiselecttree.k-input .k-input-values.k-chip-list .k-chip.k-rounded-md{
+    border-bottom-left-radius: k-border-radius( none );
+            border-bottom-right-radius: k-border-radius( none );
+            border-top-left-radius: k-border-radius( none );
+            border-top-right-radius: k-border-radius( none );
+        
+}
+    .k-multiselecttree-popup .k-treeview .k-treeview-group .k-treeview-item .k-treeview-leaf.k-hover,.k-multiselecttree-popup .k-treeview .k-treeview-group .k-treeview-item .k-treeview-leaf.k-state-hover,.k-multiselecttree-popup .k-treeview .k-treeview-group .k-treeview-item .k-treeview-leaf.k-state-hovered,.k-multiselecttree-popup .k-treeview .k-treeview-group .k-treeview-item .k-treeview-leaf:hover{
+    color: k-color( primary-hover );
+            border-bottom-left-radius: k-border-radius( none );
+            border-bottom-right-radius: k-border-radius( none );
+            border-top-left-radius: k-border-radius( none );
+            border-top-right-radius: k-border-radius( none );
+        
+}
+    .k-popup.k-multiselecttree-popup{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-popup.k-multiselecttree-popup .k-treeview .k-treeview-lines.k-treeview-group .k-treeview-item .k-checkbox-wrap .k-checkbox{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-popup.k-multiselecttree-popup .k-treeview .k-treeview-lines.k-treeview-group .k-treeview-item .k-checkbox-wrap .k-checkbox.k-rounded-md{
+    border-bottom-left-radius: k-border-radius( none );
+            border-bottom-right-radius: k-border-radius( none );
+            border-top-left-radius: k-border-radius( none );
+            border-top-right-radius: k-border-radius( none );
+        
+}
+    .k-popup.k-multiselecttree-popup .k-treeview .k-treeview-lines.k-treeview-group .k-treeview-item .k-checkbox-wrap .k-checkbox.k-checked,.k-popup.k-multiselecttree-popup .k-treeview .k-treeview-lines.k-treeview-group .k-treeview-item .k-checkbox-wrap .k-checkbox:checked{
+    color: k-color( on-primary );
+            background-color: $tb-kendo-color-primary;
+            background-image: none;
+        
+}
+    .k-treeview .k-treeview-group .k-treeview-item .k-treeview-leaf.k-hover,.k-treeview .k-treeview-group .k-treeview-item .k-treeview-leaf.k-state-hover,.k-treeview .k-treeview-group .k-treeview-item .k-treeview-leaf.k-state-hovered,.k-treeview .k-treeview-group .k-treeview-item .k-treeview-leaf:hover{
+    border-bottom-left-radius: k-border-radius( none );
+            border-bottom-right-radius: k-border-radius( none );
+            border-top-left-radius: k-border-radius( none );
+            border-top-right-radius: k-border-radius( none );
+        
+}
+    .k-treeview .k-treeview-group .k-treeview-item .k-treeview-leaf.k-focus,.k-treeview .k-treeview-group .k-treeview-item .k-treeview-leaf.k-state-focus,.k-treeview .k-treeview-group .k-treeview-item .k-treeview-leaf.k-state-focused,.k-treeview .k-treeview-group .k-treeview-item .k-treeview-leaf:focus{
+    border-bottom-left-radius: k-border-radius( none );
+            border-bottom-right-radius: k-border-radius( none );
+            border-top-left-radius: k-border-radius( none );
+            border-top-right-radius: k-border-radius( none );
+        
+}
+    .k-treeview .k-treeview-group .k-treeview-item .k-treeview-leaf.k-selected{
+    border-bottom-left-radius: k-border-radius( none );
+            border-bottom-right-radius: k-border-radius( none );
+            border-top-left-radius: k-border-radius( none );
+            border-top-right-radius: k-border-radius( none );
+        
+}
+    .k-editor{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-grid.k-grid-md .k-grouping-header .k-chip-list.k-chip-list-md .k-chip.k-chip-md.k-chip-solid.k-chip-solid-base.k-rounded-md{
+    color: k-color( on-primary );
+            background-color: $tb-kendo-color-primary;
+            background-image: none;
+            padding-bottom: 4px;
+            padding-left: 4px;
+            padding-right: 4px;
+            padding-top: 4px;
+            border-bottom-width: 1px;
+            border-left-width: 1px;
+            border-right-width: 1px;
+            border-top-width: 1px;
+            border-bottom-left-radius: k-border-radius( none );
+            border-bottom-right-radius: k-border-radius( none );
+            border-top-left-radius: k-border-radius( none );
+            border-top-right-radius: k-border-radius( none );
+        
+}
+    .k-grid.k-grid-md .k-table .k-table-tbody .k-table-row.k-master-row .k-command-cell .k-grid-edit-command{
+    border-bottom-width: 0px;
+            border-left-width: 0px;
+            border-right-width: 0px;
+            border-top-width: 0px;
+        
+}
+    .k-grid.k-grid-md .k-table .k-table-tbody .k-table-row.k-master-row .k-command-cell .k-grid-save-command{
+    border-bottom-width: 0px;
+            border-left-width: 0px;
+            border-right-width: 0px;
+            border-top-width: 0px;
+        
+}
+    .k-grid.k-grid-md .k-table .k-table-tbody .k-master-row.k-table-row{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-column-menu.k-grid-columnmenu-popup.k-popup .k-columnmenu-item-wrapper .k-columnmenu-item .k-icon.k-font-icon.k-i-sort-asc-sm{
+    color: $tb-kendo-color-primary;
+        
+}
+    .k-column-menu.k-grid-columnmenu-popup.k-popup .k-columnmenu-item-wrapper .k-columnmenu-item .k-icon.k-font-icon.k-i-sort-desc-sm{
+    color: $tb-kendo-color-primary;
+        
+}
+    .k-column-menu.k-grid-columnmenu-popup.k-popup .k-columnmenu-item-wrapper .k-columnmenu-item .k-icon.k-font-icon.k-i-filter{
+    color: $tb-kendo-color-primary;
+        
+}
+    .k-column-menu.k-grid-columnmenu-popup.k-popup .k-columnmenu-item-wrapper .k-columnmenu-item-content .k-filter-menu .k-filter-menu-container .k-actions.k-actions-stretched .k-button.k-button-md.k-button-solid.k-button-solid-primary.k-rounded-md{
+    border-bottom-width: 0px;
+            border-left-width: 0px;
+            border-right-width: 0px;
+            border-top-width: 0px;
+        
+}
+    .k-column-menu.k-grid-columnmenu-popup.k-popup{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-listbox .k-list-scroller.k-selectable{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-list.k-list-md .k-list-content .k-list-ul .k-list-item{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+            padding-right: 8px;
+            padding-bottom: 4px;
+            padding-left: 8px;
+        
+}
+    .k-menu-popup .k-group.k-menu-group .k-item.k-menu-item{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-menu-popup .k-group.k-menu-group .k-item.k-menu-item .k-link.k-menu-link.k-active,.k-menu-popup .k-group.k-menu-group .k-item.k-menu-item .k-link.k-menu-link.k-state-active,.k-menu-popup .k-group.k-menu-group .k-item.k-menu-item .k-link.k-menu-link:active{
+    color: $tb-kendo-base-text;
+            background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-list-filter .k-searchbox.k-focus,.k-list-filter .k-searchbox.k-state-focus,.k-list-filter .k-searchbox.k-state-focused,.k-list-filter .k-searchbox:focus{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+        
+}
+    .k-list-filter .k-searchbox.k-invalid,.k-list-filter .k-searchbox.ng-invalid.ng-touched,.k-list-filter .k-searchbox.ng-invalid.ng-dirty{
+    border-bottom-color: $tb-kendo-input-invalid-border;
+            border-left-color: $tb-kendo-input-invalid-border;
+            border-right-color: $tb-kendo-input-invalid-border;
+            border-top-color: $tb-kendo-input-invalid-border;
+        
+}
+    .k-chip.k-chip-solid-base{
+    color: k-color( on-primary );
+            background-color: $tb-kendo-color-primary;
+        
+}
+    .k-chip{
+    background-image: none;
+        
+}
+    .k-chip.k-rounded-md{
+    border-bottom-left-radius: k-border-radius( none );
+            border-bottom-right-radius: k-border-radius( none );
+            border-top-left-radius: k-border-radius( none );
+            border-top-right-radius: k-border-radius( none );
+        
+}
+    .k-chip.k-hover,.k-chip.k-state-hover,.k-chip.k-state-hovered,.k-chip:hover{
+    background-color: k-color( primary-hover );
+            background-image: none;
+        
+}
+    .k-chip.k-chip-outline.k-chip-outline-base{
+    color: $tb-kendo-color-primary;
+        
+}
+    .k-chip.k-chip-outline.k-hover,.k-chip.k-chip-outline.k-state-hover,.k-chip.k-chip-outline.k-state-hovered,.k-chip.k-chip-outline:hover{
+    color: k-color( on-secondary );
+            background-color: $tb-kendo-color-secondary;
+            background-image: none;
+        
+}
+    .k-chip.k-chip-outline.k-selected{
+    color: k-color( on-secondary );
+            background-image: none;
+        
+}
+    .k-chip.k-chip-outline.k-selected.k-chip-outline-base{
+    background-color: $tb-kendo-color-secondary;
+        
+}
+    .k-chip.k-chip-outline.k-focus.k-chip-outline-base,.k-chip.k-chip-outline.k-state-focus.k-chip-outline-base,.k-chip.k-chip-outline.k-state-focused.k-chip-outline-base,.k-chip.k-chip-outline:focus.k-chip-outline-base{
+    border-bottom-color: $tb-kendo-input-focus-border;
+            border-left-color: $tb-kendo-input-focus-border;
+            border-right-color: $tb-kendo-input-focus-border;
+            border-top-color: $tb-kendo-input-focus-border;
+        
+}
+    .k-chip.k-selected{
+    background-color: k-color( primary-hover );
+            background-image: none;
+        
+}
+    .k-scheduler .k-scheduler-layout-flex .k-scheduler-cell{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-scheduler .k-scheduler-layout.k-scheduler-layout-flex.k-scheduler-agendaview .k-scheduler-body .k-scheduler-group .k-scheduler-row.k-scheduler-content .k-scheduler-cell.k-group-content .k-scheduler-row.k-hover .k-scheduler-cell.k-scheduler-timecolumn,.k-scheduler .k-scheduler-layout.k-scheduler-layout-flex.k-scheduler-agendaview .k-scheduler-body .k-scheduler-group .k-scheduler-row.k-scheduler-content .k-scheduler-cell.k-group-content .k-scheduler-row.k-state-hover .k-scheduler-cell.k-scheduler-timecolumn,.k-scheduler .k-scheduler-layout.k-scheduler-layout-flex.k-scheduler-agendaview .k-scheduler-body .k-scheduler-group .k-scheduler-row.k-scheduler-content .k-scheduler-cell.k-group-content .k-scheduler-row.k-state-hovered .k-scheduler-cell.k-scheduler-timecolumn,.k-scheduler .k-scheduler-layout.k-scheduler-layout-flex.k-scheduler-agendaview .k-scheduler-body .k-scheduler-group .k-scheduler-row.k-scheduler-content .k-scheduler-cell.k-group-content .k-scheduler-row:hover .k-scheduler-cell.k-scheduler-timecolumn{
+    background-color: $tb-kendo-hover-bg;
+            background-image: none;
+            color: $tb-kendo-color-primary;
+        
+}
+    .k-scheduler .k-scheduler-layout.k-scheduler-layout-flex.k-scheduler-agendaview .k-scheduler-body .k-scheduler-group .k-scheduler-row.k-scheduler-content .k-scheduler-cell.k-group-content .k-scheduler-row.k-hover .k-scheduler-cell,.k-scheduler .k-scheduler-layout.k-scheduler-layout-flex.k-scheduler-agendaview .k-scheduler-body .k-scheduler-group .k-scheduler-row.k-scheduler-content .k-scheduler-cell.k-group-content .k-scheduler-row.k-state-hover .k-scheduler-cell,.k-scheduler .k-scheduler-layout.k-scheduler-layout-flex.k-scheduler-agendaview .k-scheduler-body .k-scheduler-group .k-scheduler-row.k-scheduler-content .k-scheduler-cell.k-group-content .k-scheduler-row.k-state-hovered .k-scheduler-cell,.k-scheduler .k-scheduler-layout.k-scheduler-layout-flex.k-scheduler-agendaview .k-scheduler-body .k-scheduler-group .k-scheduler-row.k-scheduler-content .k-scheduler-cell.k-group-content .k-scheduler-row:hover .k-scheduler-cell{
+    background-color: $tb-kendo-hover-bg;
+            background-image: none;
+            color: $tb-kendo-color-primary;
+        
+}
+    .k-scheduler .k-event{
+    background-color: $tb-kendo-color-primary;
+            background-image: none;
+            border-bottom-left-radius: k-border-radius( none );
+            border-bottom-right-radius: k-border-radius( none );
+            border-top-left-radius: k-border-radius( none );
+            border-top-right-radius: k-border-radius( none );
+        
+}
+    .k-scheduler .k-event.k-hover,.k-scheduler .k-event.k-state-hover,.k-scheduler .k-event.k-state-hovered,.k-scheduler .k-event:hover{
+    background-color: k-color( primary-hover );
+            background-image: none;
+        
+}
+    .k-scheduler .k-event .k-event-actions{
+    color: $tb-kendo-base-bg;
+        
+}
+    .k-scheduler .k-event .k-event-actions .k-link.k-event-delete{
+    color: k-color( on-primary );
+        
+}
+    .k-notification{
+    padding-bottom: 6px;
+            border-bottom-left-radius: k-border-radius( none );
+            border-bottom-right-radius: k-border-radius( none );
+            border-top-left-radius: k-border-radius( none );
+            border-top-right-radius: k-border-radius( none );
+            padding-top: 6px;
+        
+}
+    .k-drawer-container.k-drawer-expanded.k-drawer-push .k-drawer.k-drawer-start .k-drawer-wrapper .k-drawer-items .k-drawer-item{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-drawer-container.k-drawer-expanded.k-drawer-push .k-drawer.k-drawer-start .k-drawer-wrapper .k-drawer-items .k-drawer-item.k-hover,.k-drawer-container.k-drawer-expanded.k-drawer-push .k-drawer.k-drawer-start .k-drawer-wrapper .k-drawer-items .k-drawer-item.k-state-hover,.k-drawer-container.k-drawer-expanded.k-drawer-push .k-drawer.k-drawer-start .k-drawer-wrapper .k-drawer-items .k-drawer-item.k-state-hovered,.k-drawer-container.k-drawer-expanded.k-drawer-push .k-drawer.k-drawer-start .k-drawer-wrapper .k-drawer-items .k-drawer-item:hover{
+    color: $tb-kendo-color-primary;
+            background-color: $tb-kendo-hover-bg;
+            background-image: none;
+        
+}
+    .k-drawer-container.k-drawer-mini.k-drawer-push .k-drawer.k-drawer-start .k-drawer-wrapper .k-drawer-items .k-drawer-item.k-hover,.k-drawer-container.k-drawer-mini.k-drawer-push .k-drawer.k-drawer-start .k-drawer-wrapper .k-drawer-items .k-drawer-item.k-state-hover,.k-drawer-container.k-drawer-mini.k-drawer-push .k-drawer.k-drawer-start .k-drawer-wrapper .k-drawer-items .k-drawer-item.k-state-hovered,.k-drawer-container.k-drawer-mini.k-drawer-push .k-drawer.k-drawer-start .k-drawer-wrapper .k-drawer-items .k-drawer-item:hover{
+    color: $tb-kendo-color-primary;
+        
+}
+    .k-drawer-container.k-drawer-expanded.k-drawer-push .k-drawer.k-drawer-start .k-drawer-wrapper .k-drawer-items .k-drawer-item.k-selected{
+    color: k-color( on-primary );
+            background-color: $tb-kendo-color-primary;
+            background-image: none;
+        
+}
+    .k-drawer-container.k-drawer-expanded.k-drawer-push .k-drawer.k-drawer-start .k-drawer-wrapper .k-drawer-items .k-drawer-item.k-focus,.k-drawer-container.k-drawer-expanded.k-drawer-push .k-drawer.k-drawer-start .k-drawer-wrapper .k-drawer-items .k-drawer-item.k-state-focus,.k-drawer-container.k-drawer-expanded.k-drawer-push .k-drawer.k-drawer-start .k-drawer-wrapper .k-drawer-items .k-drawer-item.k-state-focused,.k-drawer-container.k-drawer-expanded.k-drawer-push .k-drawer.k-drawer-start .k-drawer-wrapper .k-drawer-items .k-drawer-item:focus{
+    color: k-color( on-primary );
+            background-color: $tb-kendo-color-primary;
+            background-image: none;
+        
+}
+    .k-drawer-container.k-drawer-mini.k-drawer-push .k-drawer.k-drawer-start .k-drawer-wrapper .k-drawer-items .k-drawer-item.k-focus,.k-drawer-container.k-drawer-mini.k-drawer-push .k-drawer.k-drawer-start .k-drawer-wrapper .k-drawer-items .k-drawer-item.k-state-focus,.k-drawer-container.k-drawer-mini.k-drawer-push .k-drawer.k-drawer-start .k-drawer-wrapper .k-drawer-items .k-drawer-item.k-state-focused,.k-drawer-container.k-drawer-mini.k-drawer-push .k-drawer.k-drawer-start .k-drawer-wrapper .k-drawer-items .k-drawer-item:focus{
+    color: k-color( on-primary );
+            background-color: $tb-kendo-color-primary;
+            background-image: none;
+        
+}
+    .k-drawer-container.k-drawer-mini .k-drawer.k-drawer-start .k-drawer-wrapper .k-drawer-items{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-popup.k-list-container .k-list.k-list-md .k-list-content{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-popup.k-list-container .k-list.k-list-md .k-list-content .k-list-ul{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-bottom-nav.k-bottom-nav-flat.k-bottom-nav-flat-primary{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-bottom-nav.k-bottom-nav-flat.k-bottom-nav-flat-secondary{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-breadcrumb .k-breadcrumb-root-item-container{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-breadcrumb .k-breadcrumb-container{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-breadcrumb .k-breadcrumb-container .k-breadcrumb-item.k-breadcrumb-last-item .k-breadcrumb-link.k-focus,.k-breadcrumb .k-breadcrumb-container .k-breadcrumb-item.k-breadcrumb-last-item .k-breadcrumb-link.k-state-focus,.k-breadcrumb .k-breadcrumb-container .k-breadcrumb-item.k-breadcrumb-last-item .k-breadcrumb-link.k-state-focused,.k-breadcrumb .k-breadcrumb-container .k-breadcrumb-item.k-breadcrumb-last-item .k-breadcrumb-link:focus{
+    border-bottom-left-radius: k-border-radius( none );
+            border-bottom-right-radius: k-border-radius( none );
+            border-top-left-radius: k-border-radius( none );
+            border-top-right-radius: k-border-radius( none );
+            outline-color: $tb-kendo-base-bg;
+            border-bottom-width: 0px;
+            border-left-width: 0px;
+            border-right-width: 0px;
+            border-top-width: 0px;
+        
+}
+    .k-breadcrumb .k-breadcrumb-container .k-breadcrumb-item.k-breadcrumb-last-item .k-breadcrumb-link.k-hover .k-breadcrumb-item-text,.k-breadcrumb .k-breadcrumb-container .k-breadcrumb-item.k-breadcrumb-last-item .k-breadcrumb-link.k-state-hover .k-breadcrumb-item-text,.k-breadcrumb .k-breadcrumb-container .k-breadcrumb-item.k-breadcrumb-last-item .k-breadcrumb-link.k-state-hovered .k-breadcrumb-item-text,.k-breadcrumb .k-breadcrumb-container .k-breadcrumb-item.k-breadcrumb-last-item .k-breadcrumb-link:hover .k-breadcrumb-item-text{
+    border-bottom-width: 0px;
+            border-left-width: 0px;
+            border-right-width: 0px;
+            border-top-width: 0px;
+        
+}
+    .k-breadcrumb .k-breadcrumb-container .k-breadcrumb-item.k-breadcrumb-last-item .k-breadcrumb-link.k-disabled,.k-breadcrumb .k-breadcrumb-container .k-breadcrumb-item.k-breadcrumb-last-item .k-breadcrumb-link.k-state-disabled,.k-breadcrumb .k-breadcrumb-container .k-breadcrumb-item.k-breadcrumb-last-item .k-breadcrumb-link:disabled{
+    border-bottom-left-radius: k-border-radius( none );
+            border-bottom-right-radius: k-border-radius( none );
+            border-top-left-radius: k-border-radius( none );
+            border-top-right-radius: k-border-radius( none );
+        
+}
+    .k-breadcrumb .k-breadcrumb-root-item-container .k-breadcrumb-item.k-breadcrumb-root-item .k-breadcrumb-root-link{
+    color: $tb-kendo-breadcrumb-link-text;
+        
+}
+    .k-breadcrumb .k-breadcrumb-root-item-container .k-breadcrumb-item.k-breadcrumb-root-item .k-breadcrumb-root-link.k-hover,.k-breadcrumb .k-breadcrumb-root-item-container .k-breadcrumb-item.k-breadcrumb-root-item .k-breadcrumb-root-link.k-state-hover,.k-breadcrumb .k-breadcrumb-root-item-container .k-breadcrumb-item.k-breadcrumb-root-item .k-breadcrumb-root-link.k-state-hovered,.k-breadcrumb .k-breadcrumb-root-item-container .k-breadcrumb-item.k-breadcrumb-root-item .k-breadcrumb-root-link:hover{
+    color: $tb-kendo-breadcrumb-link-hover-text;
+        
+}
+    .k-breadcrumb .k-breadcrumb-container .k-breadcrumb-item.k-breadcrumb-last-item .k-breadcrumb-link{
+    color: inherit;
+        
+}
+    .k-dialog-wrapper .k-window.k-dialog{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-panelbar{
+    background-color: $tb-kendo-base-bg;
+            background-image: none;
+        
+}
+    .k-grid.k-grid-md .k-table-thead .k-table-row.k-filter-row .k-table-td .k-filtercell .k-filtercell-wrapper .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-icon-button,.k-grid.k-grid-md .k-grid-header .k-table-row.k-filter-row .k-table-td .k-filtercell .k-filtercell-wrapper .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-icon-button{
+    padding-bottom: 10px;
+            padding-left: 10px;
+            padding-right: 10px;
+            padding-top: 10px;
+            border-bottom-width: $tb-kendo-border-radius;
+            border-left-width: $tb-kendo-border-radius;
+            border-right-width: $tb-kendo-border-radius;
+            border-top-width: $tb-kendo-border-radius;
+            outline-width: 1px;
+            outline-color: $tb-kendo-input-border;
+        
+}
+    .k-grid.k-grid-md .k-table-thead .k-table-row.k-filter-row .k-table-td .k-filtercell .k-filtercell-wrapper .k-filtercell-operator .k-dropdownlist.k-picker.k-dropdown-operator.k-picker-md.k-rounded-md.k-picker-solid .k-input-button.k-button.k-icon-button.k-button-md.k-button-solid.k-button-solid-base .k-icon.k-svg-icon.k-button-icon,.k-grid.k-grid-md .k-grid-header .k-table-row.k-filter-row .k-table-td .k-filtercell .k-filtercell-wrapper .k-filtercell-operator .k-dropdownlist.k-picker.k-dropdown-operator.k-picker-md.k-rounded-md.k-picker-solid .k-input-button.k-button.k-icon-button.k-button-md.k-button-solid.k-button-solid-base .k-icon.k-svg-icon.k-button-icon{
+    padding-bottom: 0px;
+            padding-left: 0px;
+            padding-right: 0px;
+            padding-top: 0px;
+            width: auto;
+        
+}
+    .k-grid.k-grid-md .k-table-thead .k-table-row.k-filter-row .k-table-td .k-filtercell .k-filtercell-wrapper .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-icon-button .k-icon.k-svg-icon.k-button-icon,.k-grid.k-grid-md .k-grid-header .k-table-row.k-filter-row .k-table-td .k-filtercell .k-filtercell-wrapper .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-icon-button .k-icon.k-svg-icon.k-button-icon{
+    border-bottom-width: $tb-kendo-border-radius;
+            border-left-width: $tb-kendo-border-radius;
+            border-right-width: $tb-kendo-border-radius;
+            border-top-width: $tb-kendo-border-radius;
+            border-bottom-left-radius: unset;
+            border-bottom-right-radius: unset;
+            border-top-left-radius: unset;
+            border-top-right-radius: unset;
+            outline-style: solid;
+            outline-width: 0px;
+            width: auto;
+        
+}
+    .k-grid.k-grid-md .k-table-thead .k-table-row.k-filter-row .k-table-td .k-filtercell .k-filtercell-wrapper .k-filtercell-operator .k-dropdownlist.k-picker.k-dropdown-operator.k-picker-md.k-rounded-md.k-picker-solid .k-input-button.k-button.k-icon-button.k-button-md.k-button-solid.k-button-solid-base,.k-grid.k-grid-md .k-grid-header .k-table-row.k-filter-row .k-table-td .k-filtercell .k-filtercell-wrapper .k-filtercell-operator .k-dropdownlist.k-picker.k-dropdown-operator.k-picker-md.k-rounded-md.k-picker-solid .k-input-button.k-button.k-icon-button.k-button-md.k-button-solid.k-button-solid-base{
+    padding-bottom: 10px;
+            padding-left: 10px;
+            padding-right: 10px;
+            padding-top: 10px;
+            border-bottom-color: $tb-kendo-color-secondary;
+            border-left-color: $tb-kendo-color-secondary;
+            border-right-color: $tb-kendo-color-secondary;
+            border-top-color: $tb-kendo-color-secondary;
+            border-bottom-left-radius: unset;
+            border-bottom-right-radius: unset;
+            border-top-left-radius: unset;
+            border-top-right-radius: unset;
+            outline-color: $tb-kendo-color-secondary;
+            outline-width: unset;
+        
+}
+    .k-grid.k-grid-md .k-table-thead .k-table-row.k-filter-row .k-table-td .k-filtercell .k-filtercell-wrapper .k-filtercell-operator .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-icon-button.k-disabled,.k-grid.k-grid-md .k-table-thead .k-table-row.k-filter-row .k-table-td .k-filtercell .k-filtercell-wrapper .k-filtercell-operator .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-icon-button.k-state-disabled,.k-grid.k-grid-md .k-table-thead .k-table-row.k-filter-row .k-table-td .k-filtercell .k-filtercell-wrapper .k-filtercell-operator .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-icon-button:disabled,.k-grid.k-grid-md .k-grid-header .k-table-row.k-filter-row .k-table-td .k-filtercell .k-filtercell-wrapper .k-filtercell-operator .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-icon-button.k-disabled,.k-grid.k-grid-md .k-grid-header .k-table-row.k-filter-row .k-table-td .k-filtercell .k-filtercell-wrapper .k-filtercell-operator .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-icon-button.k-state-disabled,.k-grid.k-grid-md .k-grid-header .k-table-row.k-filter-row .k-table-td .k-filtercell .k-filtercell-wrapper .k-filtercell-operator .k-button.k-button-md.k-button-solid.k-button-solid-base.k-rounded-md.k-icon-button:disabled{
+    outline-style: solid;
+            outline-width: 1px;
+        
+}
+    .k-grid.k-grid-md .k-table-thead .k-table-row.k-filter-row .k-table-td .k-filtercell .k-filtercell-wrapper .k-filtercell-operator,.k-grid.k-grid-md .k-grid-header .k-table-row.k-filter-row .k-table-td .k-filtercell .k-filtercell-wrapper .k-filtercell-operator{
+    outline-color: $tb-kendo-base-bg;
+            outline-style: solid;
+            outline-width: k-border-radius( none );
+        
+}
