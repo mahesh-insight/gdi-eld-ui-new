@@ -1,9 +1,10 @@
-/* --- Main Header Structure --- */
 .header {
   width: 100%;
   background-color: #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  font-family: "allumi-2-std", Verdana, sans-serif;
+  position: relative;
+  z-index: 100;
 }
 
 .container {
@@ -15,314 +16,219 @@
   justify-content: space-between;
 }
 
-/* --- Top Bar Styles --- */
 .topBar {
-  background-color: var(--light-gray);
+  background-color: #fff;
   font-size: 14px;
   color: var(--medium-gray);
+
+  .container {
+    .topBarLeft {
+      .phoneNumber {
+        color: var(--dark-gray);
+        text-decoration: none;
+        font-weight: 500;
+      }
+    }
+
+    .topBarRight {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+
+      .signInLink {
+        color: var(--link-blue);
+        text-decoration: none;
+        font-weight: 500;
+      }
+      .signInLink:hover {
+        text-decoration: underline;
+      }
+      .iconButton {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 5px;
+        color: var(--medium-gray);
+        .icon {
+          width: 22px;
+          height: 22px;
+        }
+      }
+      .iconButton:hover {
+        color: var(--dark-gray);
+      }
+    }
+  }
 }
 
-.topBarLeft {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.topBarLeft span {
-  font-weight: 500;
-  color: var(--dark-gray);
-}
-
-.phoneNumber {
-  color: var(--medium-gray);
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-.phoneNumber:hover {
-  color: var(--primary-orange);
-}
-
-.topBarRight {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.signInLink {
-  color: var(--link-blue);
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.signInLink:hover {
-  text-decoration: underline;
-}
-
-/* --- Main Header & Logo --- */
 .mainHeader {
-  margin-top: -5px;
-  padding-bottom: 5px;
+  padding: 10px 0;
+
+  .mainHeaderContainer {
+    .logo .svg {
+      display: block;
+      height: 40px;
+      width: auto;
+    }
+
+    .nav {
+      flex-grow: 1;
+      display: flex;
+      justify-content: center;
+    }
+
+    .navList {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .navItem {
+      /* Individual nav link styling */
+    }
+
+    .navLink {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 10px 15px;
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--dark-gray);
+      text-decoration: none;
+      border-radius: 4px;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .navLink::after {
+      content: '';
+      position: absolute;
+      bottom: -15px;
+      left: 0;
+      width: 100%;
+      height: 5px;
+      background-color: var(--primary-red);
+      transform: scaleX(0);
+      transform-origin: bottom left;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .navLink:hover {
+      color: var(--dark-gray);
+    }
+    
+    .navLink:hover::after {
+      transform: scaleX(1);
+    }
+
+    .navLinkActive {
+      color: var(--primary-red);
+    }
+
+    .navLinkActive .chevronIcon {
+      transform: rotate(180deg);
+    }
+
+    .chevronIcon {
+      transition: transform 0.3s ease;
+    }
+  }
 }
 
-.mainHeaderContainer {
-    gap: 20px;
-}
-
-.logo svg {
-  display: block;
-  height: 30px; /* Adjust as needed */
-  width: 98px;
-}
-
-/* --- Navigation Styles --- */
-.nav {
-  flex-grow: 1;
-  display: flex;
-  justify-content: center;
-}
-
-.navList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  gap: 5px; /* Small gap between items */
-}
-
-.navItem {
-  position: relative; /* Crucial for dropdown positioning */
-}
-
-.navLink {
-  display: flex; /* Use flex to align text and icon */
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 15px 20px;
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--dark-gray);
-  text-decoration: none;
-  border-bottom: 3px solid transparent; /* Placeholder for hover effect */
-  transition: border-color 0.2s ease, color 0.2s ease;
-}
-
-.navLink:hover {
-  color: var(--primary-orange);
-  border-bottom-color: var(--primary-orange);
-}
-
-.chevronIcon {
-    transition: transform 0.2s ease-in-out;
-}
-
-/* Rotate chevron when menu is open */
-.navLink[aria-expanded="true"] .chevronIcon {
-    transform: rotate(180deg);
-}
-
-
-/* --- Dropdown Menu Styles --- */
-.dropdown {
+.fullScreenDropdown {
   position: absolute;
   top: 100%;
   left: 0;
+  width: 100%;
   background-color: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: var(--border-radius);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  list-style: none;
-  margin: 5px 0 0;
-  padding: 10px 0;
-  min-width: 240px;
-  z-index: 1000;
+  border-top: 1px solid var(--border-color);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
   opacity: 0;
   visibility: hidden;
-  transform: translateY(10px);
-  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+  transform: translateY(0px);
+  transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
+  z-index: -1;
+
+  .container {
+    justify-content: center;
+  }
+
+  .activeIndicatorBar {
+    position: absolute;
+    top: -2px;
+    left: 0;
+    width: 100%;
+    height: 5px;
+    background-color: var(--primary-red);
+    transition: opacity 0.3s ease;
+  }
+
+  .upArrow {
+    position: absolute;
+    top: -8px;
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 8px solid var(--primary-red);
+    transform: translateX(-50%);
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dropdownContent {
+    padding: 30px 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dropdownLink {
+    color: var(--dark-gray);
+    text-decoration: none;
+    font-size: 15px;
+    padding: 5px 0;
+    transition: color 0.2s ease;
+  }
+
+  .dropdownLink:hover {
+    color: var(--primary-red);
+  }
 }
 
-.dropdown.dropdownOpen {
+.fullScreenDropdown.open {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
+  z-index: 99;
 }
 
-.dropdownItem {
-  padding: 0;
+.subMenu {
+  list-style: none;
+  margin-top: 10px;
+  padding-left: 20px;
+  border-left: 1px solid var(--border-color);
+
+  .subMenuLink {
+    display: block;
+    padding: 5px 0;
+    font-size: 14px;
+    color: var(--medium-gray);
+    text-decoration: none;
+  }
+  .subMenuLink:hover {
+    color: var(--primary-red);
+    text-decoration: underline;
+  }
 }
 
-.dropdownLink {
-  display: block;
-  padding: 10px 20px;
-  color: var(--dark-gray);
-  text-decoration: none;
-  font-size: 15px;
-  white-space: nowrap;
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-.dropdownLink:hover {
-  background-color: var(--light-gray);
-  color: var(--primary-orange);
-}
-
-/* --- Header Actions (Search, Cart) --- */
-.headerActions {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.searchBar {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.searchBar input {
-  border: 1px solid #ccc;
-  border-radius: var(--border-radius);
-  padding: 8px 40px 8px 15px;
-  font-size: 15px;
-  width: 220px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.searchBar input:focus {
-  outline: none;
-  border-color: var(--primary-orange);
-  box-shadow: 0 0 0 2px rgba(230, 81, 0, 0.2);
-}
-
-.searchButton {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  background: none;
-  border: none;
-  padding: 0 10px;
-  cursor: pointer;
-  color: var(--medium-gray);
-}
-
-.iconButton {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--medium-gray);
-}
-
-.iconButton:hover {
-  color: var(--dark-gray);
-}
-
-.icon {
-  width: 24px;
-  height: 24px;
-}
-
-/* --- Hamburger Menu (Mobile) --- */
-.hamburger {
-  display: none; /* Hidden on desktop */
-  flex-direction: column;
-  justify-content: space-around;
-  width: 30px;
-  height: 25px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  z-index: 1001; /* Above nav */
-}
-
-.hamburgerLine {
-  width: 30px;
-  height: 3px;
-  background-color: var(--dark-gray);
-  border-radius: 2px;
-}
-
-/* --- Responsive Design --- */
 @media (max-width: 1024px) {
   .nav {
-    display: none; /* Hide nav by default on mobile */
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100vh;
-    background-color: rgba(0, 0, 0, 0.5); /* Backdrop */
-    z-index: 999;
+    display: none;
   }
-  
-  .nav.navOpen {
-    display: block; /* Show nav container when open */
-  }
-
-  .navList {
-    flex-direction: column;
-    width: 300px; /* Mobile menu width */
-    height: 100%;
-    background-color: #fff;
-    padding-top: 80px; /* Space for header */
-    gap: 0;
-    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-  }
-
-  .navItem {
-    width: 100%;
-  }
-
-  .navLink {
-    justify-content: space-between;
-    width: 100%;
-    border-bottom: 1px solid #eee;
-  }
-  
-  .navLink:hover {
-      border-bottom: 1px solid #eee; /* Override desktop hover */
-      background-color: var(--light-gray);
-  }
-
-  .dropdown {
-    position: static; /* No longer absolute */
-    box-shadow: none;
-    border: none;
-    border-top: 1px solid #eee;
-    padding-left: 20px;
-    display: none; /* Hidden by default */
-    opacity: 1;
-    visibility: visible;
-    transform: none;
-  }
-  
-  .dropdown.dropdownOpen {
-    display: block;
-  }
-
-  .headerActions {
-    display: none; /* Hide search/cart for simplicity, can be moved */
-  }
-
-  .hamburger {
-    display: flex; /* Show hamburger */
-  }
-}
-
-@media (max-width: 768px) {
-    .topBarLeft span {
-        display: none; /* Hide "INSIGHT" on smaller screens */
-    }
-    .container {
-        padding: 0 15px;
-    }
 }
