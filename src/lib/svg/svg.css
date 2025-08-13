@@ -1,0 +1,36 @@
+.svg-style{
+    width: 20px;
+    height: 20px;
+    opacity: 1;
+}
+.svg-style-sm{
+    width: 16px;
+    height: 16px;
+    opacity: 1;
+}
+.svg-style-md{
+    width: 24px;
+    height: 24px;
+}
+.svg-style-lg{
+    width: 32px;
+    height: 32px;
+}
+.op{
+    opacity: 1;
+
+}
+
+.k-button.k-grid-download:hover svg path,
+.k-button.k-grid-download:active svg path,
+.k-button.k-grid-download:focus svg path {
+  fill: #ffffff;
+}
+
+.k-button.k-grid-download:hover,
+.k-button.k-grid-download:active,
+.k-button.k-grid-download:focus  {
+  color: #ffffff;
+  background-color: #5F5753;
+  background-image: none;
+}

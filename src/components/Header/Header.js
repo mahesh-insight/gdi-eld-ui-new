@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import styles from "./Header.module.css";
 import Link from "next/link";
+import { HomeIcon } from "@/lib/svg/svgList";
 
 const NotificationIcon = () => (
   <svg className={styles.icon} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" >
@@ -17,6 +18,7 @@ const ChevronDownIcon = () => (
 );
 
 const navItems = [
+  { label: "Home", href: "/", children: [], isHome: true }, // Added home icon item
   {
     label: "Insight Invoices",
     children: [
@@ -149,14 +151,20 @@ const Header = () => {
             <ul className={styles.navList}>
               {navItems.map((item, index) => (
                 <li key={index} className={styles.navItem}>
-                  <button
-                    ref={(el) => (navLinkRefs.current[index] = el)}
-                    className={`${styles.navLink} ${openMenuIndex === index ? styles.navLinkActive : ""}`}
-                    onClick={() => handleMenuClick(index)}
-                  >
-                    {item.label}
-                    {item.children.length > 0 && <ChevronDownIcon />}
-                  </button>
+                  {item.isHome ? (
+                    <Link href={item.href} className={styles.navLink}>
+                      <HomeIcon id="homeIcon" className="svg-style" fill="#AE0A46" />
+                    </Link>
+                  ) : (
+                    <button
+                      ref={(el) => (navLinkRefs.current[index] = el)}
+                      className={`${styles.navLink} ${openMenuIndex === index ? styles.navLinkActive : ""}`}
+                      onClick={() => handleMenuClick(index)}
+                    >
+                      {item.label}
+                      {item.children.length > 0 && <ChevronDownIcon />}
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
@@ -170,15 +178,15 @@ const Header = () => {
           <div className={styles.upArrow} style={{ left: indicatorStyle.left }}></div>
         </div>
         <div className={styles.container}>
-            {hasOpenMenuWithChildren && (
-                <div className={styles.dropdownContent}>
-                    {navItems[openMenuIndex].children.map((child, childIndex) => (
-                        <Link key={childIndex} href={child.href || "#"} className={styles.dropdownLink}>
-                            {child.label}
-                        </Link>
-                    ))}
-                </div>
-            )}
+          {hasOpenMenuWithChildren && (
+            <div className={styles.dropdownContent}>
+              {navItems[openMenuIndex].children.map((child, childIndex) => (
+                <Link key={childIndex} href={child.href || "#"} className={styles.dropdownLink}>
+                  {child.label}
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </header>
