@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import styles from "./Header.module.css";
+import styles from "./Header.module.scss";
 import Link from "next/link";
 import {
   GearIcon,
@@ -91,7 +91,8 @@ const navItems = [
 const Header = () => {
   const [openMenuIndex, setOpenMenuIndex] = useState(null);
   const [openSubMenuLabel, setOpenSubMenuLabel] = useState(null);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const [isAccountSettingsOpen, setIsAccountSettingsOpen] = useState(false);
   const [indicatorStyle, setIndicatorStyle] = useState({});
   const headerRef = useRef(null);
   const navLinkRefs = useRef([]);
@@ -149,8 +150,20 @@ const Header = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const hasOpenMenuWithChildren =
-    openMenuIndex !== null && navItems[openMenuIndex]?.children.length > 0;
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (headerRef.current && !headerRef.current.contains(event.target)) {
+        setOpenMenuIndex(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+}, []);
+
+  const hasOpenMenuWithChildren = openMenuIndex !== null && navItems[openMenuIndex]?.children.length > 0;
 
   return (
     <header className={styles.header} ref={headerRef}>
@@ -170,18 +183,56 @@ const Header = () => {
               &nbsp;
               <NotificationIcon className="svg-style" />
             </button>
-            <button className={`${styles.iconButton} ${styles.iconAccount}`}>
-              <UserAcccountIcon className="svg-style" />
-              <span>
-                &nbsp;&nbsp;{"aPriori Technologies, Inc"} - {"0010816218"}
-              </span>
-            </button>
-            <button className={`${styles.iconButton} ${styles.iconAccount}`}>
-              <GearIcon className="svg-style" />
-              <span>
-                &nbsp;&nbsp;{"kotapali"}, {"mahesh"}
-              </span>
-            </button>
+
+            {/* Account Details */}
+            <div className={`${styles.iconAccount} ${isAccountMenuOpen ? styles.open : ''}`}>
+              <button className={`${styles.iconButton}`}
+                onClick={() => {
+                  setIsAccountMenuOpen(!isAccountMenuOpen);
+                  setIsAccountSettingsOpen(false);
+                }}
+              >
+                <UserAcccountIcon className="svg-style" />
+                <span>
+                  &nbsp;&nbsp;{"3E Company Environmental,"} - {"0010816218"}
+                </span>
+              </button>
+              {isAccountMenuOpen &&
+                <div className={`${styles.iconAccountMenu}`}>
+                  <ul className={`${styles.iconAccountList}`}>
+                    <li className={`${styles.iconAccountListItem}`}>
+                      <button className={`${styles.iconAccountLink}`} type="button">
+                        Switch Account
+                      </button>
+                  </li>
+                </ul>
+              </div> }
+            </div>
+
+            {/* Account Setting */}
+            <div className={`${styles.iconAccount} ${isAccountSettingsOpen ? styles.open : ''}`}>
+                <button className={`${styles.iconButton} ${styles.iconSettings}`} 
+                  onClick={() => {
+                    setIsAccountSettingsOpen(!isAccountSettingsOpen);
+                    setIsAccountMenuOpen(false);
+                  }}
+                >
+                  <GearIcon className="svg-style" />
+                  <span>
+                    &nbsp;&nbsp;{"kotapali"}, {"mahesh"}
+                  </span>
+              </button>
+              {isAccountSettingsOpen &&
+                <div className={`${styles.iconAccountSettings}`}>
+                  <ul className={`${styles.iconAccountList}`}>
+                    <li className={`${styles.iconAccountListItem}`}>
+                      <button className={`${styles.iconAccountLink}`} type="button">
+                        Switch Account
+                      </button>
+                  </li>
+                </ul>
+              </div> }
+            </div>
           </div>
         </div>
       </div>
