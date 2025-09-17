@@ -1,346 +1,399 @@
+$color_1: var(--medium-gray);
+$color_2: var(--dark-gray);
+$color_3: var(--link-blue);
+$color_4: red;
+$color_5: #FFF;
+$color_6: var(--primary-red);
+$font-family_1: "allumi-2-std", Verdana, sans-serif;
+$background-color_1: #fff;
+$background-color_2: #5f5753;
+$background-color_3: transparent;
+$background-color_4: #3e332d;
+$background-color_5: var(--primary-red);
+
 .header {
-  width: 100%;
-  background-color: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  font-family: "allumi-2-std", Verdana, sans-serif;
-  position: relative;
-  z-index: 100;
-
-  .container {
-    width: 100%;
-    margin: 0 auto;
-    padding: 0 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
+	width: 100%;
+	background-color: $background-color_1;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+	font-family: $font-family_1;
+	position: relative;
+	z-index: 100;
+	.container {
+		width: 100%;
+		margin: 0 auto;
+		padding: 0 24px;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
 }
-
 .topBar {
-  background-color: #fff;
-  font-size: 14px;
-  color: var(--medium-gray);
-  --opacity: 0.7;
+	background-color: $background-color_1;
+	font-size: 14px;
+	color: $color_1;
+	--opacity: 0.7;
+	.container {
+		.topBarLeft {
+			.phoneNumber {
+				color: $color_2;
+				text-decoration: none;
+				font-weight: 500;
+			}
+		}
+		.topBarRight {
+			display: flex;
+			gap: 10px;
+			align-items: baseline;
+			.signInLink {
+				color: $color_3;
+				text-decoration: none;
+				font-weight: 500;
+				&:hover {
+					text-decoration: underline;
+				}
+			}
+			.iconButton {
+				background: none;
+				border: none;
+				cursor: pointer;
+				padding: 5px;
+				color: $color_1;
+				font-size: 0.875rem;
+				align-items: center;
+				.icon {
+					width: 22px;
+					height: 22px;
+				}
+				&:hover {
+					color: $color_2;
+				}
+			}
+			.notificationCount {
+				color: $color_4;
+				font-size: 14px;
+				font-weight: 400;
+			}
+			.iconAccount {
+				display: flex;
+				align-items: center;
+				.iconButton {
+					display: inline-flex;
+				}
+				.iconAccountMenu {
+					background-color: $background-color_2;
+					border-width: 0;
+					box-shadow: rgba(62, 51, 45, 0.15) 0 6px 12px, rgba(62, 51, 45, 0.15) 0 0 2px;
+					min-width: 15em;
+					left: auto;
+					border: 1px solid #e6e6e5;
+					padding: 12px 0;
+					position: absolute;
+					top: 40px;
+					opacity: 0;
+					visibility: hidden;
+					transition: opacity 0.3s ease, top 0.3s ease, visibility 0.3s;
+					.iconAccountList {
+						list-style: none;
+						.iconAccountListItem {
+							.iconAccountLink {
+								font-size: 14px;
+								color: $color_5;
+								padding: 6px 12px;
+								display: block;
+								width: 100%;
+								background-color: $background-color_3;
+								border: 0;
+								text-align: left;
+								transition: color 300ms ease-in-out, background-color 300ms ease-in-out, border-color 300ms ease-in-out;
+								align-items: center;
+								cursor: pointer;
+								&:hover {
+									background-color: $background-color_4;
+								}
+							}
+						}
+					}
+				}
 
-  .container {
-    .topBarLeft {
-      .phoneNumber {
-        color: var(--dark-gray);
-        text-decoration: none;
-        font-weight: 500;
-      }
-    }
+				&::after {
+					content: "";
+					position: absolute;
+					top: 28px;
+					width: 0;
+					height: 0;
+					border-left: 8px solid transparent;
+					border-right: 8px solid transparent;
+					border-bottom: 8px solid #5f5753;
+					visibility: hidden;
+					opacity: 0;
+					transition: opacity 0.3s ease;
+				}
+			}
+			.iconAccount.open {
+				.iconAccountMenu {
+					opacity: 1;
+					visibility: visible;
+					top: 35px;
+					right: 9.5%;
+					opacity: 1;
+					visibility: visible;
+					top: 35px;
+					&::after {
+						right: 9.5%;
+					}
+				}
 
-    .topBarRight {
-      display: flex;
-      gap: 10px;
-      align-items: baseline;
+				&::after {
+					visibility: visible;
+					opacity: 1;
+					top: 28px;
+					right: 11%;
+					.iconAccountMenu {
+						&::after {
+							right: 11%;
+						}
+					}
+				}
+			}
 
-      .signInLink {
-        color: var(--link-blue);
-        text-decoration: none;
-        font-weight: 500;
-
-        &:hover {
-          text-decoration: underline;
-        }
-      }
-
-      .iconButton {
-        background: none;
-        border: none;
-        cursor: pointer;
-        padding: 5px;
-        color: var(--medium-gray);
-        font-size: 0.875rem;
-        align-items: center;
-
-        .icon {
-          width: 22px;
-          height: 22px;
-        }
-
-        &:hover {
-          color: var(--dark-gray);
-        }
-      }
-
-      .notificationCount {
-        color: red;
-        font-size: 14px;
-        font-weight: 400;
-      }
-
-      .iconAccount, .iconSettings {
-        display: flex;
-        align-items: center;
-      }
-
-      .iconAccount {
-        .iconButton {
-          display: inline-flex;
-        }
-
-        .iconAccountMenu, .iconAccountSettings {
-          background-color: #5f5753;
-          border-width: 0;
-          box-shadow: rgba(62, 51, 45, 0.15) 0 6px 12px, rgba(62, 51, 45, 0.15) 0 0 2px;
-          min-width: 15em;
-          left: auto;
-          border: 1px solid #e6e6e5;
-          padding: 12px 0;
-          position: absolute;
-          top: 40px;
-          opacity: 0;
-          visibility: hidden;
-          transition: opacity 0.3s ease, top 0.3s ease, visibility 0.3s;
-
-          .iconAccountList {
-            list-style: none;
-
-            .iconAccountListItem {
-              .iconAccountLink {
-                font-size: 14px;
-                color: #FFF;
-                padding: 6px 12px;
-                display: block;
-                width: 100%;
-                background-color: transparent;
-                border: 0;
-                text-align: left;
-                transition: color 300ms ease-in-out, background-color 300ms ease-in-out, border-color 300ms ease-in-out;
-                align-items: center;
-                cursor: pointer;
-
-                &:hover {
-                  background-color: #3E332D;
-                }
-              }
-            }
-          }
-        }
-
-        &.open {
-          .iconAccountMenu, .iconAccountSettings {
-            opacity: 1;
-            visibility: visible;
-            top: 35px;
-          }
-
-          &::after {
-            visibility: visible;
-            opacity: 1;
-            top: 28px;
-          }
-        }
-
-        &::after {
-          content: "";
-          position: absolute;
-          top: 28px;
-          width: 0;
-          height: 0;
-          border-left: 8px solid transparent;
-          border-right: 8px solid transparent;
-          border-bottom: 8px solid #5F5753;
-          visibility: hidden;
-          opacity: 0;
-          transition: opacity 0.3s ease;
-        }
-      }
-
-      .iconAccount {
-        &.open::after {
-          right: 11%;
-        }
-      }
 
       .iconAccountSettings {
-        right: 1%;
-        
-        &::after {
-          right: 2%;
-        }
-      }
-    }
-  }
+				display: flex;
+				align-items: center;
+				.iconButton {
+					display: inline-flex;
+				}
+				.iconAccountSettingsMenu {
+					background-color: $background-color_2;
+					border-width: 0;
+					box-shadow: rgba(62, 51, 45, 0.15) 0 6px 12px, rgba(62, 51, 45, 0.15) 0 0 2px;
+					min-width: 15em;
+					left: auto;
+					border: 1px solid #e6e6e5;
+					padding: 12px 0;
+					position: absolute;
+					top: 40px;
+					opacity: 0;
+					visibility: hidden;
+					transition: opacity 0.3s ease, top 0.3s ease, visibility 0.3s;
+					.iconAccountList {
+						list-style: none;
+						.iconAccountListItem {
+							.iconAccountLink {
+								font-size: 14px;
+								color: $color_5;
+								padding: 6px 12px;
+								display: block;
+								width: 100%;
+								background-color: $background-color_3;
+								border: 0;
+								text-align: left;
+								transition: color 300ms ease-in-out, background-color 300ms ease-in-out, border-color 300ms ease-in-out;
+								align-items: center;
+								cursor: pointer;
+								&:hover {
+									background-color: $background-color_4;
+								}
+							}
+						}
+					}
+				}
+
+				&::after {
+					content: "";
+					position: absolute;
+					top: 28px;
+					width: 0;
+					height: 0;
+					border-left: 8px solid transparent;
+					border-right: 8px solid transparent;
+					border-bottom: 8px solid #5f5753;
+					visibility: hidden;
+					opacity: 0;
+					transition: opacity 0.3s ease;
+				}
+			}
+			.iconAccountSettings.open {
+				.iconAccountSettingsMenu {
+					opacity: 1;
+					visibility: visible;
+					top: 35px;
+					right: 1%;
+					opacity: 1;
+					visibility: visible;
+					top: 35px;
+					&::after {
+						right: 1%;
+					}
+				}
+
+				&::after {
+					visibility: visible;
+					opacity: 1;
+					top: 28px;
+					right: 2%;
+					.iconAccountSettingsMenu {
+						&::after {
+							right: 1%;
+						}
+					}
+				}
+			}
+		}
+	}
 }
+
 
 .mainHeader {
-  padding: 0 0 10px 0;
-
-  .mainHeaderContainer {
-    .logo .svg {
-      display: block;
-      height: 30px;
-      width: 98px;
-    }
-
-    .nav {
-      flex-grow: 1;
-      display: flex;
-      justify-content: center;
-    }
-
-    .navList {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      align-items: center;
-      gap: 0px;
-    }
-
-    .navItem {
-      /* Individual nav link styling */
-    }
-
-    .navLink {
-      position: relative;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 10px;
-      font-size: 16px;
-      font-weight: 500;
-      color: var(--dark-gray);
-      text-decoration: none;
-      border-radius: 4px;
-      transition: background-color 0.2s ease, color 0.2s ease;
-
-      &::after {
-        content: "";
-        position: absolute;
-        bottom: -15px;
-        left: 0;
-        width: 100%;
-        height: 5px;
-        background-color: var(--primary-red);
-        transform: scaleX(0);
-        transform-origin: bottom left;
-      }
-
-      &:hover {
-        color: var(--dark-gray);
-      }
-
-      &:hover::after {
-        transform: scaleX(1);
-        transition: none;
-      }
-    }
-
-    .navLinkActive {
-      color: var(--primary-red);
-
-      &::after {
-        transform: scaleX(1);
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-
-      .chevronIcon {
-        transform: rotate(180deg);
-      }
-    }
-
-    .chevronIcon {
-      transition: transform 0.3s ease;
-    }
-  }
+	padding: 0 0 10px 0;
+	.mainHeaderContainer {
+		.logo {
+			.svg {
+				display: block;
+				height: 30px;
+				width: 98px;
+			}
+		}
+		.nav {
+			flex-grow: 1;
+			display: flex;
+			justify-content: center;
+		}
+		.navList {
+			list-style: none;
+			margin: 0;
+			padding: 0;
+			display: flex;
+			align-items: center;
+			gap: 0px;
+		}
+		.navLink {
+			position: relative;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			background: none;
+			border: none;
+			cursor: pointer;
+			padding: 10px;
+			font-size: 16px;
+			font-weight: 500;
+			color: $color_2;
+			text-decoration: none;
+			border-radius: 4px;
+			transition: background-color 0.2s ease, color 0.2s ease;
+			&::after {
+				content: "";
+				position: absolute;
+				bottom: -15px;
+				left: 0;
+				width: 100%;
+				height: 5px;
+				background-color: $background-color_5;
+				transform: scaleX(0);
+				transform-origin: bottom left;
+			}
+			&:hover {
+				color: $color_2;
+				&::after {
+					transform: scaleX(1);
+					transition: none;
+				}
+			}
+		}
+		.navLinkActive {
+			color: $color_6;
+			&::after {
+				transform: scaleX(1);
+				transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+			}
+			.chevronIcon {
+				transform: rotate(180deg);
+			}
+		}
+		.chevronIcon {
+			transition: transform 0.3s ease;
+		}
+	}
 }
-
 .fullScreenDropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  width: 100%;
-  background-color: #fff;
-  border-top: 1px solid var(--border-color);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(0px);
-  transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
-  z-index: -1;
-
-  .container {
-    justify-content: center;
-  }
-
-  .activeIndicatorBar {
-    position: absolute;
-    top: -2px;
-    left: 0;
-    width: 100%;
-    height: 5px;
-    background-color: var(--primary-red);
-    transition: opacity 0.3s ease;
-  }
-
-  .upArrow {
-    position: absolute;
-    top: -8px;
-    width: 0;
-    height: 0;
-    border-left: 8px solid transparent;
-    border-right: 8px solid transparent;
-    border-bottom: 8px solid var(--primary-red);
-    transform: translateX(-50%);
-    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .dropdownContent {
-    padding: 30px 0;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .dropdownLink {
-    color: var(--dark-gray);
-    text-decoration: none;
-    font-size: 14px;
-    transition: color 0.2s ease;
-    line-height: 24px;
-    margin-bottom: 6px;
-
-    &:hover {
-      color: var(--primary-red);
-    }
-  }
-
-  &.open {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-    z-index: 99;
-  }
+	position: absolute;
+	top: 100%;
+	left: 0;
+	width: 100%;
+	background-color: $background-color_1;
+	border-top: 1px solid var(--border-color);
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+	opacity: 0;
+	visibility: hidden;
+	transform: translateY(0px);
+	transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
+	z-index: -1;
+	.container {
+		justify-content: center;
+	}
+	.activeIndicatorBar {
+		position: absolute;
+		top: -2px;
+		left: 0;
+		width: 100%;
+		height: 5px;
+		background-color: $background-color_5;
+		transition: opacity 0.3s ease;
+	}
+	.upArrow {
+		position: absolute;
+		top: -8px;
+		width: 0;
+		height: 0;
+		border-left: 8px solid transparent;
+		border-right: 8px solid transparent;
+		border-bottom: 8px solid var(--primary-red);
+		transform: translateX(-50%);
+		transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+	.dropdownContent {
+		padding: 30px 0;
+		display: flex;
+		flex-direction: column;
+	}
+	.dropdownLink {
+		color: $color_2;
+		text-decoration: none;
+		font-size: 14px;
+		transition: color 0.2s ease;
+		line-height: 24px;
+		margin-bottom: 6px;
+		&:hover {
+			color: $color_6;
+		}
+	}
 }
-
+.fullScreenDropdown.open {
+	opacity: 1;
+	visibility: visible;
+	transform: translateY(0);
+	z-index: 99;
+}
 .subMenu {
-  list-style: none;
-  margin-top: 10px;
-  padding-left: 20px;
-  border-left: 1px solid var(--border-color);
-
-  .subMenuLink {
-    display: block;
-    padding: 5px 0;
-    font-size: 14px;
-    color: var(--medium-gray);
-    text-decoration: none;
-
-    &:hover {
-      color: var(--primary-red);
-      text-decoration: underline;
-    }
-  }
+	list-style: none;
+	margin-top: 10px;
+	padding-left: 20px;
+	border-left: 1px solid var(--border-color);
+	.subMenuLink {
+		display: block;
+		padding: 5px 0;
+		font-size: 14px;
+		color: $color_1;
+		text-decoration: none;
+		&:hover {
+			color: $color_6;
+			text-decoration: underline;
+		}
+	}
 }
-
 @media (max-width: 1024px) {
-  .nav {
-    display: none;
-  }
+	.nav {
+		display: none;
+	}
 }

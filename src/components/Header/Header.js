@@ -210,7 +210,7 @@ const Header = () => {
             </div>
 
             {/* Account Setting */}
-            <div className={`${styles.iconAccount} ${isAccountSettingsOpen ? styles.open : ''}`}>
+            <div className={`${styles.iconAccountSettings} ${isAccountSettingsOpen ? styles.open : ''}`}>
                 <button className={`${styles.iconButton} ${styles.iconSettings}`} 
                   onClick={() => {
                     setIsAccountSettingsOpen(!isAccountSettingsOpen);
@@ -223,11 +223,11 @@ const Header = () => {
                   </span>
               </button>
               {isAccountSettingsOpen &&
-                <div className={`${styles.iconAccountSettings}`}>
+                <div className={`${styles.iconAccountSettingsMenu}`}>
                   <ul className={`${styles.iconAccountList}`}>
                     <li className={`${styles.iconAccountListItem}`}>
                       <button className={`${styles.iconAccountLink}`} type="button">
-                        Switch Account
+                        Account Settings
                       </button>
                   </li>
                 </ul>
