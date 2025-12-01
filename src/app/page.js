@@ -7,8 +7,6 @@ import AuthHandler from '../components/AuthHandler';
 export default async function HomePage({ searchParams }) {
     const cookieStore = await cookies();
     const accessToken = cookieStore?.get('access_token')?.value;
-    
-    console.log("HomePage Access Token:", accessToken ? accessToken.substring(0, 20) + '...' : 'undefined');
 
     const resolvedSearchParams = await searchParams;
     const pingAuthCode = resolvedSearchParams?.code || '';
@@ -21,7 +19,6 @@ export default async function HomePage({ searchParams }) {
 
     // If already have an access token, go straight to Dashboard (backend handles expiry)
     if (accessToken) {
-        console.log("Token found, redirecting to dashboard");
         redirect('/dashboard');
     }
 

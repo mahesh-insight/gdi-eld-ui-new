@@ -6,18 +6,75 @@
  */
 
 /**
+ * Environment-based configuration
+ */
+const getEnvironmentConfig = () => {
+  // Check for explicit environment variables first
+  if (process.env.NEXT_PUBLIC_API_BASE_URL || process.env.API_BASE_URL) {
+    return process.env.NEXT_PUBLIC_API_BASE_URL || process.env.API_BASE_URL;
+  }
+  
+  // Fallback to CCR-specific environment variables
+  if (process.env.NEXT_PUBLIC_CCR_API_BASE_URL || process.env.CCR_API_BASE_URL) {
+    return process.env.NEXT_PUBLIC_CCR_API_BASE_URL || process.env.CCR_API_BASE_URL;
+  }
+  
+  // Use dedicated APP_ENV or DEPLOY_ENV for environment detection
+  const appEnv = process.env.NEXT_PUBLIC_APP_ENV || process.env.APP_ENV || 
+                 process.env.NEXT_PUBLIC_DEPLOY_ENV || process.env.DEPLOY_ENV ||
+                 process.env.NEXT_PUBLIC_ENV || process.env.ENV;
+  
+  // Check for localhost indicators (local development)
+  const isLocal = !appEnv || 
+                  appEnv === 'local' || 
+                  (typeof window !== 'undefined' && window.location.hostname === 'localhost') ||
+                  (typeof window === 'undefined' && !process.env.NEXT_PUBLIC_API_BASE_URL && !process.env.API_BASE_URL);
+  
+  if (isLocal) {
+    return 'http://localhost';
+  }
+  
+  // Environment-based defaults using APP_ENV
+  switch (appEnv?.toLowerCase()) {
+    case 'dev':
+    case 'development':
+      return 'https://api-ccrdev.insight.com';
+    case 'qa':
+    case 'staging':
+      return 'https://ccrqa.insight.com';
+    case 'prod':
+    case 'production':
+      return 'https://api-ccr.insight.com';
+    default:
+      // Fallback based on NODE_ENV only if no APP_ENV is set
+      return process.env.NODE_ENV === 'production' 
+        ? 'https://api-ccr.insight.com' 
+        : 'http://localhost';
+  }
+};
+
+/**
+ * Common configuration shared across all services
+ */
+const commonConfig = {
+  baseURL: getEnvironmentConfig(),
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: 600000,
+};
+
+/**
  * Service configuration for API endpoints
  */
 const services = {
   loginAuthCode: {
-    baseURL: process.env.NEXT_PUBLIC_CCR_API_BASE_URL || process.env.CCR_API_BASE_URL || 'http://localhost',
     url: '/ccr-login-service/signin/authcode', 
-    headers: {
-      'Content-Type': 'application/json',
-    },
     noAuthHeader: true, // Don't add auth header for login requests
   },
   // Add more service configurations as needed
+  // Example: getUserProfile: { url: '/api/user/profile' },
+  // Example: updateUser: { url: '/api/user/update', method: 'PUT' },
 };
 
 /**
@@ -32,9 +89,15 @@ const getService = (serviceName, customBaseURL) => {
     throw new Error(`Service '${serviceName}' not found`);
   }
   
+  // Merge common config with service-specific config
   return {
+    ...commonConfig,
     ...service,
-    baseURL: customBaseURL || service.baseURL,
+    baseURL: customBaseURL || commonConfig.baseURL,
+    headers: {
+      ...commonConfig.headers,
+      ...(service.headers || {})
+    }
   };
 };
 

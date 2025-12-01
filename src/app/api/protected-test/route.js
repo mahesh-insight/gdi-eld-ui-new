@@ -7,10 +7,6 @@ export async function GET(req) {
   const cookieStore = await cookies();
   const accessToken = cookieStore?.get('access_token')?.value;
   
-  console.log("Protected API called:");
-  console.log("Authorization header:", authHeader);
-  console.log("Cookie token:", accessToken ? accessToken.substring(0, 20) + '...' : 'none');
-  
   // Check if Bearer token is present
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return NextResponse.json(

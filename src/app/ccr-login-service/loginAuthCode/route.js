@@ -9,9 +9,6 @@ export async function POST(req) {
         const soldto = url.searchParams.get('soldto') || '';
         const salesorg = url.searchParams.get('salesorg') || '';
         
-        console.log("Received POST data (auth code):", body);
-        console.log("URL params:", { soldto, salesorg });
-        
         // Mock successful response
         const mockResponse = {
             userProfile: {

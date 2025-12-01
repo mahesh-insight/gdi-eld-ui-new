@@ -89,13 +89,26 @@ export function handleDates(response, visited = new WeakSet()) {
 const instance = (serviceName, configuration = {}) => {
   const uiProps = isBrowser ? JSON.parse(localStorage?.getItem('uiProps') || '{}') : {};
   
-  // For loginAuthCode, always use localhost, ignore uiProps
+  // Get service configuration with environment-based baseURL
   let serviceConfig;
-  if (serviceName === 'loginAuthCode') {
-    // Force localhost for loginAuthCode, ignore any uiProps override
+  
+  // Check if this is truly local development (not deployed dev/qa)
+  const appEnv = process.env.NEXT_PUBLIC_APP_ENV || process.env.APP_ENV || 
+                 process.env.NEXT_PUBLIC_DEPLOY_ENV || process.env.DEPLOY_ENV ||
+                 process.env.NEXT_PUBLIC_ENV || process.env.ENV;
+  
+  const isLocal = !appEnv || 
+                  appEnv === 'local' || 
+                  (isBrowser && window.location.hostname === 'localhost') ||
+                  (!isBrowser && !process.env.NEXT_PUBLIC_API_BASE_URL && !process.env.API_BASE_URL);
+  
+  // For auth services in true local development, use localhost
+  if (serviceName === 'loginAuthCode' && isLocal) {
+    // Local development - use localhost for auth
     serviceConfig = services.getService(serviceName);
-    serviceConfig.baseURL = 'http://localhost'; // Force localhost
+    serviceConfig.baseURL = 'http://localhost';
   } else {
+    // Use environment-based configuration or uiProps override
     const customBaseURL = uiProps?.CCR_API_BASE_URL;
     serviceConfig = services.getService(serviceName, customBaseURL);
   }
@@ -108,19 +121,7 @@ const instance = (serviceName, configuration = {}) => {
     : serviceConfig.baseURL;
   
   serviceConfig.baseURL = finalBaseURL;
-  
-  // Debug logging for service creation
-  if (serviceName === 'loginAuthCode') {
-    console.log("=== SERVICE CONFIG DEBUG ===");
-    console.log("Service name:", serviceName);
-    console.log("uiProps:", uiProps);
-    console.log("uiProps.CCR_API_BASE_URL:", uiProps?.CCR_API_BASE_URL);
-    console.log("Forced baseURL to localhost:", serviceConfig.baseURL);
-    console.log("Service URL:", serviceUrl);
-    console.log("Final baseURL:", finalBaseURL);
-    console.log("============================");
-  }
-  
+   
   const config = Object.assign(
     {
       timeout: defaultTimeout,
@@ -144,16 +145,6 @@ const instance = (serviceName, configuration = {}) => {
   // Authorization request interceptor
   serviceInstance.interceptors.request.use(
     async function (config) {
-      // Debug logging for auth requests
-      if (config.baseURL && config.baseURL.includes("ccr-login-service")) {
-        console.log("=== AXIOS REQUEST DEBUG ===");
-        console.log("Final URL:", config.baseURL + (config.url || ''));
-        console.log("Method:", config.method);
-        console.log("Headers:", config.headers);
-        console.log("Data:", config.data);
-        console.log("Params:", config.params);
-        console.log("===============================");
-      }
       if (isBrowser) {
         // Check if this is an auth endpoint that doesn't need tokens
         if (config?.noAuthHeader || config.baseURL.includes("ccr-login-service")) {
