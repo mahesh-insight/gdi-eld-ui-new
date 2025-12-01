@@ -2,6 +2,7 @@
 import './globals.css';
 import ClientLayout from './ClientLayout';
 import "Insight-Theme/dist/scss/index.scss"; 
+import "@/i18n";
 
 export const metadata = {
   title: 'CCR',

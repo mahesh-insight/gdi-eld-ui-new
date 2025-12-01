@@ -18,7 +18,7 @@ export default function AuthContextInitializer({ children }) {
     useEffect(() => {
         // This runs once client-side after the page loads
         const userContextString = Cookies.get('user_context');
-        const accessToken = Cookies.get('access_token'); // NOTE: This assumes 'access_token' is NOT httpOnly or accessible via this method
+        const accessToken = Cookies.get('access_token');
 
         if (userContextString && accessToken) {
             try {

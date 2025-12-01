@@ -11,3 +11,17 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+
+// src/app/dashboard/page.jsx
+
+/*import WidgetColumns from "./WidgetColumns";
+
+
+export const dynamic = "force-dynamic"; // optional: ensure fresh SSR shell
+
+export default function DashboardPage() {
+  // This page is server-rendered, but all widget calls run in the
+  // client-side WidgetColumns component.
+  return <WidgetColumns />;
+} */

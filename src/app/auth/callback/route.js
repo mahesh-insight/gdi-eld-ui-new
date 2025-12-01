@@ -35,14 +35,17 @@ export async function GET(req) {
             }
         });
 
+        debugger;
         if (response?.userProfile?.defaultContext?.[0] && response?.tokens?.bearerToken) {
             const bearerToken = response.tokens.bearerToken;
+            console.log("Bearer Token received:", bearerToken);
+            console.log("Environment:", process.env.NODE_ENV);
             const userProfile = response.userProfile;
             const defaultContext = userProfile.defaultContext?.[0];
             const soldToId = defaultContext?.soldToId;
             
             cookieStore.set('access_token', bearerToken, {
-                httpOnly: true,
+                httpOnly: false,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'lax',
                 maxAge: 60 * 60 * 24 * 7,

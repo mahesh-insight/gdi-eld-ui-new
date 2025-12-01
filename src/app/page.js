@@ -40,11 +40,10 @@ export default async function HomePage({ searchParams }) {
     const AUTH_URL = uiProps?.CCR_AUTHENTICATION_URL;
     // const CLIENT_ID = process.env.NEXT_PUBLIC_CLIENT_ID;
     const CLIENT_ID = 'process.env.NEXT_PUBLIC_CLIENT_ID';
-    const REDIRECT_URI_BASE =
-        process.env.NEXT_PUBLIC_REDIRECT_URI_BASE || process.env.NEXT_PUBLIC_APP_BASE_URL;
+    const REDIRECT_URI_BASE = process.env.API_BASE_URL;
     const REDIRECT_URI = encodeURIComponent(`${REDIRECT_URI_BASE}/auth/callback`);
 
-    if (!CLIENT_ID || !REDIRECT_URI_BASE) {
+    if (!REDIRECT_URI_BASE) {
         return (
             <div style={{ padding: '50px', textAlign: 'center', color: 'red' }}>
                 Error: Missing required environment variables (NEXT_PUBLIC_CLIENT_ID or NEXT_PUBLIC_REDIRECT_URI_BASE).
