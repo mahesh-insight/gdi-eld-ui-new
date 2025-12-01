@@ -41,21 +41,13 @@ export async function GET(req) {
     }
 
     try {
-        let response;
-        let isUsingMockData = false;
-        
-        try {           
-            response = await request.post("loginAuthCode", {
-                data: pingAuthCode,
-                params: { 
-                    soldto: soldTo, 
-                    salesorg: salesOrg 
-                }
-            });
-        } catch (apiError) {
-            console.error("Real API call failed -> " + apiError);
-            isUsingMockData = true;
-        }
+        const response = await request.post("loginAuthCode", {
+            data: pingAuthCode,
+            params: { 
+                soldto: soldTo, 
+                salesorg: salesOrg 
+            }
+        });
 
         console.log("loginAuthCode response -> ", response);
 
@@ -99,7 +91,6 @@ export async function GET(req) {
             return NextResponse.json({ 
                 success: true, 
                 message: 'Authentication successful',
-                isUsingMockData: isUsingMockData,
                 user: {
                     soldToId: soldToId,
                     persona: response.persona,
