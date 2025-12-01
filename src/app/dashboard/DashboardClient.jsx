@@ -54,39 +54,6 @@ export default function DashboardClient() {
           <p>This is the protected dashboard page.</p>
           <p>You are successfully authenticated!</p>
           
-          <div style={{ marginTop: '20px' }}>
-            <button
-              onClick={async () => {
-                try {
-                  const response = await fetch('/api/protected-test', {
-                    headers: {
-                      'Authorization': `Bearer ${document.cookie.split('access_token=')[1]?.split(';')[0] || localStorage.getItem('access_token')}`,
-                      'Content-Type': 'application/json'
-                    }
-                  });
-                  const data = await response.json();
-                  alert(response.ok ? 
-                    `API Test Success: ${data.message}` : 
-                    `API Test Failed: ${data.error}`
-                  );
-                } catch (error) {
-                  alert(`API Test Error: ${error.message}`);
-                }
-              }}
-              style={{
-                padding: '10px 20px',
-                backgroundColor: '#28a745',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                marginRight: '10px'
-              }}
-            >
-              Test Authenticated API Call
-            </button>
-          </div>
-          
           {user && (
             <div style={{ 
               marginTop: '20px', 
