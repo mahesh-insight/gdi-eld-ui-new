@@ -1,0 +1,14 @@
+.previous-download{
+    display: flex;
+    justify-content: space-between;
+}
+.date-picker-range{
+    display: ruby-text;
+
+    .date-picker-range-text{
+        padding-left: 15px;
+    }
+}
+.report-date{
+    margin-bottom: 0 !important;
+}

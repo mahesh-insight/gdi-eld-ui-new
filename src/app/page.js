@@ -2,10 +2,13 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getUiProperties } from '../lib/server-config';
+import AuthHandler from '../components/AuthHandler';
 
 export default async function HomePage({ searchParams }) {
     const cookieStore = await cookies();
     const accessToken = cookieStore?.get('access_token')?.value;
+    
+    console.log("HomePage Access Token:", accessToken ? accessToken.substring(0, 20) + '...' : 'undefined');
 
     const resolvedSearchParams = await searchParams;
     const pingAuthCode = resolvedSearchParams?.code || '';
@@ -16,14 +19,22 @@ export default async function HomePage({ searchParams }) {
         redirect('/Unauthorised?reason=access_denied');
     }
 
-    // If already have an access token, go straight to Dashboard
+    // If already have an access token, go straight to Dashboard (backend handles expiry)
     if (accessToken) {
+        console.log("Token found, redirecting to dashboard");
         redirect('/dashboard');
     }
 
-    // If we got a code from Ping (successful auth), treat that as a successful login and send user to Dashboard.
+    // If we got a code from Ping, process it via client-side component
     if (pingAuthCode && !pingErrorCode) {
-        redirect('/dashboard');
+        // Pass the auth code to client component for processing
+        return (
+            <AuthHandler 
+                authCode={pingAuthCode}
+                soldTo={resolvedSearchParams?.soldTo || resolvedSearchParams?.soldto}
+                salesOrg={resolvedSearchParams?.salesorg}
+            />
+        );
     }
 
     // No token and no auth code → start auth flow

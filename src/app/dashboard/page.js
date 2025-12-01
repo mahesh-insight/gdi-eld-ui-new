@@ -1,15 +1,12 @@
+import DashboardClient from './DashboardClient';
+
 export const metadata = {
   title: 'Dashboard',
-  description: 'Learn more about our company.',
+  description: 'User dashboard with authentication.',
 };
 
 export default function DashboardPage() {
-  return (
-    <div>
-      <h1 className="text-3xl font-bold underline">Dashboard</h1>
-      <p>This is the content for the dashboard page.</p>
-    </div>
-  );
+  return <DashboardClient />;
 }
 
 
