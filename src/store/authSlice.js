@@ -6,6 +6,9 @@ const initialState = {
   user: null,
   loginResponse: null,
   accessToken: null,
+  contextData: null,
+  soldTo: null,
+  salesOrg: null,
 };
 
 const authSlice = createSlice({
@@ -27,20 +30,35 @@ const authSlice = createSlice({
     setAccessToken: (state, action) => {
       state.accessToken = action.payload;
     },
+    setContextData: (state, action) => {
+      state.contextData = action.payload;
+    },
     clearAuth: (state) => {
       state.isAuthenticated = false;
       state.user = null;
       state.loginResponse = null;
       state.accessToken = null;
+      state.contextData = null;
+      state.soldTo = null;
+      state.salesOrg = null;
       state.isLoading = false;
     },
     initializeAuth: (state, action) => {
-      const { isAuthenticated, user, loginResponse, accessToken } = action.payload;
+      const { isAuthenticated, user, loginResponse, accessToken, contextData, soldTo, salesOrg } = action.payload;
       state.isAuthenticated = isAuthenticated;
       state.user = user;
       state.loginResponse = loginResponse;
       state.accessToken = accessToken;
       state.isLoading = false;
+      if (contextData !== undefined) {
+        state.contextData = contextData;
+      }
+      if (soldTo !== undefined) {
+        state.soldTo = soldTo;
+      }
+      if (salesOrg !== undefined) {
+        state.salesOrg = salesOrg;
+      }
     }
   },
   extraReducers: (builder) => {
@@ -57,7 +75,8 @@ export const {
   setLoginResponse,
   setAccessToken,
   clearAuth,
-  initializeAuth
+  initializeAuth,
+  setContextData
 } = authSlice.actions;
 
 export default authSlice.reducer;

@@ -45,6 +45,13 @@ export const store = configureStore({
           'persist/PURGE',
           'persist/FLUSH',
           'persist/PAUSE',
+          'auth/setLoginResponse',
+          'auth/setContextData',
+          'auth/initializeAuth',
+        ],
+        ignoredPaths: [
+          'auth.loginResponse',
+          'auth.contextData',
         ],
       },
     }),

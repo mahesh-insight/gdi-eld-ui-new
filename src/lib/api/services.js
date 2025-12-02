@@ -31,7 +31,7 @@ const getEnvironmentConfig = () => {
                   (typeof window === 'undefined' && !process.env.NEXT_PUBLIC_API_BASE_URL && !process.env.API_BASE_URL);
   
   if (isLocal) {
-    return 'http://localhost';
+    return 'http://localhost:8081'; // Backend server port (change to your actual backend port)
   }
   
   // Environment-based defaults using APP_ENV
@@ -72,6 +72,11 @@ const services = {
     url: '/ccr-login-service/signin/authcode', 
     noAuthHeader: true, // Don't add auth header for login requests
   },
+    mpsaStatus:{
+        method: 'GET',
+        url: `/ccr-dashboard-service/context`,
+        pathParam: true // Indicates this service accepts path parameters
+    },
   // Add more service configurations as needed
   // Example: getUserProfile: { url: '/api/user/profile' },
   // Example: updateUser: { url: '/api/user/update', method: 'PUT' },

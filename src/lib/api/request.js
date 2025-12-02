@@ -112,10 +112,16 @@ const instance = (serviceName, configuration = {}) => {
     const customBaseURL = uiProps?.CCR_API_BASE_URL;
     serviceConfig = services.getService(serviceName, customBaseURL);
   }
-  const { url = "", ...otherConfig } = configuration;
+  const { url = "", pathParam = "", ...otherConfig } = configuration;
   
   // Build the complete URL from baseURL and service URL
-  const serviceUrl = serviceConfig.url || '';
+  let serviceUrl = serviceConfig.url || '';
+  
+  // Handle path parameters for services that support them
+  if (pathParam && serviceConfig.pathParam) {
+    serviceUrl = `${serviceUrl}/${pathParam}`;
+  }
+  
   const finalBaseURL = serviceUrl 
     ? `${serviceConfig.baseURL}${serviceUrl}`
     : serviceConfig.baseURL;
@@ -150,22 +156,23 @@ const instance = (serviceName, configuration = {}) => {
         if (config?.noAuthHeader || config.baseURL.includes("ccr-login-service")) {
           // No auth header needed
         } else {
-          // Get token from cookies or localStorage
-          const getCookie = (name) => {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop().split(';').shift();
-            return null;
-          };
+          // Get token from Redux store
+          let accessToken = null;
           
-          const accessToken = getCookie('access_token') || localStorage.getItem("access_token");
+          try {
+            // Get Redux store state from window if available
+            if (window.__REDUX_STORE__) {
+              const state = window.__REDUX_STORE__.getState();
+              accessToken = state?.auth?.accessToken;
+            }
+          } catch (error) {
+            // Fallback to localStorage if Redux store not available
+            accessToken = localStorage.getItem("access_token");
+          }
           
-          // Add token if available (backend handles expiry)
+          // Add token if available
           if (accessToken) {
             config.headers.Authorization = `Bearer ${accessToken}`;
-            console.log("Added auth header with token");
-          } else {
-            console.log("No token found for authenticated request");
           }
         }
       } else {

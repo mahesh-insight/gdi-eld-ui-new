@@ -18,12 +18,6 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
   const dispatch = useDispatch();
   const authState = useSelector(state => state.auth);
   const { isAuthenticated, user, accessToken } = authState;
-
-  // Debug localStorage on every render
-  console.log('🔍 DEBUG - Current Redux state:', { isAuthenticated, user: !!user, accessToken: !!accessToken });
-  if (typeof window !== 'undefined') {
-    console.log('🔍 DEBUG - localStorage persist data:', localStorage.getItem('persist:ccr-auth'));
-  }
   const reduxSoldTo = authState?.soldTo;
   const reduxSalesOrg = authState?.salesOrg;
   const [isProcessing, setIsProcessing] = useState(false);
@@ -39,14 +33,7 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
 
   const processAuthCode = async (code, soldToParam, salesOrgParam) => {
     const hasProcessedKey = `processed_${code}`;
-    
-    // Check if already processed - use both sessionStorage and state
-    if (sessionStorage.getItem(hasProcessedKey) || isProcessing) {
-      console.log('⚠️ Auth code already processed or currently processing, skipping');
-      return;
-    }
-    
-    sessionStorage.setItem(hasProcessedKey, Date.now().toString());
+    sessionStorage.setItem(hasProcessedKey, 'true');
     setIsProcessing(true);
     setProcessingMessage('Processing authentication...');
 
@@ -64,8 +51,9 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
 
     console.log('🔍 DEBUG - Final parameters:', { finalSoldTo, finalSalesOrg });
 
-    // Allow login to proceed even without soldTo/salesOrg for initial login
-    console.log('ℹ️ Proceeding with authentication. Parameters:', { finalSoldTo, finalSalesOrg });
+    // For initial login without params, allow login to proceed
+    // Parameters will be handled by backend or can be set later
+    console.log('ℹ️ Proceeding with authentication (params will be handled by backend)');
 
     try {
       const { default: request } = await import('../lib/api/request');
@@ -77,6 +65,8 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
           salesorg: finalSalesOrg 
         }
       });
+      
+      console.log('✅ loginAuthCode response received:', !!response);
       
       if (response?.userProfile?.defaultContext?.[0] && response?.tokens?.bearerToken) {
         // Clear the processed flag since auth was successful
@@ -101,30 +91,13 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
         }));
         
         let contextResponse = null;
-        
-        console.log('🔍 DEBUG - About to call mpsaStatus API with soldToId:', soldToId);
-        console.log('🔍 DEBUG - Bearer token available:', !!bearerToken);
-        
-        if (soldToId) {
-          try {
-            // Call mpsaStatus API with soldToId as path parameter - token will be added automatically by interceptor
-            console.log('🚀 Calling mpsaStatus API with path parameter:', soldToId);
-            
-            contextResponse = await request.get('mpsaStatus', {
-              pathParam: soldToId
-            });
-            console.log('✅ contextResponse received:', contextResponse);
-          } catch (contextError) {
-            console.error('❌ Context API failed:', {
-              error: contextError.message,
-              status: contextError?.response?.status,
-              statusText: contextError?.response?.statusText,
-              finalUrl: `/ccr-dashboard-service/context/${soldToId}`
-            });
-            // Continue with authentication even if context fails
-          }
-        } else {
-          console.warn('⚠️ No soldToId available, skipping mpsaStatus API call');
+        try {
+          // Call mpsaStatus API - token will be added automatically by interceptor
+          contextResponse = await request.get(`mpsaStatus/${soldToId}`);
+          console.log('✅ contextResponse:', contextResponse);
+        } catch (contextError) {
+          console.warn('⚠️ Context API failed, continuing without context data:', contextError);
+          // Continue with authentication even if context fails
         }
         
         // Final dispatch to Redux store with complete auth data including context
@@ -147,7 +120,8 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
           router.replace('/dashboard');
         }, 1000);
       } else {
-        setProcessingMessage('Authentication failed. Please try again.');
+        console.error('❌ Invalid response structure:', response);
+        setProcessingMessage('Authentication failed. Invalid response from server.');
         sessionStorage.removeItem(hasProcessedKey);
         setIsProcessing(false);
       }
@@ -159,26 +133,21 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
     }
   };
 
-  // Handle redirect when already authenticated
   useEffect(() => {
+    console.log('🔍 DEBUG - useEffect triggered:', { 
+      isAuthenticated, 
+      user: !!user, 
+      accessToken: !!accessToken, 
+      authCode, 
+      soldTo, 
+      salesOrg 
+    });
+
     if (isAuthenticated && user && accessToken) {
       console.log('✅ Already authenticated, redirecting to dashboard');
-      console.log('🔍 DEBUG - Auth state:', { isAuthenticated, user: !!user, accessToken: !!accessToken });
-      console.log('🔍 DEBUG - localStorage auth data:', localStorage.getItem('persist:ccr-auth'));
       router.replace('/dashboard');
+      return;
     }
-  }, [isAuthenticated, user, accessToken, router]);
-
-  // Handle auth code processing (separate to prevent double calls)
-  useEffect(() => {
-    console.log('🔍 DEBUG - Auth processing useEffect triggered:', { 
-      authCode: !!authCode, 
-      authCodeValue: authCode,
-      soldTo, 
-      salesOrg,
-      isAuthenticated,
-      windowDefined: typeof window !== 'undefined'
-    });
 
     if (authCode && !isAuthenticated && typeof window !== 'undefined') {
       const hasProcessedKey = `processed_${authCode}`;
@@ -193,14 +162,10 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
       console.log('🚀 Starting auth code processing');
       processAuthCode(authCode, soldTo, salesOrg);
       return;
-    } else {
-      console.log('⏸️ No conditions met for processing. Reasons:', {
-        noAuthCode: !authCode,
-        alreadyAuthenticated: isAuthenticated,
-        noWindow: typeof window === 'undefined'
-      });
     }
-  }, [authCode, soldTo, salesOrg, router]); // Removed auth state to prevent double calls when Redux updates
+
+    console.log('⏸️ No conditions met for processing');
+  }, [isAuthenticated, user, accessToken, authCode, soldTo, salesOrg, router, dispatch]);
 
   // Show processing state if we're handling auth
   if (isProcessing) {
@@ -270,7 +235,7 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
       </p>
       {(!effectiveSoldTo || !effectiveSalesOrg) && (
         <p style={{ marginBottom: '20px', color: '#ff6600', textAlign: 'center' }}>
-          Note: Login requires soldTo and salesOrg parameters
+          Note: Login will proceed without soldTo/salesOrg (can be set later)
         </p>
       )}
       <a 

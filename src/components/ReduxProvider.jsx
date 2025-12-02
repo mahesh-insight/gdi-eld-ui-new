@@ -11,6 +11,10 @@ export default function ReduxProvider({ children }) {
 
   useEffect(() => {
     setIsClient(true);
+    // Make store globally accessible for interceptors
+    if (typeof window !== 'undefined') {
+      window.__REDUX_STORE__ = store;
+    }
   }, []);
 
   if (!isClient) {

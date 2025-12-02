@@ -4,7 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import ProtectedRoute from '../../components/ProtectedRoute';
 
 export default function DashboardClient() {
-  const { user, logout, isAuthenticated, loginResponse } = useAuth();
+  const { user, logout, isAuthenticated, loginResponse, contextData, soldTo, salesOrg } = useAuth();
   const {username, firstName, persona} = loginResponse || {};
 
   const handleLogout = () => {
@@ -78,6 +78,42 @@ export default function DashboardClient() {
                 <p><strong>Available data:</strong> tokens, userProfile, permissions, webSites, etc.</p>
                 <p><strong>Storage:</strong> Redux store only (no localStorage/cookies for display)</p>
               </div>
+            </div>
+          )}
+
+          {contextData && (
+            <div style={{ 
+              marginTop: '20px', 
+              padding: '15px', 
+              backgroundColor: '#e8f5e8', 
+              borderRadius: '5px' 
+            }}>
+              <h3>Context Data (mpsaStatus API Response):</h3>
+              <div style={{ 
+                maxHeight: '300px', 
+                overflow: 'auto',
+                fontSize: '12px',
+                backgroundColor: '#fff',
+                padding: '10px',
+                borderRadius: '3px',
+                border: '1px solid #ddd'
+              }}>
+                <pre>{JSON.stringify(contextData, null, 2)}</pre>
+              </div>
+            </div>
+          )}
+
+          {!contextData && loginResponse && (
+            <div style={{ 
+              marginTop: '20px', 
+              padding: '15px', 
+              backgroundColor: '#fff3cd', 
+              borderRadius: '5px',
+              border: '1px solid #ffeaa7'
+            }}>
+              <h3>⚠️ Context Data Missing</h3>
+              <p>The mpsaStatus API call may have failed or returned null.</p>
+              <p><strong>Parameters:</strong> soldTo={soldTo || 'null'}, salesOrg={salesOrg || 'null'}</p>
             </div>
           )}
         </div>

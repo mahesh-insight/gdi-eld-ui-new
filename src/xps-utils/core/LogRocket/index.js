@@ -3,7 +3,7 @@ import env from "./env";
 import { isLoggedInState, userState } from "../../../src/recoil/userAtoms";
 import { useRecoilValue } from "recoil";
 
-const useInitializeLogRocket = async () => {
+const useInitializeLogRocket = () => {
   const userInfo = useRecoilValue(userState);
   const isLoggedIn = useRecoilValue(isLoggedInState);
   const { username } = userInfo;

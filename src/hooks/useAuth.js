@@ -11,7 +11,7 @@ import { setAuthenticated, setLoading, setUser, setLoginResponse, setAccessToken
  */
 export function useAuth() {
   const dispatch = useDispatch();
-  const { isAuthenticated, isLoading, user, loginResponse, accessToken } = useSelector(state => state.auth);
+  const { isAuthenticated, isLoading, user, loginResponse, accessToken, contextData, soldTo, salesOrg } = useSelector(state => state.auth);
   const router = useRouter();
 
   useEffect(() => {
@@ -74,6 +74,9 @@ export function useAuth() {
     user,
     loginResponse,
     accessToken,
+    contextData,
+    soldTo,
+    salesOrg,
     checkAuth,
     redirectToLogin,
     logout,
