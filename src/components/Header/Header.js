@@ -1,5 +1,7 @@
 "use client";
+
 import React, { useState, useEffect, useRef } from "react";
+import { useAuth } from '../../hooks/useAuth';
 import styles from "./Header.module.scss";
 import Link from "next/link";
 import {
@@ -94,6 +96,11 @@ const Header = () => {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isAccountSettingsOpen, setIsAccountSettingsOpen] = useState(false);
   const [indicatorStyle, setIndicatorStyle] = useState({});
+  const { user, logout, isAuthenticated, loginResponse } = useAuth();
+  const {username, firstName, lastName, persona, userProfile} = loginResponse || {};
+  const {defaultContext} = userProfile || {};
+  const soldTo = defaultContext?.[0]?.soldTo || '';
+  const soldToName = defaultContext?.[0]?.soldToName || '';
   const headerRef = useRef(null);
   const navLinkRefs = useRef([]);
 
@@ -194,7 +201,7 @@ const Header = () => {
               >
                 <UserAcccountIcon className="svg-style" />
                 <span>
-                  &nbsp;&nbsp;{"3E Company Environmental,"} - {"0010816218"}
+                  &nbsp;&nbsp;{soldToName} - {soldTo}
                 </span>
               </button>
               {isAccountMenuOpen &&
@@ -219,7 +226,7 @@ const Header = () => {
                 >
                   <GearIcon className="svg-style" />
                   <span>
-                    &nbsp;&nbsp;{"kotapali"}, {"mahesh"}
+                    &nbsp;&nbsp;{lastName}, {firstName}
                   </span>
               </button>
               {isAccountSettingsOpen &&
