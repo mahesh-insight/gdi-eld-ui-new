@@ -20,14 +20,15 @@ function exceptionHandler(error) {
 } 
 
 export async function GET(req) {
+    console.log('🔄 Ping callback received, redirecting to homepage with auth code');
+    
     const url = new URL(req.url);
     const pingAuthCode = url.searchParams.get('code');
     const pingErrorCode = url.searchParams.get('error');
     const soldTo = url.searchParams.get('soldTo') || url.searchParams.get('soldto');
     const salesOrg = url.searchParams.get('salesorg');
 
-    const cookieStore = await cookies();
-
+    // Handle errors
     if (pingErrorCode) {
         const redirectUrl = new URL('/Unauthorised', url.origin);
         redirectUrl.searchParams.set('reason', pingErrorCode);
@@ -40,7 +41,24 @@ export async function GET(req) {
         return NextResponse.redirect(redirectUrl);
     }
 
+    // Simple redirect to homepage with auth code
+    const homeUrl = new URL('/', url.origin);
+    homeUrl.searchParams.set('code', pingAuthCode);
+    if (soldTo) homeUrl.searchParams.set('soldto', soldTo);
+    if (salesOrg) homeUrl.searchParams.set('salesorg', salesOrg);
+    
+    return NextResponse.redirect(homeUrl);
+
+    /* 
+    // Old server-side processing logic - now handled client-side
     try {
+        console.log(`Attempting loginAuthCode with: ${JSON.stringify({
+            code: pingAuthCode,
+            soldTo: soldTo,
+            salesOrg: salesOrg,
+            timestamp: new Date().toISOString()
+        })} [${requestId}]`);
+
         const response = await request.post("loginAuthCode", {
             data: pingAuthCode,
             params: { 
@@ -58,47 +76,31 @@ export async function GET(req) {
             const defaultContext = userProfile.defaultContext?.[0];
             const soldToId = defaultContext?.soldToId;
                     
-            // Set access token (backend handles expiry) - Make sure it's visible in DevTools
-            cookieStore.set('access_token', bearerToken, {
-                httpOnly: false, // Must be false to see in DevTools
-                secure: false,   // Set to false for localhost testing
+            // Only set a minimal session cookie for backend validation (httpOnly = secure)
+            cookieStore.set('session_id', `session_${Date.now()}`, {
+                httpOnly: true,  // Cannot be accessed by frontend JavaScript
+                secure: false,   // Set to false for localhost testing (use true in production)
                 sameSite: 'lax',
-                maxAge: 60 * 60 * 24 * 7, // 7 days (fallback, backend controls actual expiry)
-                path: '/',
-            });
-                    
-            cookieStore.set('user_context', JSON.stringify({
-                soldToId: soldToId,
-                persona: response.persona,
-                firstName: response.firstName
-            }), {
-                httpOnly: false, // Make visible in DevTools
-                secure: false,   // Set to false for localhost testing
-                sameSite: 'lax',
-                maxAge: 60 * 60 * 24 * 7, // 7 days (fallback, backend controls actual expiry)
+                maxAge: 60 * 60 * 24 * 7, // 7 days
                 path: '/',
             });
             
-            const isDashboardFlag = JSON.parse(url.searchParams.get('isDashboardFlag') || 'false');
-            let initialRedirectPath = url.searchParams.get('initial_url') || '';
-
-            if (initialRedirectPath.startsWith('/Unauthorised')) {
-                initialRedirectPath = '';
-            }
-            
-            // Return success response instead of redirecting
-            // Let frontend handle navigation after token is set
+            // Return all auth data to frontend for Redux storage
+            // This keeps sensitive data in memory only, not in cookies/localStorage
             return NextResponse.json({ 
                 success: true, 
                 message: 'Authentication successful',
-                user: {
-                    soldToId: soldToId,
-                    persona: response.persona,
-                    firstName: response.firstName
+                authData: {
+                    accessToken: bearerToken,
+                    user: {
+                        soldToId: soldToId,
+                        persona: response.persona,
+                        firstName: response.firstName
+                    },
+                    loginResponse: response // Full loginAuthCode response for Redux store
                 },
                 debug: {
-                    cookiesSet: true,
-                    tokenLength: bearerToken.length,
+                    sessionSet: true,
                     environment: process.env.NODE_ENV || 'development'
                 }
             });
@@ -110,10 +112,28 @@ export async function GET(req) {
 
     } catch (error) {
         console.error("Token exchange failed:", error);
+        console.error("Error details:", {
+            status: error?.response?.status,
+            statusText: error?.response?.statusText,
+            data: error?.response?.data,
+            message: error?.message,
+            code: error?.code
+        });
+
+        // Check if it's a 403 specifically
+        if (error?.response?.status === 403) {
+            console.error("403 Forbidden - Possible causes:");
+            console.error("1. Auth code expired (codes typically expire in 5-10 minutes)");
+            console.error("2. Auth code already used (codes are single-use)");
+            console.error("3. Invalid auth code format");
+            console.error("4. API authentication/authorization issue");
+        }
+
         const errorMessage = exceptionHandler(error);
         const redirectUrl = new URL('/Unauthorised', url.origin);
         redirectUrl.searchParams.set('reason', 'Failed');
         redirectUrl.searchParams.set('message', encodeURIComponent(errorMessage));
         return NextResponse.redirect(redirectUrl);
     }
+    */
 }

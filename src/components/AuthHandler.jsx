@@ -2,13 +2,22 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSelector } from 'react-redux';
 
 export default function AuthHandler({ authCode, soldTo, salesOrg }) {
   const [isProcessing, setIsProcessing] = useState(true);
   const [error, setError] = useState(null);
   const router = useRouter();
+  const { isAuthenticated, user, accessToken } = useSelector(state => state.auth);
 
   useEffect(() => {
+    // If user is already authenticated, redirect to dashboard
+    if (isAuthenticated && user && accessToken) {
+      console.log('✅ User already authenticated, redirecting to dashboard');
+      router.replace('/dashboard');
+      return;
+    }
+
     const processAuth = async () => {
       try {
         console.log("Processing auth code:", { authCode, soldTo, salesOrg });

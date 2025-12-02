@@ -1,17 +1,41 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSelector, useDispatch } from 'react-redux';
+import { setAuthenticated, setLoading, setUser, setLoginResponse, setAccessToken, clearAuth, initializeAuth } from '../store/authSlice';
 
 /**
  * Custom hook for authentication management
- * Handles token validation, expiry checking, and automatic redirects
+ * Uses Redux for state management, only uses cookies (no localStorage)
  */
 export function useAuth() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState(null);
+  const dispatch = useDispatch();
+  const { isAuthenticated, isLoading, user, loginResponse, accessToken } = useSelector(state => {
+    console.log('🔍 useAuth selector - current Redux auth state:', state.auth);
+    return state.auth;
+  });
   const router = useRouter();
+
+  // Force loading to false after a timeout to prevent infinite loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (isLoading) {
+        console.log('⚠️ Forcing loading to false after timeout');
+        dispatch(setLoading(false));
+      }
+    }, 3000); // 3 second timeout
+
+    return () => clearTimeout(timeout);
+  }, [isLoading, dispatch]);
+
+  // Also set loading to false immediately if we have complete auth data
+  useEffect(() => {
+    if (isLoading && accessToken && isAuthenticated && user) {
+      console.log('✅ Auth data detected, setting loading to false');
+      dispatch(setLoading(false));
+    }
+  }, [isLoading, accessToken, isAuthenticated, user, dispatch]);
 
   const getCookie = (name) => {
     if (typeof document === 'undefined') return null;
@@ -21,67 +45,49 @@ export function useAuth() {
     return null;
   };
 
-  const clearAuth = () => {
-    // Clear localStorage
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('user_context');
+  const clearAuthData = () => {
+    // Clear session cookie
+    document.cookie = 'session_id=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     
-    // Clear cookies
-    document.cookie = 'access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    document.cookie = 'user_context=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    
-    setIsAuthenticated(false);
-    setUser(null);
+    // Clear Redux state (this clears all sensitive data from memory)
+    dispatch(clearAuth());
   };
 
-  const checkAuth = () => {
-    const accessToken = getCookie('access_token') || localStorage.getItem('access_token');
-    const userContext = getCookie('user_context') || localStorage.getItem('user_context');
-
-    if (!accessToken) {
-      setIsAuthenticated(false);
-      setIsLoading(false);
-      return false;
+  const checkAuth = useCallback(() => {
+    // Skip auth check if we're on the auth processing page (it handles its own auth)
+    if (typeof window !== 'undefined' && (window.location.pathname === '/auth/callback' || window.location.pathname === '/auth/processing')) {
+      return true; // Let the processing page handle authentication
     }
 
-    // Token exists, assume valid (backend handles expiry)
-    setIsAuthenticated(true);
-    
-    // Set user context if available
-    if (userContext) {
-      try {
-        setUser(JSON.parse(userContext));
-      } catch (error) {
-        console.error('Error parsing user context:', error);
-      }
-    }
-    
-    setIsLoading(false);
-    return true;
-  };
+    // Simply return the current authentication state from Redux
+    // Don't modify state here to avoid race conditions
+    const isValid = accessToken && isAuthenticated && user;
+    console.log('🔍 Auth check result:', { isValid, accessToken: !!accessToken, isAuthenticated, user: !!user });
+    return isValid;
+  }, [accessToken, isAuthenticated, user]);
 
   const redirectToLogin = () => {
-    clearAuth();
+    clearAuthData();
     router.push('/');
   };
 
   const logout = () => {
-    clearAuth();
+    clearAuthData();
     router.push('/');
   };
 
-  useEffect(() => {
-    checkAuth();
-    // No periodic checking needed since backend handles token expiry
-  }, []);
+  // Remove useEffect that was causing multiple auth checks
+  // Let components call checkAuth when needed
 
   return {
     isAuthenticated,
     isLoading,
     user,
+    loginResponse,
+    accessToken,
     checkAuth,
     redirectToLogin,
     logout,
-    clearAuth
+    clearAuth: clearAuthData
   };
 }

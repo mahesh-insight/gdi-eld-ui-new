@@ -1,13 +1,9 @@
 // src/app/page.js
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getUiProperties } from '../lib/server-config';
-import AuthHandler from '../components/AuthHandler';
+import HomePageClient from '../components/HomePageClient';
 
 export default async function HomePage({ searchParams }) {
-    const cookieStore = await cookies();
-    const accessToken = cookieStore?.get('access_token')?.value;
-
     const resolvedSearchParams = await searchParams;
     const pingAuthCode = resolvedSearchParams?.code || '';
     const pingErrorCode = resolvedSearchParams?.error || '';
@@ -17,24 +13,12 @@ export default async function HomePage({ searchParams }) {
         redirect('/Unauthorised?reason=access_denied');
     }
 
-    // If already have an access token, go straight to Dashboard (backend handles expiry)
-    if (accessToken) {
-        redirect('/dashboard');
-    }
+    // Note: We no longer check for access_token cookie here since we use Redux for auth state
+    // The client-side will handle auth state and redirects via Redux Persist
 
-    // If we got a code from Ping, process it via client-side component
-    if (pingAuthCode && !pingErrorCode) {
-        // Pass the auth code to client component for processing
-        return (
-            <AuthHandler 
-                authCode={pingAuthCode}
-                soldTo={resolvedSearchParams?.soldTo || resolvedSearchParams?.soldto}
-                salesOrg={resolvedSearchParams?.salesorg}
-            />
-        );
-    }
+    // Note: Auth code processing moved to client-side to check Redux authentication state
 
-    // No token and no auth code → start auth flow
+    // No auth code → either start auth flow or let client-side Redux handle authenticated users
     const uiProps = await getUiProperties();
 
     if (!uiProps || !uiProps.CCR_AUTHENTICATION_URL) {
@@ -46,18 +30,16 @@ export default async function HomePage({ searchParams }) {
     }
 
     const AUTH_URL = uiProps?.CCR_AUTHENTICATION_URL;
-    // const CLIENT_ID = process.env.NEXT_PUBLIC_CLIENT_ID;
     const CLIENT_ID = 'process.env.NEXT_PUBLIC_CLIENT_ID';
-    const REDIRECT_URI_BASE = process.env.API_BASE_URL;
-    const REDIRECT_URI = encodeURIComponent(`${REDIRECT_URI_BASE}/auth/callback`);
 
-    if (!REDIRECT_URI_BASE) {
-        return (
-            <div style={{ padding: '50px', textAlign: 'center', color: 'red' }}>
-                Error: Missing required environment variables (NEXT_PUBLIC_CLIENT_ID or NEXT_PUBLIC_REDIRECT_URI_BASE).
-            </div>
-        );
-    }
-    const pingUrl = `${AUTH_URL}`;
-    redirect(pingUrl);
+    // Return client component that handles auth state and redirects
+    return (
+        <HomePageClient 
+            AUTH_URL={AUTH_URL}
+            CLIENT_ID={CLIENT_ID}
+            authCode={pingAuthCode}
+            soldTo={resolvedSearchParams?.soldTo || resolvedSearchParams?.soldto || ''}
+            salesOrg={resolvedSearchParams?.salesorg || ''}
+        />
+    );
 }

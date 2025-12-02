@@ -4,7 +4,9 @@ import { useAuth } from '../../hooks/useAuth';
 import ProtectedRoute from '../../components/ProtectedRoute';
 
 export default function DashboardClient() {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, loginResponse } = useAuth();
+  const {username, firstName, persona} = loginResponse || {};
+  console.log('🏁 DashboardClient - loginResponse from Redux store:', loginResponse);
 
   const handleLogout = () => {
     if (confirm('Are you sure you want to logout?')) {
@@ -12,9 +14,7 @@ export default function DashboardClient() {
     }
   };
 
-  if (!isAuthenticated) {
-    return null; // ProtectedRoute will handle the redirect
-  }
+  // Remove redundant auth check - ProtectedRoute handles this
 
   return (
     <ProtectedRoute>
@@ -29,24 +29,11 @@ export default function DashboardClient() {
         }}>
           <h1 className="text-3xl font-bold underline">Dashboard</h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            {user && (
+            {username && (
               <span style={{ fontSize: '14px', color: '#666' }}>
-                Welcome, {user.firstName || 'User'} ({user.persona || 'N/A'})
+                Welcome, {firstName || 'User'} ({persona || 'N/A'})
               </span>
             )}
-            <button 
-              onClick={handleLogout}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#dc3545',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            >
-              Logout
-            </button>
           </div>
         </div>
 
@@ -54,7 +41,7 @@ export default function DashboardClient() {
           <p>This is the protected dashboard page.</p>
           <p>You are successfully authenticated!</p>
           
-          {user && (
+          {username && (
             <div style={{ 
               marginTop: '20px', 
               padding: '15px', 
@@ -63,10 +50,35 @@ export default function DashboardClient() {
             }}>
               <h3>User Information:</h3>
               <ul>
-                <li><strong>Name:</strong> {user.firstName || 'N/A'}</li>
-                <li><strong>Persona:</strong> {user.persona || 'N/A'}</li>
-                <li><strong>Sold To ID:</strong> {user.soldToId || 'N/A'}</li>
+                <li><strong>Name:</strong> {firstName || 'N/A'}</li>
+                <li><strong>Persona:</strong> {persona || 'N/A'}</li>
               </ul>
+            </div>
+          )}
+
+          {loginResponse && (
+            <div style={{ 
+              marginTop: '20px', 
+              padding: '15px', 
+              backgroundColor: '#e3f2fd', 
+              borderRadius: '5px' 
+            }}>
+              <h3>Full Login Response Data (Redux Store):</h3>
+              <div style={{ 
+                maxHeight: '400px', 
+                overflow: 'auto',
+                fontSize: '12px',
+                backgroundColor: '#fff',
+                padding: '10px',
+                borderRadius: '3px',
+                border: '1px solid #ddd'
+              }}>
+                <pre>{JSON.stringify(loginResponse, null, 2)}</pre>
+              </div>
+              <div style={{ marginTop: '10px', fontSize: '14px' }}>
+                <p><strong>Available data:</strong> tokens, userProfile, permissions, webSites, etc.</p>
+                <p><strong>Storage:</strong> Redux store only (no localStorage/cookies for display)</p>
+              </div>
             </div>
           )}
         </div>

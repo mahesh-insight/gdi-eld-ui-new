@@ -2,6 +2,7 @@
 "use client";
 
 import Header from '@/components/Header/Header';
+import ReduxProvider from '@/components/ReduxProvider';
 import { usePathname } from 'next/navigation';
 
 // Pages where header should NOT show (pre-login / error pages)
@@ -13,11 +14,13 @@ export default function ClientLayout({ children }) {
   const showHeader = !NO_HEADER_PATHS.includes(pathname);
 
   return (
-    <div className="App">
-      {showHeader && <Header />}
+    <ReduxProvider>
+      <div className="App">
+        {showHeader && <Header />}
 
-      {/* All your pages will render here */}
-      {children}
-    </div>
+        {/* All your pages will render here */}
+        {children}
+      </div>
+    </ReduxProvider>
   );
 }
