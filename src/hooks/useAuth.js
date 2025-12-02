@@ -11,28 +11,21 @@ import { setAuthenticated, setLoading, setUser, setLoginResponse, setAccessToken
  */
 export function useAuth() {
   const dispatch = useDispatch();
-  const { isAuthenticated, isLoading, user, loginResponse, accessToken } = useSelector(state => {
-    console.log('🔍 useAuth selector - current Redux auth state:', state.auth);
-    return state.auth;
-  });
+  const { isAuthenticated, isLoading, user, loginResponse, accessToken } = useSelector(state => state.auth);
   const router = useRouter();
 
-  // Force loading to false after a timeout to prevent infinite loading
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (isLoading) {
-        console.log('⚠️ Forcing loading to false after timeout');
         dispatch(setLoading(false));
       }
-    }, 3000); // 3 second timeout
+    }, 3000);
 
     return () => clearTimeout(timeout);
   }, [isLoading, dispatch]);
 
-  // Also set loading to false immediately if we have complete auth data
   useEffect(() => {
     if (isLoading && accessToken && isAuthenticated && user) {
-      console.log('✅ Auth data detected, setting loading to false');
       dispatch(setLoading(false));
     }
   }, [isLoading, accessToken, isAuthenticated, user, dispatch]);
@@ -54,15 +47,11 @@ export function useAuth() {
   };
 
   const checkAuth = useCallback(() => {
-    // Skip auth check if we're on the auth processing page (it handles its own auth)
     if (typeof window !== 'undefined' && (window.location.pathname === '/auth/callback' || window.location.pathname === '/auth/processing')) {
-      return true; // Let the processing page handle authentication
+      return true;
     }
 
-    // Simply return the current authentication state from Redux
-    // Don't modify state here to avoid race conditions
     const isValid = accessToken && isAuthenticated && user;
-    console.log('🔍 Auth check result:', { isValid, accessToken: !!accessToken, isAuthenticated, user: !!user });
     return isValid;
   }, [accessToken, isAuthenticated, user]);
 

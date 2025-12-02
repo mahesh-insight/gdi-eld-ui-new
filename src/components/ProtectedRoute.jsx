@@ -27,16 +27,7 @@ export default function ProtectedRoute({ children }) {
     return () => clearTimeout(timer);
   }, []);
 
-  console.log('🛡️ ProtectedRoute check:', { 
-    isAuthenticated, 
-    isLoading, 
-    hasUser: !!user, 
-    hasToken: !!accessToken,
-    mounted,
-    hasRedirected,
-    initialLoadComplete,
-    pathname: typeof window !== 'undefined' ? window.location.pathname : 'server'
-  });
+
 
   // Show loading while mounting, loading, or waiting for initial load to complete
   if (!mounted || isLoading || !initialLoadComplete) {
@@ -57,7 +48,6 @@ export default function ProtectedRoute({ children }) {
   const hasCompleteAuth = isAuthenticated && user && accessToken;
   
   if (!hasCompleteAuth && !hasRedirected) {
-    console.log('❌ Incomplete auth data, redirecting to login');
     setHasRedirected(true);
     redirectToLogin();
     return (
@@ -87,7 +77,5 @@ export default function ProtectedRoute({ children }) {
     );
   }
 
-  // Render protected content
-  console.log('✅ Auth complete, rendering protected content');
   return <>{children}</>;
 }

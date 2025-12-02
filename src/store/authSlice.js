@@ -45,9 +45,7 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase('persist/REHYDRATE', (state, action) => {
-      // Always set loading to false after rehydration
       state.isLoading = false;
-      console.log('🔄 Redux Persist REHYDRATE completed', action.payload?.auth);
     });
   },
 });

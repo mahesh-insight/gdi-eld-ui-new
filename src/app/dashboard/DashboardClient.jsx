@@ -6,7 +6,6 @@ import ProtectedRoute from '../../components/ProtectedRoute';
 export default function DashboardClient() {
   const { user, logout, isAuthenticated, loginResponse } = useAuth();
   const {username, firstName, persona} = loginResponse || {};
-  console.log('🏁 DashboardClient - loginResponse from Redux store:', loginResponse);
 
   const handleLogout = () => {
     if (confirm('Are you sure you want to logout?')) {

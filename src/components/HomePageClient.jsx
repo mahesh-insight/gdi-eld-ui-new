@@ -20,10 +20,6 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
     setProcessingMessage('Processing authentication...');
 
     try {
-      console.log('🚀 Calling loginAuthCode API directly');
-      console.log('📤 API request payload:', { code, soldTo, salesOrg });
-      
-      // Import the request utility
       const { default: request } = await import('../lib/api/request');
       
       const response = await request.post('loginAuthCode', {
@@ -62,13 +58,11 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
           router.replace('/dashboard');
         }, 1000);
       } else {
-        console.error('❌ Auth failed - Invalid response from loginAuthCode:', response);
         setProcessingMessage('Authentication failed. Please try again.');
         sessionStorage.removeItem(hasProcessedKey);
         setIsProcessing(false);
       }
     } catch (error) {
-      console.error('❌ Auth processing error:', error);
       setProcessingMessage('Authentication failed. Please try again.');
       sessionStorage.removeItem(hasProcessedKey);
       setIsProcessing(false);
@@ -76,24 +70,18 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
   };
 
   useEffect(() => {
-    // If user is already authenticated, redirect to dashboard
     if (isAuthenticated && user && accessToken) {
-      console.log('✅ Already authenticated, redirecting to dashboard from homepage');
       router.replace('/dashboard');
       return;
     }
 
-    // If we have an auth code but user is not authenticated, process it directly here
     if (authCode && !isAuthenticated && typeof window !== 'undefined') {
       const hasProcessedKey = `processed_${authCode}`;
       
-      // Check if we've already processed this auth code
       if (sessionStorage.getItem(hasProcessedKey)) {
-        console.log('⚠️ Auth code already processed, avoiding duplicate processing');
         return;
       }
       
-      console.log('📝 Auth code present, processing authentication on homepage');
       processAuthCode(authCode, soldTo, salesOrg);
       return;
     }
