@@ -1,49 +1,20 @@
 // src/app/api/azure-invoice/route.js
+// THIS FILE IS NO LONGER NEEDED
+// All Azure Invoice API calls now go through the centralized request system
+// defined in src/lib/api/request.js and services.js
+
 import { NextResponse } from "next/server";
-import {
-  fetchInvoiceCredits,
-  fetchInvoiceTrend,
-  fetchInvoiceMonths,
-  fetchInvoiceMonthDetail,
-  fetchInvoiceSummary,
-} from "@/lib/azureInvoiceApi";
 
-export async function POST(req) {
-  const body = await req.json();
-  const { action, ...payload } = body;
+export async function GET() {
+  return NextResponse.json({
+    message: "Azure Invoice API calls now use centralized request system",
+    redirect: "Use services defined in src/lib/api/services.js"
+  }, { status: 200 });
+}
 
-  try {
-    let data;
-
-    switch (action) {
-      case "summary":
-        data = await fetchInvoiceSummary(payload);
-        break;
-      case "credits":
-        data = await fetchInvoiceCredits(payload);
-        break;
-      case "trend":
-        data = await fetchInvoiceTrend(payload);
-        break;
-      case "months":
-        data = await fetchInvoiceMonths(payload);
-        break;
-      case "monthDetail":
-        data = await fetchInvoiceMonthDetail(payload);
-        break;
-      default:
-        return NextResponse.json(
-          { message: "Unknown action" },
-          { status: 400 }
-        );
-    }
-
-    return NextResponse.json(data);
-  } catch (e) {
-    console.error("azure-invoice api error", e);
-    return NextResponse.json(
-      { message: "Azure invoice API failed" },
-      { status: 500 }
-    );
-  }
+export async function POST() {
+  return NextResponse.json({
+    message: "Azure Invoice API calls now use centralized request system", 
+    redirect: "Use services defined in src/lib/api/services.js"
+  }, { status: 200 });
 }

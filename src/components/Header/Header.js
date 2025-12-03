@@ -29,7 +29,7 @@ const ChevronDownIcon = () => (
 );
 
 const navItems = [
-  { label: "Home", href: "/", children: [], isHome: true },
+  { label: "Home", href: "/dashboard", children: [], isHome: true },
   {
     label: "Insight Invoices",
     children: [
@@ -63,7 +63,7 @@ const navItems = [
   {
     label: "Cloud Consumption",
     children: [
-      { label: "Azure Plan Invoice", href: "/cloud/azure-invoice" },
+      { label: "Azure Plan Invoice", href: "/azure-invoice" },
       { label: "Azure Plan Consumption", href: "/cloud/azure-consumption" },
       {
         label: "Azure Plan Unbilled Consumption",

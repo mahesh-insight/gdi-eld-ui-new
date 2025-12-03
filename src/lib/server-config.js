@@ -1,6 +1,15 @@
-import 'server-only';
+// Get the base URL dynamically based on environment
+function getBaseUrl() {
+  // In browser, use current origin
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  
+  // In server, use environment variable or default
+  return process.env.NEXT_PUBLIC_API_BASE_URL || process.env.API_BASE_URL || 'http://localhost:80';
+}
 
-const UI_PROPERTIES_ENDPOINT = "http://localhost:80/ccr-authentication-service/uiproperties";
+const getUiPropertiesEndpoint = () => `${getBaseUrl()}/ccr-authentication-service/uiproperties`;
 
 let cachedUiProps = null;
 
@@ -10,7 +19,10 @@ export async function getUiProperties() {
     }
 
     try {
-        const response = await fetch(UI_PROPERTIES_ENDPOINT, { 
+        const endpoint = getUiPropertiesEndpoint();
+        console.log(`🔍 Fetching UI properties from: ${endpoint}`);
+        
+        const response = await fetch(endpoint, { 
             cache: 'no-store'
         });
         

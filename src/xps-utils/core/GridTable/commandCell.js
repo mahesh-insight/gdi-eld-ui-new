@@ -1,28 +1,25 @@
 import * as React from "react";
 import { Button } from "@progress/kendo-react-buttons";
-import { useRecoilValue, useSetRecoilState } from "recoil";
-import { downloadGridResponse, gridResponse, scheduledDownloadgridResponse } from "../../../src/recoil/gridAtoms";
-import { errorState, fileNameState, plainLoadingState } from "../../../src/recoil/pageAtoms";
+import { useSelector, useDispatch } from "react-redux";
 import request from "../../../src/library/api/request";
 import { AnalyticsData } from "../Analytics/utils";
-import { selectedAccountState } from "../../../src/recoil/userAtoms";
 import exceptionHandler from "../../../src/library/api/exceptionHandler";
+import { setErrorState, setPlainLoadingState } from "../../../src/lib/store/slices/pageSlice";
+import { setDownloadGridResponse, setScheduledDownloadgridResponse, setGridResponse } from "../../../src/lib/store/slices/gridSlice";
 
 export const MyCommandCell = (props) => {
   const { dataItem } = props;
+  const dispatch = useDispatch();
   const analytics = AnalyticsData();
   const { updateAnalytics } = analytics;
-  const setPlainLoading = useSetRecoilState(plainLoadingState);
-  const setErrorState = useSetRecoilState(errorState);
-  const accountInfo = useRecoilValue(selectedAccountState);
-  const fileName = useRecoilValue(fileNameState);
-  const setDownloadGridResponse = useSetRecoilState(downloadGridResponse);
-  const setScheduledDownloadgridResponse = useSetRecoilState(scheduledDownloadgridResponse);
-  const setGridData = useSetRecoilState(gridResponse);
+  
+  // Redux selectors
+  const accountInfo = useSelector(state => state.user.selectedAccount);
+  const fileName = useSelector(state => state.page.fileNameState);
 
   const download = (dataItem) => {
-    setPlainLoading(true);
-    setDownloadGridResponse(true);
+    dispatch(setPlainLoadingState(true));
+    dispatch(setDownloadGridResponse(true));
     try {
       request
         .post("downloadFile", {
@@ -30,14 +27,14 @@ export const MyCommandCell = (props) => {
           responseType: 'arraybuffer'
         })
         .then((response) => {
-          setPlainLoading(false);
+          dispatch(setPlainLoadingState(false));
           const url = window?.URL?.createObjectURL(new Blob([response]));
           const link = document?.createElement("a");
           link.href = url;
           link.setAttribute("download", `${dataItem?.fileName}.xlsx`);
           document?.body?.appendChild(link);
           link?.click();
-          setDownloadGridResponse(false);
+          dispatch(setDownloadGridResponse(false));
           updateAnalytics(
             {
               trackMsg: analytics?.constVal?.DOWNLOAD_EXCEL,
@@ -49,8 +46,8 @@ export const MyCommandCell = (props) => {
           );
         })
         .catch((error) => {
-          setPlainLoading(false);
-          setErrorState(exceptionHandler(error));
+          dispatch(setPlainLoadingState(false));
+          dispatch(setErrorState(exceptionHandler(error)));
         });
     } catch (error) {
       console.log(error);
@@ -58,16 +55,16 @@ export const MyCommandCell = (props) => {
   };
 
   const remove = async (dataItem) => {
-    setPlainLoading(true);
+    dispatch(setPlainLoadingState(true));
     try {
       await request
         .del("downloads", {
           url: dataItem?.id,
         })
         .then((response) => {
-          setPlainLoading(false);
-          setScheduledDownloadgridResponse(response?.content);
-          setGridData(response);
+          dispatch(setPlainLoadingState(false));
+          dispatch(setScheduledDownloadgridResponse(response?.content));
+          dispatch(setGridResponse(response));
         })
         .catch((error) => {
           console.error("remove error -> ", error);

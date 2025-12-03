@@ -7,32 +7,17 @@ import { Chart } from "@progress/kendo-react-charts";
 import { BasicGroupedChart } from "../Charts/BasicGroupedChart";
 import { IntlProvider } from "@progress/kendo-react-intl";
 import request from "../../library/api/request";
-import { selectedAccountState } from "../../recoil/userAtoms";
+import { useSelector, useDispatch } from 'react-redux';
 import {
-  useRecoilState,
-  useRecoilValue,
-  useSetRecoilState,
-} from "recoil";
+  setDetailLoadingState,
+  setErrorState,
+  setFilterQuery,
+  setLocationObjectState,
+  setInitialLoadingState
+} from '@/lib/store/slices/pageSlice';
 import {
-  detailLoadingState,
-  errorState,
-  filterQuery,
-  hasAzureSpendWidgetDataState,
-  hasM365WidgetDataState,
-  hasMSSpendWidgetDataState,
-  hasReservedInstanceorAzureSavingsPlanState,
-  initialLoadingState,
-  intlLocalProvider,
-  locationObjectState,
-  mpsaState,
-  switchAccountState,
-  tagLimitState,
-  widgetFlagsReadyState,
-  chartTypeLoadingState,
-  hasAwsSpendWidgetDataState,
-  hasAdobeWidgetDataState,
-  hasMPSAWidgetDataState,
-} from "../../recoil/pageAtoms";
+  setSelectedAccount
+} from '@/lib/store/slices/userSlice';
 import { Panel } from "@insight/toolkit-react";
 import { Skeleton } from "@progress/kendo-react-indicators";
 import { Tooltip } from "@progress/kendo-react-tooltip";
@@ -66,47 +51,34 @@ const WidgetColumns = () => {
   const isClickThruFlag = flags?.["gdi-357-clickthru"] || false;
   const isAwsConsumptionFlag = flags?.["gdi-663-awsconsumption"] || false;
 
-  const setLocationObjectState = useSetRecoilState(locationObjectState);
-  const setFilterQuery = useSetRecoilState(filterQuery);
-
-  const recoilLocationState = useRecoilValue(locationObjectState);
+  // Redux hooks
+  const dispatch = useDispatch();
+  
+  // Redux selectors
+  const locationObjectState = useSelector(state => state.page.locationObjectState);
+  const accountInfo = useSelector(state => state.user.selectedAccount);
+  const initialLoading = useSelector(state => state.page.initialLoadingState);
+  const isErrorState = useSelector(state => state.page.errorState);
+  const isIntlLocalProvider = useSelector(state => state.page.intlLocalProvider);
+  
+  // Local state for dashboard-specific data
+  const [invoiceTrendData, setInvoiceTrendData] = useState([]);
+  const [switchAccount, setAccountSwitchState] = useState(false);
+  const [widgetFlagsReady, setWidgetFlagsReady] = useState(false);
+  
   const isLocationState =
-    recoilLocationState ||
+    locationObjectState ||
     (typeof window !== "undefined"
       ? JSON.parse(sessionStorage?.location_state || "null")
       : null);
 
-  const [invoiceTrendData, setInvoiceTrendData] = useState([]);
-  const accountInfo = useRecoilValue(selectedAccountState);
-  const [initialLoading, setInitialLoadingState] =
-    useRecoilState(initialLoadingState);
-  const [switchAccount, setAccountSwitchState] =
-    useRecoilState(switchAccountState);
-  const [widgetFlagsReady, setWidgetFlagsReady] =
-    useRecoilState(widgetFlagsReadyState);
-  const [isErrorState, setErrorState] = useRecoilState(errorState);
-  const [isIntlLocalProvider, setIntlLocalProvider] =
-    useRecoilState(intlLocalProvider);
-  const setDetailLoadingState = useSetRecoilState(detailLoadingState);
-
-  const [isAzureSpendWidgetDataState] = useRecoilState(
-    hasAzureSpendWidgetDataState
-  );
-  const [isM365WidgetDataState] = useRecoilState(
-    hasM365WidgetDataState
-  );
-  const [isMPSAWidgetDataState] = useRecoilState(
-    hasMPSAWidgetDataState
-  );
-  const [isMSSpendWidgetDataState] = useRecoilState(
-    hasMSSpendWidgetDataState
-  );
-  const [isAwsSpendWidgetDataState] = useRecoilState(
-    hasAwsSpendWidgetDataState
-  );
-  const [isAdobeWidgetDataState] = useRecoilState(
-    hasAdobeWidgetDataState
-  );
+  // Widget data states - using local state for now, can be moved to Redux if needed
+  const [isAzureSpendWidgetDataState, setIsAzureSpendWidgetDataState] = useState(false);
+  const [isM365WidgetDataState, setIsM365WidgetDataState] = useState(false);
+  const [isMPSAWidgetDataState, setIsMPSAWidgetDataState] = useState(false);
+  const [isMSSpendWidgetDataState, setIsMSSpendWidgetDataState] = useState(false);
+  const [isAwsSpendWidgetDataState, setIsAwsSpendWidgetDataState] = useState(false);
+  const [isAdobeWidgetDataState, setIsAdobeWidgetDataState] = useState(false);
 
   const [refreshChart, setRefreshChart] = useState(true);
 

@@ -4,6 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSelector, useDispatch } from 'react-redux';
 import { initializeAuth } from '../store/authSlice';
+import { 
+  fetchUiProperties, 
+  selectUiProperties, 
+  selectUiCacheValid 
+} from '../lib/store/slices/uiSlice';
 
 export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, salesOrg }) {
   console.log('🔍 DEBUG - HomePageClient props:', { 
@@ -18,6 +23,8 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
   const dispatch = useDispatch();
   const authState = useSelector(state => state.auth);
   const { isAuthenticated, user, accessToken } = authState;
+  const uiProperties = useSelector(selectUiProperties);
+  const uiCacheValid = useSelector(selectUiCacheValid);
 
   // Debug localStorage on every render
   console.log('🔍 DEBUG - Current Redux state:', { isAuthenticated, user: !!user, accessToken: !!accessToken });
@@ -70,13 +77,31 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
     try {
       const { default: request } = await import('../lib/api/request');
       
-      const response = await request.post('loginAuthCode', {
-        data: code,
-        params: { 
-          soldto: finalSoldTo, 
-          salesorg: finalSalesOrg 
-        }
-      });
+      // Development mode: simulate successful authentication
+      let response;
+      if (process.env.NODE_ENV === 'development' && code.startsWith('test-')) {
+        console.log('🔧 DEV MODE: Simulating successful authentication');
+        response = {
+          userProfile: {
+            defaultContext: [{
+              soldToId: 'Insight|SAP|0011082409|2400'
+            }]
+          },
+          tokens: {
+            bearerToken: 'dev-bearer-token-12345'
+          },
+          persona: 'Customer',
+          firstName: 'Test User'
+        };
+      } else {
+        response = await request.post('loginAuthCode', {
+          data: code,
+          params: { 
+            soldto: finalSoldTo, 
+            salesorg: finalSalesOrg 
+          }
+        });
+      }
       
       if (response?.userProfile?.defaultContext?.[0] && response?.tokens?.bearerToken) {
         // Clear the processed flag since auth was successful
@@ -127,6 +152,23 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
           console.warn('⚠️ No soldToId available, skipping mpsaStatus API call');
         }
         
+        // Set HTTP cookies for server-side access (so SSR can detect authentication)
+        console.log('🍪 Setting authentication cookies for server-side access...');
+        
+        // Set access token cookie
+        document.cookie = `access_token=${bearerToken}; path=/; max-age=${24 * 60 * 60}; SameSite=Strict`;
+        
+        // Set user context cookie for server-side soldToId extraction
+        const userContextData = {
+          soldToId: soldToId,
+          persona: response.persona,
+          firstName: response.firstName,
+          isAuthenticated: true
+        };
+        document.cookie = `user_context=${encodeURIComponent(JSON.stringify(userContextData))}; path=/; max-age=${24 * 60 * 60}; SameSite=Strict`;
+        
+        console.log('✅ Authentication cookies set for server-side access');
+
         // Final dispatch to Redux store with complete auth data including context
         dispatch(initializeAuth({
           isAuthenticated: true,
@@ -201,6 +243,14 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
       });
     }
   }, [authCode, soldTo, salesOrg, router]); // Removed auth state to prevent double calls when Redux updates
+
+  // Fetch UI properties when authenticated (once per session)
+  useEffect(() => {
+    if (isAuthenticated && !uiProperties) {
+      console.log('🎨 Fetching UI properties for authenticated user...');
+      dispatch(fetchUiProperties());
+    }
+  }, [isAuthenticated, dispatch]); // Simplified dependencies to prevent excessive calls
 
   // Show processing state if we're handling auth
   if (isProcessing) {
@@ -281,11 +331,60 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
           color: 'white',
           textDecoration: 'none',
           borderRadius: '4px',
-          fontSize: '16px'
+          fontSize: '16px',
+          marginRight: '10px'
         }}
       >
         Login with Ping Identity
       </a>
+      
+      {process.env.NODE_ENV === 'development' && (
+        <button 
+          onClick={async () => {
+            console.log('🔧 DEV: Setting cookies via API');
+            try {
+              const response = await fetch('/api/dev-auth', { method: 'POST' });
+              const result = await response.json();
+              
+              if (result.success) {
+                console.log('✅ DEV: Server-side cookies set successfully');
+                
+                // Update Redux state
+                dispatch(initializeAuth({
+                  isAuthenticated: true,
+                  user: {
+                    soldToId: result.soldToId,
+                    persona: 'Customer',
+                    firstName: 'Test User'
+                  },
+                  accessToken: 'dev-bearer-token-12345',
+                  soldTo: '',
+                  salesOrg: ''
+                }));
+                
+                console.log('🚀 DEV: Redirecting to dashboard');
+                setTimeout(() => {
+                  window.location.href = '/dashboard';
+                }, 500);
+              }
+            } catch (error) {
+              console.error('❌ DEV: Failed to set cookies', error);
+            }
+          }}
+          style={{
+            padding: '12px 24px',
+            backgroundColor: '#28a745',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            fontSize: '16px',
+            cursor: 'pointer',
+            marginLeft: '10px'
+          }}
+        >
+          [DEV] Test Login
+        </button>
+      )}
     </div>
   );
 }

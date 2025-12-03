@@ -1,11 +1,10 @@
 import LogRocket from "logrocket";
 import env from "./env";
-import { isLoggedInState, userState } from "../../../src/recoil/userAtoms";
-import { useRecoilValue } from "recoil";
+import { useSelector } from 'react-redux';
 
 const useInitializeLogRocket = () => {
-  const userInfo = useRecoilValue(userState);
-  const isLoggedIn = useRecoilValue(isLoggedInState);
+  const userInfo = useSelector(state => state.user.userState);
+  const isLoggedIn = useSelector(state => state.user.isLoggedInState);
   const { username } = userInfo;
   if (!env.logRocketId || window.location.hostname === 'localhost') return;
 

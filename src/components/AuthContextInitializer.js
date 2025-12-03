@@ -2,18 +2,14 @@
 "use client";
 
 import { useEffect } from 'react';
-import { useSetRecoilState } from 'recoil';
+import { useDispatch } from 'react-redux';
 import Cookies from 'js-cookie'; // Client-side library to read non-HTTP-only cookies
-// Import all your required Recoil atoms and other dependencies
-import { isLoggedInState, userState, selectedAccountState, loginResponseState } from "../recoil/userAtoms";
-import { /* ... all other page atoms ... */ } from "../recoil/pageAtoms";
+// Import Redux actions
+import { setIsLoggedIn, setUserData, setSelectedAccount, setLoginResponse } from "@/lib/store/slices/userSlice";
 
 
 export default function AuthContextInitializer({ children }) {
-    const setLoggedIn = useSetRecoilState(isLoggedInState);
-    const setUserData = useSetRecoilState(userState);
-    const setLoginResponseState = useSetRecoilState(loginResponseState);
-    // ... all other recoil setters
+    const dispatch = useDispatch();
 
     useEffect(() => {
         // This runs once client-side after the page loads
@@ -24,18 +20,18 @@ export default function AuthContextInitializer({ children }) {
             try {
                 const userContext = JSON.parse(userContextString);
                 
-                // 1. Initialize Recoil States
-                setLoggedIn(true);
-                setUserData({
+                // 1. Initialize Redux States
+                dispatch(setIsLoggedIn(true));
+                dispatch(setUserData({
                     // Map context data to user state
                     role: userContext.persona,
                     firstName: userContext.firstName,
                     // ... other required fields
-                });
-                setLoginResponseState({
+                }));
+                dispatch(setLoginResponse({
                     soldToID: userContext.soldToId,
                     // ... other analytics data
-                });
+                }));
                 
                 // 2. Perform the secondary calls (like getMPSAStatus) here
                 // You must ensure getMPSAStatus is updated to be a client-side utility
@@ -46,9 +42,9 @@ export default function AuthContextInitializer({ children }) {
                 // Handle corrupted cookie/session
             }
         } else {
-            setLoggedIn(false);
+            dispatch(setIsLoggedIn(false));
         }
-    }, [setLoggedIn, setUserData, setLoginResponseState]);
+    }, [dispatch]);
 
     return <>{children}</>;
 }

@@ -112,7 +112,7 @@ const instance = (serviceName, configuration = {}) => {
     const customBaseURL = uiProps?.CCR_API_BASE_URL;
     serviceConfig = services.getService(serviceName, customBaseURL);
   }
-  const { url = "", pathParam = "", ...otherConfig } = configuration;
+  const { url = "", pathParam = "", urlParam = "", ...otherConfig } = configuration;
   
   // Build the complete URL from baseURL and service URL
   let serviceUrl = serviceConfig.url || '';
@@ -120,6 +120,17 @@ const instance = (serviceName, configuration = {}) => {
   // Handle path parameters for services that support them
   if (pathParam && serviceConfig.pathParam) {
     serviceUrl = `${serviceUrl}/${pathParam}`;
+  }
+  
+  // Handle URL parameters for services that support them
+  if (urlParam && serviceConfig.urlParam) {
+    // If urlParam starts with '?', it's query parameters, don't add '/'
+    // If it doesn't start with '?', it's a path segment, add '/'
+    if (urlParam.startsWith('?')) {
+      serviceUrl = `${serviceUrl}${urlParam}`;
+    } else {
+      serviceUrl = `${serviceUrl}/${urlParam}`;
+    }
   }
   
   const finalBaseURL = serviceUrl 
