@@ -137,6 +137,16 @@ const Header = () => {
     } else {
       setOpenSubMenuLabel(label);
     }
+    
+    // Close the full screen dropdown when any submenu item is selected
+    setOpenMenuIndex(null);
+    setOpenSubMenuLabel(null);
+  };
+
+  const handleLinkClick = () => {
+    // Close dropdown when any link is clicked
+    setOpenMenuIndex(null);
+    setOpenSubMenuLabel(null);
   };
 
   useEffect(() => {
@@ -347,6 +357,7 @@ const Header = () => {
                     <Link
                       href={child.href || "#"}
                       className={styles.dropdownLink}
+                      onClick={handleLinkClick}
                     >
                       {child.label}
                     </Link>
@@ -360,6 +371,7 @@ const Header = () => {
                           key={grandchildIndex}
                           href={grandchild.href || "#"}
                           className={styles.subMenuLink}
+                          onClick={handleLinkClick}
                         >
                           {grandchild.label}
                         </Link>
