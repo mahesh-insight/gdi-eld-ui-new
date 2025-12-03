@@ -67,6 +67,8 @@ export async function callAzureInvoiceAPI(serviceName, payload) {
     }
     
     // Build the complete URL
+    console.log('🔍 Base URL:', serviceConfig.baseURL);
+    console.log('🔍 Service URL:', serviceConfig.url);
     let fullUrl = `${serviceConfig.baseURL}${serviceConfig.url}`;
     if (urlParams) {
       if (urlParams.startsWith('?')) {
@@ -75,6 +77,7 @@ export async function callAzureInvoiceAPI(serviceName, payload) {
         fullUrl += `/${urlParams}`;
       }
     }
+    console.log('🔍 Final URL:', fullUrl);
     
     // Get access token for authorization
     let accessToken = null;
@@ -111,6 +114,21 @@ export async function callAzureInvoiceAPI(serviceName, payload) {
         const tokenCookie = cookieStore.get('access_token');
         accessToken = tokenCookie?.value;
         console.log('🔍 Server-side cookie accessToken:', accessToken);
+        console.log('🔍 All available cookies:', cookieStore.getAll().map(c => c.name));
+        
+        // If no access_token cookie, try to get from Redux persist cookie
+        if (!accessToken) {
+          const reduxCookie = cookieStore.get('persist:ccr-auth');
+          if (reduxCookie) {
+            try {
+              const persistedState = JSON.parse(reduxCookie.value);
+              accessToken = persistedState.accessToken;
+              console.log('🔍 Access token from Redux persist:', !!accessToken);
+            } catch (e) {
+              console.log('⚠️ Failed to parse Redux persist cookie for token');
+            }
+          }
+        }
       } catch (error) {
         console.error('❌ Error getting access token from server cookies:', error);
       }
@@ -143,6 +161,8 @@ export async function callAzureInvoiceAPI(serviceName, payload) {
     });
     
     console.log(`✅ API RESPONSE: ${serviceName.toUpperCase()}`, response.data);
+    console.log(`🔍 API RESPONSE TYPE: ${serviceName.toUpperCase()}`, typeof response.data);
+    console.log(`🔍 API RESPONSE KEYS: ${serviceName.toUpperCase()}`, Object.keys(response.data || {}));
     
     // Return the response data directly (axios response format)
     return response.data;

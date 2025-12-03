@@ -9,9 +9,19 @@
  * Environment-based configuration
  */
 const getEnvironmentConfig = () => {
+  console.log('🔍 Environment Detection:', {
+    NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
+    API_BASE_URL: process.env.API_BASE_URL,
+    NEXT_PUBLIC_CCR_API_BASE_URL: process.env.NEXT_PUBLIC_CCR_API_BASE_URL,
+    CCR_API_BASE_URL: process.env.CCR_API_BASE_URL,
+    NODE_ENV: process.env.NODE_ENV
+  });
+  
   // Check for explicit environment variables first
   if (process.env.NEXT_PUBLIC_API_BASE_URL || process.env.API_BASE_URL) {
-    return process.env.NEXT_PUBLIC_API_BASE_URL || process.env.API_BASE_URL;
+    const result = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.API_BASE_URL;
+    console.log('🎯 Using explicit env var base URL:', result);
+    return result;
   }
 
   // Fallback to CCR-specific environment variables
@@ -44,6 +54,7 @@ const getEnvironmentConfig = () => {
       !process.env.API_BASE_URL);
 
   if (isLocal) {
+    console.log('🎯 Using local development base URL: http://localhost:8080');
     return "http://localhost:8080"; // Backend server port for local development
   }
 

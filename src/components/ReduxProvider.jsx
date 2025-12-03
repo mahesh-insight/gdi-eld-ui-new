@@ -132,16 +132,7 @@ export default function ReduxProvider({ children }) {
     <ErrorBoundary>
       <Provider store={store}>
         <PersistGate 
-          loading={
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              alignItems: 'center', 
-              height: '100vh' 
-            }}>
-              Loading application state...
-            </div>
-          } 
+          loading={null} 
           persistor={persistor}
           onBeforeLift={() => {
             console.log('✅ Redux PersistGate: Store rehydrated');

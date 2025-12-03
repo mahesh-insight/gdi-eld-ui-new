@@ -22,9 +22,12 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
   const router = useRouter();
   const dispatch = useDispatch();
   const authState = useSelector(state => state.auth);
-  const { isAuthenticated, user, accessToken } = authState;
+  const { isAuthenticated, user, accessToken, _persist } = authState;
   const uiProperties = useSelector(selectUiProperties);
   const uiCacheValid = useSelector(selectUiCacheValid);
+  
+  // Check if Redux store has been rehydrated
+  const isRehydrated = _persist?.rehydrated !== false;
 
   // Debug localStorage on every render
   console.log('🔍 DEBUG - Current Redux state:', { isAuthenticated, user: !!user, accessToken: !!accessToken });
@@ -201,15 +204,15 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
     }
   };
 
-  // Handle redirect when already authenticated
+  // Handle redirect when already authenticated (only after rehydration)
   useEffect(() => {
-    if (isAuthenticated && user && accessToken) {
+    if (isRehydrated && isAuthenticated && user && accessToken) {
       console.log('✅ Already authenticated, redirecting to dashboard');
       console.log('🔍 DEBUG - Auth state:', { isAuthenticated, user: !!user, accessToken: !!accessToken });
       console.log('🔍 DEBUG - localStorage auth data:', localStorage.getItem('persist:ccr-auth'));
       router.replace('/dashboard');
     }
-  }, [isAuthenticated, user, accessToken, router]);
+  }, [isRehydrated, isAuthenticated, user, accessToken, router]);
 
   // Handle auth code processing (separate to prevent double calls)
   useEffect(() => {
@@ -219,10 +222,11 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
       soldTo, 
       salesOrg,
       isAuthenticated,
+      isRehydrated,
       windowDefined: typeof window !== 'undefined'
     });
 
-    if (authCode && !isAuthenticated && typeof window !== 'undefined') {
+    if (authCode && !isAuthenticated && isRehydrated && typeof window !== 'undefined') {
       const hasProcessedKey = `processed_${authCode}`;
       
       console.log('🔍 Checking processed key:', hasProcessedKey, 'exists:', !!sessionStorage.getItem(hasProcessedKey));
@@ -239,10 +243,11 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
       console.log('⏸️ No conditions met for processing. Reasons:', {
         noAuthCode: !authCode,
         alreadyAuthenticated: isAuthenticated,
+        notRehydrated: !isRehydrated,
         noWindow: typeof window === 'undefined'
       });
     }
-  }, [authCode, soldTo, salesOrg, router]); // Removed auth state to prevent double calls when Redux updates
+  }, [authCode, soldTo, salesOrg, isRehydrated, router]); // Added isRehydrated dependency
 
   // Fetch UI properties when authenticated (once per session)
   useEffect(() => {
@@ -252,41 +257,7 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
     }
   }, [isAuthenticated, dispatch]); // Simplified dependencies to prevent excessive calls
 
-  // Show processing state if we're handling auth
-  if (isProcessing) {
-    return (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        padding: '20px',
-        backgroundColor: '#f5f5f5'
-      }}>
-        <h2 style={{ marginBottom: '20px', color: '#333' }}>Processing Authentication</h2>
-        <p style={{ color: '#666', textAlign: 'center' }}>{processingMessage}</p>
-      </div>
-    );
-  }
 
-  // If we have an auth code but no processing yet, this will be handled by useEffect
-  if (authCode && !isAuthenticated) {
-    return (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        padding: '20px',
-        backgroundColor: '#f5f5f5'
-      }}>
-        <h2 style={{ marginBottom: '20px', color: '#333' }}>Initializing Authentication</h2>
-        <p style={{ color: '#666' }}>Please wait...</p>
-      </div>
-    );
-  }
 
   // Get soldTo/salesOrg for login URL (from Redux store if not in URL - token expiry scenario)
   const effectiveSoldTo = soldTo || reduxSoldTo || '';
@@ -303,33 +274,135 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
     return url.toString();
   };
 
-  // Otherwise show the login screen
-  return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '100vh',
-      padding: '20px',
-      backgroundColor: '#f5f5f5'
-    }}>
-      <h1 style={{ marginBottom: '30px', color: '#333' }}>Welcome to CCR</h1>
-      <a 
-        href={buildAuthURL()}
-        style={{
+  // Don't render anything until Redux is rehydrated to prevent flash
+  if (!isRehydrated) {
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        padding: '20px',
+        backgroundColor: '#f5f5f5'
+      }}>
+        <h1 style={{ marginBottom: '30px', color: '#333' }}>Welcome to CCR</h1>
+        {/* Show login button but make it non-functional until rehydrated */}
+        <div style={{
           padding: '12px 24px',
           backgroundColor: '#007bff',
           color: 'white',
-          textDecoration: 'none',
           borderRadius: '4px',
           fontSize: '16px',
-          marginRight: '10px'
-        }}
-      >
-        Login
-      </a>
-      
+          opacity: 0.7
+        }}>
+          Login
+        </div>
+      </div>
+    );
+  }
+
+  // Get display states
+  const showLoader = isProcessing || (authCode && !isAuthenticated);
+  const loaderMessage = isProcessing ? processingMessage : 'Initializing Authentication...';
+
+  // Always show the login screen with conditional overlay
+  return (
+    <div style={{ position: 'relative', minHeight: '100vh' }}>
+      {/* Main Login Screen */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        padding: '20px',
+        backgroundColor: '#f5f5f5',
+        filter: showLoader ? 'brightness(0.7)' : 'none',
+        pointerEvents: showLoader ? 'none' : 'auto',
+        transition: 'filter 0.3s ease'
+      }}>
+        <h1 style={{ marginBottom: '30px', color: '#333' }}>Welcome to CCR</h1>
+        <a 
+          href={buildAuthURL()}
+          style={{
+            padding: '12px 24px',
+            backgroundColor: '#007bff',
+            color: 'white',
+            textDecoration: 'none',
+            borderRadius: '4px',
+            fontSize: '16px',
+            marginRight: '10px',
+            opacity: showLoader ? 0.5 : 1
+          }}
+        >
+          Login
+        </a>
+      </div>
+
+      {/* Loading Overlay */}
+      {showLoader && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '40px',
+            borderRadius: '8px',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+            textAlign: 'center',
+            maxWidth: '400px',
+            width: '90%'
+          }}>
+            {/* Spinner */}
+            <div style={{
+              width: '40px',
+              height: '40px',
+              border: '4px solid #f3f3f3',
+              borderTop: '4px solid #007bff',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 20px auto'
+            }}></div>
+            
+            <h3 style={{ 
+              marginBottom: '15px', 
+              color: '#333',
+              fontSize: '18px',
+              fontWeight: 'bold'
+            }}>
+              {isProcessing ? 'Processing Authentication' : 'Initializing Authentication'}
+            </h3>
+            
+            <p style={{ 
+              color: '#666', 
+              margin: 0,
+              fontSize: '14px',
+              lineHeight: '1.4'
+            }}>
+              {loaderMessage}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* CSS for spinner animation */}
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }

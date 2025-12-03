@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 /**
  * Simple component that displays server-side fetched data
@@ -15,10 +16,22 @@ export default function AzureInvoiceServerComponent({
 }) {
   const [isClient, setIsClient] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
+  const router = useRouter();
+  
+  // Show loading if we're still fetching server data
+  const isDataLoading = !azureInvoiceData && !azureInvoiceError;
   
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // TEMPORARILY DISABLED: Debug authentication issue
+  useEffect(() => {
+    if (isClient && azureInvoiceError && azureInvoiceError.includes('Authentication required')) {
+      console.log('🔐 Client-side authentication issue detected, but NOT redirecting for debugging:', azureInvoiceError);
+      // router.push('/'); // DISABLED FOR DEBUGGING
+    }
+  }, [isClient, azureInvoiceError, router]);
 
   // Development Authentication Handler
   const handleDevAuth = async () => {
@@ -64,14 +77,49 @@ export default function AzureInvoiceServerComponent({
       </div>
     );
   }
+  
+  // Show loading state while server is fetching data
+  if (isDataLoading) {
+    return (
+      <div style={{
+        minHeight: '400px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px',
+        fontFamily: 'system-ui'
+      }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '4px solid #f3f3f3',
+          borderTop: '4px solid #0070f3',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite',
+          marginBottom: '20px'
+        }}></div>
+        <h2 style={{ margin: '0 0 10px 0', color: '#333' }}>Loading Azure Invoice Data</h2>
+        <p style={{ margin: '0', color: '#666', textAlign: 'center' }}>
+          Fetching your latest invoice information...
+        </p>
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `
+        }} />
+      </div>
+    );
+  }
 
   return (
     <div>
       {/* Main Application */}
       {azureInvoiceData && uiProperties ? (
-        <div>
-          <h1>🎉 Azure Invoice Data Loaded Successfully!</h1>
-          
+        <div>          
           {/* JSON Display Section */}
           <div style={{
             margin: '20px 0',

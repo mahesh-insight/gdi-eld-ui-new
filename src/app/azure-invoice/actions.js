@@ -9,8 +9,9 @@ import { CacheKeys, CacheTTL } from '@/lib/cache/cacheKeys';
 /**
  * Server action to fetch Azure Invoice data (OPTIMIZED)
  * This runs on the server and passes data to client components
+ * @param {string} clientSoldToId - Optional soldToId from client-side auth
  */
-export async function fetchAzureInvoiceDataServer() {
+export async function fetchAzureInvoiceDataServer(clientSoldToId = null) {
   const startTime = Date.now();
   
   try {
@@ -18,17 +19,22 @@ export async function fetchAzureInvoiceDataServer() {
     
     // OPTIMIZATION: Fast auth check first
     const cookieStore = await cookies();
+    console.log('🔍 Available cookies:', cookieStore.getAll().map(c => c.name));
+    
     const accessTokenCookie = cookieStore.get('access_token');
     const userContextCookie = cookieStore.get('user_context');
     
     let soldToId = null;
     
-    // OPTIMIZATION: Try regular cookies first (fastest path)
+    // OPTIMIZATION: Try regular cookies first (fastest path)  
+    let accessToken = null;
     if (accessTokenCookie && userContextCookie) {
       try {
         const userContext = JSON.parse(userContextCookie.value);
         soldToId = userContext.soldToId;
+        accessToken = accessTokenCookie.value;
         console.log('⚡ Server Action: Fast auth via regular cookies, soldToId:', soldToId);
+        console.log('⚡ Server Action: Access token found:', !!accessToken);
       } catch (error) {
         console.log('⚠️ Server Action: Failed to parse user context cookie');
       }
@@ -42,6 +48,11 @@ export async function fetchAzureInvoiceDataServer() {
           const persistedState = JSON.parse(reduxPersistCookie.value);
           if (persistedState.isAuthenticated && persistedState.loginResponse) {
             soldToId = persistedState.loginResponse?.userProfile?.defaultContext?.[0]?.soldToId;
+            // Also try to get access token from Redux persist if not found
+            if (!accessToken && persistedState.accessToken) {
+              accessToken = persistedState.accessToken;
+              console.log('⚡ Server Action: Access token from Redux persist:', !!accessToken);
+            }
             console.log('⚡ Server Action: Fallback auth via Redux persist, soldToId:', soldToId);
           }
         } catch (error) {
@@ -50,40 +61,51 @@ export async function fetchAzureInvoiceDataServer() {
       }
     }
     
-    // OPTIMIZATION: Fast fail for no auth
+    // Use client-provided soldToId if available (from Redux store)
+    if (!soldToId && clientSoldToId) {
+      soldToId = clientSoldToId;
+      console.log('✅ Server Action: Using Redux store soldToId:', soldToId);
+    }
+    
+    // If still no authentication found, return error - NO FALLBACK TO TEST DATA
     if (!soldToId) {
-      const authTime = Date.now() - startTime;
-      console.log(`❌ Server Action: No auth found in ${authTime}ms`);
-      return { 
-        error: 'Authentication required - please log in first', 
+      console.log('❌ Server Action: No authentication found - user must be properly logged in');
+      return {
+        error: 'Authentication required - please ensure you are logged in with valid credentials',
         data: null,
         debug: {
-          reason: 'No valid authentication cookies found',
-          suggestion: 'Navigate to / to authenticate first',
-          authCheckTime: `${authTime}ms`,
-          fetchTime: new Date().toISOString()
+          errorMessage: 'No soldToId found from authenticated user session',
+          fetchTime: new Date().toISOString(),
+          clientSoldToId: clientSoldToId,
+          availableCookies: cookieStore.getAll().map(c => c.name),
+          note: 'User must be properly authenticated through the login system'
         }
       };
     }
 
     const authTime = Date.now() - startTime;
-    console.log(`⚡ Server Action: Auth check completed in ${authTime}ms, fetching data for soldToId:`, soldToId);
+    console.log(`⚡ Server Action: Auth check completed in ${authTime}ms, checking cache for soldToId: ${soldToId}`);
     
-    // UNIVERSAL CACHE: Use the scalable cache system
-    const cacheKey = CacheKeys.AZURE_INVOICE(soldToId);
+    // OPTIMIZATION: Use cache with 5-minute TTL for performance
+    const cacheKey = `azure-invoice-data:${soldToId}`;
+    console.log(`🗂️ Server Action: Using cache key: ${cacheKey}`);
     
+    const dataStartTime = Date.now();
     const azureInvoiceData = await getOrSetCached(
       cacheKey,
       async () => {
-        // This function only runs on cache miss
-        const dataStartTime = Date.now();
-        const data = await getInitialAzureInvoiceData({ soldToId });
-        const dataTime = Date.now() - dataStartTime;
-        console.log(`✅ Server Action: Fresh data fetched in ${dataTime}ms`);
-        return data;
+        console.log(`🔄 Server Action: Cache MISS - fetching fresh data for ${soldToId}`);
+        return await getInitialAzureInvoiceData({ 
+          soldToId,
+          accessToken
+        });
       },
-      CacheTTL.API_RESPONSE // 5 minutes
+      CacheTTL.AZURE_INVOICE_DATA // 5 minutes
     );
+    const dataTime = Date.now() - dataStartTime;
+    
+    const cacheStatus = azureInvoiceData._fromCache ? 'HIT' : 'MISS';
+    console.log(`✅ Server Action: Data served from cache ${cacheStatus} in ${dataTime}ms`);
     
     const totalTime = Date.now() - startTime;
     
@@ -103,7 +125,8 @@ export async function fetchAzureInvoiceDataServer() {
         invoiceMonthsCount: azureInvoiceData.invoiceMonths?.length || 0,
         authTime: `${authTime}ms`,
         totalTime: `${totalTime}ms`,
-        cacheKey: cacheKey
+        cacheKey: cacheKey,
+        cacheStatus: cacheStatus
       }
     };
     
