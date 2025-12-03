@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from '../../hooks/useAuth';
+import { useSelector, useDispatch } from 'react-redux';
+import { selectUiProperties, fetchUiProperties } from '@/lib/store/slices/uiSlice';
 import styles from "./Header.module.scss";
 import Link from "next/link";
 import {
@@ -103,6 +105,10 @@ const Header = () => {
   const soldToName = defaultContext?.[0]?.soldToName || '';
   const headerRef = useRef(null);
   const navLinkRefs = useRef([]);
+  
+  // Redux for UI Properties
+  const dispatch = useDispatch();
+  const uiProperties = useSelector(selectUiProperties);
 
   const handleMenuClick = (index) => {
     if (navItems[index].children.length === 0) {
@@ -148,6 +154,102 @@ const Header = () => {
     setOpenMenuIndex(null);
     setOpenSubMenuLabel(null);
   };
+
+  const handleLogout = () => {
+    try {
+      console.log('🚪 Starting logout process...');
+      
+      // Clear all authentication data immediately
+      clearAllAuthData();
+      
+      // Clear Redux state
+      logout();
+      
+      // Close dropdowns
+      setIsAccountSettingsOpen(false);
+      setIsAccountMenuOpen(false);
+      
+      // Get logout URL from UI Properties
+      const logoffUrl = uiProperties?.CCR_LOGOFF_URL;
+      
+      if (logoffUrl) {
+        console.log('🚪 Redirecting to CCR_LOGOFF_URL:', logoffUrl);
+        // Small delay to ensure cleanup is complete
+        setTimeout(() => {
+          window.location.href = logoffUrl;
+        }, 100);
+      } else {
+        console.warn('⚠️ CCR_LOGOFF_URL not available, redirecting to home');
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 100);
+      }
+      
+    } catch (error) {
+      console.error('❌ Logout error:', error);
+      // Ensure cleanup happens even on error
+      clearAllAuthData();
+      logout();
+      window.location.href = '/';
+    }
+  };
+
+  const clearAllAuthData = () => {
+    if (typeof window !== 'undefined') {
+      console.log('🧹 Clearing all authentication data...');
+      
+      // Clear localStorage items
+      const localStorageKeys = [
+        'access_token',
+        'token_expiry', 
+        'user_context',
+        'persist:ccr-auth',
+        'persist:root',
+        'uiProps',
+        'authenticationURL',
+        'logged_in',
+        'soldToId',
+        'user_data',
+        'account_selection',
+        'login_response'
+      ];
+      
+      localStorageKeys.forEach(key => {
+        localStorage.removeItem(key);
+      });
+      
+      // Clear sessionStorage
+      sessionStorage.clear();
+      
+      // Clear cookies
+      const cookiesToClear = [
+        'access_token',
+        'token_expiry',
+        'user_context',
+        'persist:ccr-auth',
+        'persist:root'
+      ];
+      
+      cookiesToClear.forEach(cookieName => {
+        // Clear for current domain and path
+        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
+        // Also try clearing for parent domain (if subdomain)
+        const domain = window.location.hostname.split('.').slice(-2).join('.');
+        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${domain};`;
+      });
+      
+      console.log('✅ All authentication data cleared');
+    }
+  };
+
+  // Fetch UI Properties when authenticated but not available
+  useEffect(() => {
+    if (isAuthenticated && !uiProperties) {
+      console.log('🔄 Header: Fetching UI Properties for logout functionality');
+      dispatch(fetchUiProperties());
+    }
+  }, [isAuthenticated, uiProperties, dispatch]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -243,8 +345,12 @@ const Header = () => {
                 <div className={`${styles.iconAccountSettingsMenu}`}>
                   <ul className={`${styles.iconAccountList}`}>
                     <li className={`${styles.iconAccountListItem}`}>
-                      <button className={`${styles.iconAccountLink}`} type="button">
-                        Account Settings
+                      <button 
+                        className={`${styles.iconAccountLink}`} 
+                        type="button"
+                        onClick={handleLogout}
+                      >
+                        Logout
                       </button>
                   </li>
                 </ul>

@@ -3,6 +3,8 @@
 
 import { getInitialAzureInvoiceData } from '@/lib/azureInvoiceApi';
 import { cookies } from 'next/headers';
+import { getOrSetCached, getCached, setCached } from '@/lib/cache/serverCache';
+import { CacheKeys, CacheTTL } from '@/lib/cache/cacheKeys';
 
 /**
  * Server action to fetch Azure Invoice data (OPTIMIZED)
@@ -67,46 +69,25 @@ export async function fetchAzureInvoiceDataServer() {
     const authTime = Date.now() - startTime;
     console.log(`⚡ Server Action: Auth check completed in ${authTime}ms, fetching data for soldToId:`, soldToId);
     
-    // OPTIMIZATION: Check cache first (5 minute cache for invoice data)
-    const cacheKey = `azure-invoice-${soldToId}`;
-    const cachedData = global.azureInvoiceCache?.get(cacheKey);
+    // UNIVERSAL CACHE: Use the scalable cache system
+    const cacheKey = CacheKeys.AZURE_INVOICE(soldToId);
     
-    if (cachedData && Date.now() - cachedData.timestamp < 5 * 60 * 1000) {
-      const cacheTime = Date.now() - startTime;
-      console.log(`🚀 Server Action: CACHE HIT! Data served in ${cacheTime}ms`);
-      return {
-        error: null,
-        data: cachedData.data,
-        debug: {
-          soldToId,
-          fetchTime: new Date().toISOString(),
-          dataKeys: Object.keys(cachedData.data),
-          invoiceMonthsCount: cachedData.data.invoiceMonths?.length || 0,
-          authTime: `${authTime}ms`,
-          cacheTime: `${cacheTime}ms`,
-          totalTime: `${cacheTime}ms`,
-          cached: true
-        }
-      };
-    }
+    const azureInvoiceData = await getOrSetCached(
+      cacheKey,
+      async () => {
+        // This function only runs on cache miss
+        const dataStartTime = Date.now();
+        const data = await getInitialAzureInvoiceData({ soldToId });
+        const dataTime = Date.now() - dataStartTime;
+        console.log(`✅ Server Action: Fresh data fetched in ${dataTime}ms`);
+        return data;
+      },
+      CacheTTL.API_RESPONSE // 5 minutes
+    );
     
-    // OPTIMIZATION: Fetch Azure Invoice data with timing
-    const dataStartTime = Date.now();
-    const azureInvoiceData = await getInitialAzureInvoiceData({ soldToId });
-    const dataTime = Date.now() - dataStartTime;
     const totalTime = Date.now() - startTime;
     
-    // Cache the result
-    if (!global.azureInvoiceCache) {
-      global.azureInvoiceCache = new Map();
-    }
-    global.azureInvoiceCache.set(cacheKey, {
-      data: azureInvoiceData,
-      timestamp: Date.now()
-    });
-    console.log(`💾 Server Action: Data cached for future requests`);
-    
-    console.log(`✅ Server Action: Data fetched in ${dataTime}ms (total: ${totalTime}ms)`);
+    console.log(`✅ Server Action: Data served in ${totalTime}ms`);
     console.log('📋 Server Action: Invoice Months:', azureInvoiceData.invoiceMonths?.length || 0);
     console.log('📋 Server Action: Summary:', !!azureInvoiceData.summary);
     console.log('📋 Server Action: Credits:', !!azureInvoiceData.credits);
@@ -121,8 +102,8 @@ export async function fetchAzureInvoiceDataServer() {
         dataKeys: Object.keys(azureInvoiceData),
         invoiceMonthsCount: azureInvoiceData.invoiceMonths?.length || 0,
         authTime: `${authTime}ms`,
-        dataTime: `${dataTime}ms`,
-        totalTime: `${totalTime}ms`
+        totalTime: `${totalTime}ms`,
+        cacheKey: cacheKey
       }
     };
     

@@ -315,14 +315,6 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
       backgroundColor: '#f5f5f5'
     }}>
       <h1 style={{ marginBottom: '30px', color: '#333' }}>Welcome to CCR</h1>
-      <p style={{ marginBottom: '30px', textAlign: 'center', color: '#666' }}>
-        Please login to access your dashboard
-      </p>
-      {(!effectiveSoldTo || !effectiveSalesOrg) && (
-        <p style={{ marginBottom: '20px', color: '#ff6600', textAlign: 'center' }}>
-          Note: Login requires soldTo and salesOrg parameters
-        </p>
-      )}
       <a 
         href={buildAuthURL()}
         style={{
@@ -335,56 +327,9 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
           marginRight: '10px'
         }}
       >
-        Login with Ping Identity
+        Login
       </a>
       
-      {process.env.NODE_ENV === 'development' && (
-        <button 
-          onClick={async () => {
-            console.log('🔧 DEV: Setting cookies via API');
-            try {
-              const response = await fetch('/api/dev-auth', { method: 'POST' });
-              const result = await response.json();
-              
-              if (result.success) {
-                console.log('✅ DEV: Server-side cookies set successfully');
-                
-                // Update Redux state
-                dispatch(initializeAuth({
-                  isAuthenticated: true,
-                  user: {
-                    soldToId: result.soldToId,
-                    persona: 'Customer',
-                    firstName: 'Test User'
-                  },
-                  accessToken: 'dev-bearer-token-12345',
-                  soldTo: '',
-                  salesOrg: ''
-                }));
-                
-                console.log('🚀 DEV: Redirecting to dashboard');
-                setTimeout(() => {
-                  window.location.href = '/dashboard';
-                }, 500);
-              }
-            } catch (error) {
-              console.error('❌ DEV: Failed to set cookies', error);
-            }
-          }}
-          style={{
-            padding: '12px 24px',
-            backgroundColor: '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            fontSize: '16px',
-            cursor: 'pointer',
-            marginLeft: '10px'
-          }}
-        >
-          [DEV] Test Login
-        </button>
-      )}
     </div>
   );
 }
