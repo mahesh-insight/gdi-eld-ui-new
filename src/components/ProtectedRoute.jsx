@@ -19,29 +19,20 @@ export default function ProtectedRoute({ children }) {
 
   useEffect(() => {
     setMounted(true);
-    // Give time for Redux Persist to rehydrate
+    // Give minimal time for Redux Persist to rehydrate
     const timer = setTimeout(() => {
       setInitialLoadComplete(true);
-    }, 500); // Small delay to ensure rehydration is complete
+    }, 100); // Reduced delay for faster authentication check
     
     return () => clearTimeout(timer);
   }, []);
 
 
 
-  // Show loading while mounting, loading, or waiting for initial load to complete
+  // Handle authentication check silently in the background
+  // Only show a blank screen without flashing messages during the check
   if (!mounted || isLoading || !initialLoadComplete) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        minHeight: '100vh',
-        fontSize: '1.2em'
-      }}>
-        Checking authentication...
-      </div>
-    );
+    return null;
   }
 
   // Check if user has complete auth data
@@ -50,31 +41,11 @@ export default function ProtectedRoute({ children }) {
   if (!hasCompleteAuth && !hasRedirected) {
     setHasRedirected(true);
     redirectToLogin();
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        minHeight: '100vh',
-        fontSize: '1.2em'
-      }}>
-        Redirecting to login...
-      </div>
-    );
+    return null;
   }
 
   if (!hasCompleteAuth) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        minHeight: '100vh',
-        fontSize: '1.2em'
-      }}>
-        Redirecting to login...
-      </div>
-    );
+    return null;
   }
 
   return <>{children}</>;
