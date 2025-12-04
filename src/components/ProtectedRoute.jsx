@@ -6,7 +6,7 @@ import { useAuth } from '../hooks/useAuth';
 
 /**
  * Protected route wrapper component
- * Automatically redirects to login if user is not authenticated or token is expired
+ * Shows content immediately while handling authentication in background
  */
 export default function ProtectedRoute({ children }) {
   const { isAuthenticated, isLoading, user, accessToken, redirectToLogin } = useAuth();
@@ -19,63 +19,24 @@ export default function ProtectedRoute({ children }) {
 
   useEffect(() => {
     setMounted(true);
-    // Give time for Redux Persist to rehydrate
-    const timer = setTimeout(() => {
-      setInitialLoadComplete(true);
-    }, 500); // Small delay to ensure rehydration is complete
-    
-    return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    // Handle authentication checks in background after mount
+    if (mounted && !isLoading) {
+      const hasCompleteAuth = isAuthenticated && user && accessToken;
+      
+      if (!hasCompleteAuth && !hasRedirected) {
+        setHasRedirected(true);
+        // Small delay to prevent flash during navigation
+        setTimeout(() => {
+          redirectToLogin();
+        }, 100);
+      }
+    }
+  }, [mounted, isLoading, isAuthenticated, user, accessToken, hasRedirected, redirectToLogin]);
 
-
-  // Show loading while mounting, loading, or waiting for initial load to complete
-  if (!mounted || isLoading || !initialLoadComplete) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        minHeight: '100vh',
-        fontSize: '1.2em'
-      }}>
-        Checking authentication...
-      </div>
-    );
-  }
-
-  // Check if user has complete auth data
-  const hasCompleteAuth = isAuthenticated && user && accessToken;
-  
-  if (!hasCompleteAuth && !hasRedirected) {
-    setHasRedirected(true);
-    redirectToLogin();
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        minHeight: '100vh',
-        fontSize: '1.2em'
-      }}>
-        Redirecting to login...
-      </div>
-    );
-  }
-
-  if (!hasCompleteAuth) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        minHeight: '100vh',
-        fontSize: '1.2em'
-      }}>
-        Redirecting to login...
-      </div>
-    );
-  }
-
+  // Always render content immediately for seamless navigation
+  // Authentication redirects happen silently in background
   return <>{children}</>;
 }
