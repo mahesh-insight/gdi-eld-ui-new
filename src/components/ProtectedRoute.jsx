@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useAuth } from '../hooks/useAuth';
 
+// Delay for Redux Persist rehydration to complete
+const REHYDRATION_DELAY_MS = 100;
+
 /**
  * Protected route wrapper component
  * Automatically redirects to login if user is not authenticated or token is expired
@@ -19,26 +22,26 @@ export default function ProtectedRoute({ children }) {
 
   useEffect(() => {
     setMounted(true);
-    // Give time for Redux Persist to rehydrate
+    // Give minimal time for Redux Persist to rehydrate
     const timer = setTimeout(() => {
       setInitialLoadComplete(true);
-    }, 500); // Small delay to ensure rehydration is complete
+    }, REHYDRATION_DELAY_MS);
     
     return () => clearTimeout(timer);
   }, []);
 
 
 
-  // Show loading while mounting, loading, or waiting for initial load to complete
+  // Handle authentication check silently in the background
+  // Screen readers get notified via aria-live without visual flash
   if (!mounted || isLoading || !initialLoadComplete) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        minHeight: '100vh',
-        fontSize: '1.2em'
-      }}>
+      <div 
+        role="status" 
+        aria-live="polite" 
+        aria-label="Checking authentication"
+        style={{ position: 'absolute', left: '-10000px', width: '1px', height: '1px', overflow: 'hidden' }}
+      >
         Checking authentication...
       </div>
     );
@@ -51,13 +54,12 @@ export default function ProtectedRoute({ children }) {
     setHasRedirected(true);
     redirectToLogin();
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        minHeight: '100vh',
-        fontSize: '1.2em'
-      }}>
+      <div 
+        role="status" 
+        aria-live="polite" 
+        aria-label="Redirecting to login"
+        style={{ position: 'absolute', left: '-10000px', width: '1px', height: '1px', overflow: 'hidden' }}
+      >
         Redirecting to login...
       </div>
     );
@@ -65,13 +67,12 @@ export default function ProtectedRoute({ children }) {
 
   if (!hasCompleteAuth) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        minHeight: '100vh',
-        fontSize: '1.2em'
-      }}>
+      <div 
+        role="status" 
+        aria-live="polite" 
+        aria-label="Redirecting to login"
+        style={{ position: 'absolute', left: '-10000px', width: '1px', height: '1px', overflow: 'hidden' }}
+      >
         Redirecting to login...
       </div>
     );
