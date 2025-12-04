@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useAuth } from '../hooks/useAuth';
 
+// Delay for Redux Persist rehydration to complete
+const REHYDRATION_DELAY_MS = 100;
+
 /**
  * Protected route wrapper component
  * Automatically redirects to login if user is not authenticated or token is expired
@@ -22,7 +25,7 @@ export default function ProtectedRoute({ children }) {
     // Give minimal time for Redux Persist to rehydrate
     const timer = setTimeout(() => {
       setInitialLoadComplete(true);
-    }, 100); // Reduced delay for faster authentication check
+    }, REHYDRATION_DELAY_MS);
     
     return () => clearTimeout(timer);
   }, []);
@@ -30,9 +33,18 @@ export default function ProtectedRoute({ children }) {
 
 
   // Handle authentication check silently in the background
-  // Only show a blank screen without flashing messages during the check
+  // Screen readers get notified via aria-live without visual flash
   if (!mounted || isLoading || !initialLoadComplete) {
-    return null;
+    return (
+      <div 
+        role="status" 
+        aria-live="polite" 
+        aria-label="Checking authentication"
+        style={{ position: 'absolute', left: '-10000px', width: '1px', height: '1px', overflow: 'hidden' }}
+      >
+        Checking authentication...
+      </div>
+    );
   }
 
   // Check if user has complete auth data
@@ -41,11 +53,29 @@ export default function ProtectedRoute({ children }) {
   if (!hasCompleteAuth && !hasRedirected) {
     setHasRedirected(true);
     redirectToLogin();
-    return null;
+    return (
+      <div 
+        role="status" 
+        aria-live="polite" 
+        aria-label="Redirecting to login"
+        style={{ position: 'absolute', left: '-10000px', width: '1px', height: '1px', overflow: 'hidden' }}
+      >
+        Redirecting to login...
+      </div>
+    );
   }
 
   if (!hasCompleteAuth) {
-    return null;
+    return (
+      <div 
+        role="status" 
+        aria-live="polite" 
+        aria-label="Redirecting to login"
+        style={{ position: 'absolute', left: '-10000px', width: '1px', height: '1px', overflow: 'hidden' }}
+      >
+        Redirecting to login...
+      </div>
+    );
   }
 
   return <>{children}</>;
