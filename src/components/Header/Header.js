@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { useSelector, useDispatch } from 'react-redux';
-import { selectUiProperties, fetchUiProperties } from '@/lib/store/slices/uiSlice';
+import { setProperties } from '@/store/uiSlice';
 import styles from "./Header.module.scss";
 import Link from "next/link";
 import {
@@ -108,7 +108,7 @@ const Header = () => {
   
   // Redux for UI Properties
   const dispatch = useDispatch();
-  const uiProperties = useSelector(selectUiProperties);
+  const uiProperties = useSelector(state => state.ui.properties);
 
   const handleMenuClick = (index) => {
     if (navItems[index].children.length === 0) {
@@ -246,8 +246,13 @@ const Header = () => {
   // Fetch UI Properties when authenticated but not available
   useEffect(() => {
     if (isAuthenticated && !uiProperties) {
-      console.log('🔄 Header: Fetching UI Properties for logout functionality');
-      dispatch(fetchUiProperties());
+      console.log('🔄 Header: UI Properties needed - setting default properties');
+      // For now, set some default properties instead of fetching
+      dispatch(setProperties({ 
+        theme: 'light', 
+        navigation: 'standard',
+        branding: 'default'
+      }));
     }
   }, [isAuthenticated, uiProperties, dispatch]);
 

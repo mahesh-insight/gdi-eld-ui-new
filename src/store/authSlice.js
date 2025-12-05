@@ -1,8 +1,9 @@
+// src/store/authSlice.js
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
   isAuthenticated: false,
-  isLoading: true,
+  isLoading: false,
   user: null,
   loginResponse: null,
   accessToken: null,
@@ -16,55 +17,44 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setAuthenticated: (state, action) => {
-      state.isAuthenticated = action.payload;
+      state.isAuthenticated = action?.payload ?? false;
     },
     setLoading: (state, action) => {
-      state.isLoading = action.payload;
+      state.isLoading = action?.payload ?? true;
     },
     setUser: (state, action) => {
-      state.user = action.payload;
+      state.user = action?.payload ?? null;
     },
     setLoginResponse: (state, action) => {
-      state.loginResponse = action.payload;
+      state.loginResponse = action?.payload ?? null;
     },
     setAccessToken: (state, action) => {
-      state.accessToken = action.payload;
+      state.accessToken = action?.payload ?? null;
     },
     setContextData: (state, action) => {
-      state.contextData = action.payload;
+      state.contextData = action?.payload ?? null;
     },
-    clearAuth: (state) => {
-      state.isAuthenticated = false;
-      state.user = null;
-      state.loginResponse = null;
-      state.accessToken = null;
-      state.contextData = null;
-      state.soldTo = null;
-      state.salesOrg = null;
-      state.isLoading = false;
+    setSoldTo: (state, action) => {
+      state.soldTo = action?.payload ?? null;
+    },
+    setSalesOrg: (state, action) => {
+      state.salesOrg = action?.payload ?? null;
     },
     initializeAuth: (state, action) => {
-      const { isAuthenticated, user, loginResponse, accessToken, contextData, soldTo, salesOrg } = action.payload;
-      state.isAuthenticated = isAuthenticated;
-      state.user = user;
-      state.loginResponse = loginResponse;
-      state.accessToken = accessToken;
-      state.isLoading = false;
-      if (contextData !== undefined) {
-        state.contextData = contextData;
-      }
-      if (soldTo !== undefined) {
-        state.soldTo = soldTo;
-      }
-      if (salesOrg !== undefined) {
-        state.salesOrg = salesOrg;
-      }
-    }
-  },
-  extraReducers: (builder) => {
-    builder.addCase('persist/REHYDRATE', (state, action) => {
-      state.isLoading = false;
-    });
+      return { ...state, ...(action?.payload ?? {}) };
+    },
+    clearAuth: (state) => {
+      return {
+        isAuthenticated: false,
+        isLoading: false,
+        user: null,
+        loginResponse: null,
+        accessToken: null,
+        contextData: null,
+        soldTo: null,
+        salesOrg: null,
+      };
+    },
   },
 });
 
@@ -74,9 +64,11 @@ export const {
   setUser,
   setLoginResponse,
   setAccessToken,
-  clearAuth,
+  setContextData,
+  setSoldTo,
+  setSalesOrg,
   initializeAuth,
-  setContextData
+  clearAuth,
 } = authSlice.actions;
 
 export default authSlice.reducer;

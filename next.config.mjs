@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Enable React strict mode for better error detection
-  reactStrictMode: true,
+  reactStrictMode: true, // Re-enabled with proper deduplication in components
   
   // Show detailed error overlay in development
   devIndicators: {

@@ -7,7 +7,7 @@ function getSoldToIdFromRedux() {
   if (typeof window !== 'undefined') {
     try {
       // Client-side: access Redux store safely
-      const { store } = require('@/lib/store');
+      const { store } = require('@/store/store');
       
       // Check if store exists and has getState method
       if (!store || typeof store.getState !== 'function') {
@@ -20,7 +20,7 @@ function getSoldToIdFromRedux() {
       // Try multiple sources for soldToId
       const soldToId = state?.auth?.user?.soldToId || 
                        state?.auth?.loginResponse?.userProfile?.defaultContext?.[0]?.soldToId ||
-                       state?.user?.loginResponseState?.[0]?.soldToID;
+                       state?.user?.selectedSoldToId;
       
       console.log('🔍 Redux soldToId found:', soldToId);
       return soldToId;
@@ -38,9 +38,10 @@ function getSoldToIdFromRedux() {
  * @param {string} serviceName - Service name from services.js
  * @param {object} payload - Request payload
  */
-export async function callAzureInvoiceAPI(serviceName, payload) {
+export async function callAzureInvoiceAPI(serviceName, payload, serverAccessToken = null) {
   console.log(`🔥 API CALL: ${serviceName.toUpperCase()}`);
   console.log(`🔥 API PAYLOAD:`, payload);
+  console.log(`🔥 SERVER TOKEN PROVIDED:`, !!serverAccessToken);
   
   try {
     // Import axios directly to bypass the request wrapper's data handling
@@ -79,21 +80,22 @@ export async function callAzureInvoiceAPI(serviceName, payload) {
     }
     console.log('🔍 Final URL:', fullUrl);
     
-    // Get access token for authorization
-    let accessToken = null;
-    if (typeof window !== 'undefined') {
+    // Get access token for authorization - prioritize server-provided token
+    let accessToken = serverAccessToken;
+    
+    if (!accessToken && typeof window !== 'undefined') {
       try {
         // First try localStorage (more reliable)
         accessToken = localStorage.getItem("access_token");
         console.log('🔍 localStorage accessToken:', accessToken);
         
-        // Only try Redux if localStorage doesn't have it
+        // Only try storage if localStorage doesn't have it
         if (!accessToken) {
           const { store } = require('@/lib/store');
           if (store && store.getState) {
             const state = store.getState();
             accessToken = state?.auth?.accessToken;
-            console.log('🔍 Redux accessToken:', accessToken);
+            console.log('🔍 Storage accessToken:', accessToken);
           }
         }
       } catch (error) {
@@ -116,16 +118,16 @@ export async function callAzureInvoiceAPI(serviceName, payload) {
         console.log('🔍 Server-side cookie accessToken:', accessToken);
         console.log('🔍 All available cookies:', cookieStore.getAll().map(c => c.name));
         
-        // If no access_token cookie, try to get from Redux persist cookie
+        // If no access_token cookie, try to get from auth persist cookie
         if (!accessToken) {
-          const reduxCookie = cookieStore.get('persist:ccr-auth');
-          if (reduxCookie) {
+          const authCookie = cookieStore.get('persist:ccr-auth');
+          if (authCookie) {
             try {
-              const persistedState = JSON.parse(reduxCookie.value);
+              const persistedState = JSON.parse(authCookie.value);
               accessToken = persistedState.accessToken;
-              console.log('🔍 Access token from Redux persist:', !!accessToken);
+              console.log('🔍 Access token from auth persist:', !!accessToken);
             } catch (e) {
-              console.log('⚠️ Failed to parse Redux persist cookie for token');
+              console.log('⚠️ Failed to parse auth persist cookie for token');
             }
           }
         }
@@ -164,6 +166,28 @@ export async function callAzureInvoiceAPI(serviceName, payload) {
     console.log(`🔍 API RESPONSE TYPE: ${serviceName.toUpperCase()}`, typeof response.data);
     console.log(`🔍 API RESPONSE KEYS: ${serviceName.toUpperCase()}`, Object.keys(response.data || {}));
     
+    // Special detailed logging for invoiceSummary to see selectLists structure
+    if (serviceName.toLowerCase() === 'invoicesummary') {
+      console.log('📋 INVOICE SUMMARY DETAILED RESPONSE:');
+      console.log('📋 Full response:', JSON.stringify(response.data, null, 2));
+      
+      if (response.data?.selectLists) {
+        console.log('📋 selectLists found:', response.data.selectLists);
+        console.log('📋 selectLists is array:', Array.isArray(response.data.selectLists));
+        console.log('📋 selectLists length:', response.data.selectLists.length);
+        
+        response.data.selectLists.forEach((list, index) => {
+          console.log(`📋 selectLists[${index}]:`, list);
+          console.log(`📋 selectLists[${index}].type:`, list.type);
+          console.log(`📋 selectLists[${index}].items:`, list.items);
+          console.log(`📋 selectLists[${index}].items length:`, list.items ? list.items.length : 'no items');
+        });
+      } else {
+        console.log('⚠️ No selectLists found in invoiceSummary response');
+        console.log('⚠️ Available keys:', Object.keys(response.data || {}));
+      }
+    }
+    
     // Return the response data directly (axios response format)
     return response.data;
   } catch (error) {
@@ -182,7 +206,7 @@ export async function callAzureInvoiceAPI(serviceName, payload) {
   }
 }
 
-export async function fetchInvoiceMonths({ soldToId } = {}) {
+export async function fetchInvoiceMonths({ soldToId, accessToken } = {}) {
   // Prioritize passed soldToId, then try Redux store
   const finalSoldToId = soldToId || getSoldToIdFromRedux();
   console.log('🔍 fetchInvoiceMonths - passed soldToId:', soldToId);
@@ -192,10 +216,10 @@ export async function fetchInvoiceMonths({ soldToId } = {}) {
     console.error('❌ fetchInvoiceMonths: No soldToId available');
     return { error: 'No soldToId available' };
   }
-  return callAzureInvoiceAPI("invoiceMonths", [finalSoldToId]);
+  return callAzureInvoiceAPI("invoiceMonths", [finalSoldToId], accessToken);
 }
 
-export async function fetchInvoiceSummary({ soldToId, value, filter } = {}) {
+export async function fetchInvoiceSummary({ soldToId, value, filter, accessToken } = {}) {
   const finalSoldToId = soldToId || getSoldToIdFromRedux();
   if (!finalSoldToId) {
     console.error('❌ fetchInvoiceSummary: No soldToId available');
@@ -212,7 +236,7 @@ export async function fetchInvoiceSummary({ soldToId, value, filter } = {}) {
   return callAzureInvoiceAPI("invoiceSummary", {
     payload: [finalSoldToId],
     urlParam: urlParams
-  });
+  }, accessToken);
 }
 
 export async function fetchInvoiceMonthDetail({
@@ -220,6 +244,7 @@ export async function fetchInvoiceMonthDetail({
   value,
   filter,
   monthlyDifference,
+  accessToken
 } = {}) {
   const finalSoldToId = soldToId || getSoldToIdFromRedux();
   if (!finalSoldToId) {
@@ -241,30 +266,30 @@ export async function fetchInvoiceMonthDetail({
   return callAzureInvoiceAPI(serviceName, {
     payload: [finalSoldToId],
     urlParam: urlParams
-  });
+  }, accessToken);
 }
 
-export async function fetchInvoiceCredits({ soldToId, value, filter } = {}) {
+export async function fetchInvoiceCredits({ soldToId, value, filter, accessToken } = {}) {
   const finalSoldToId = soldToId || getSoldToIdFromRedux();
   if (!finalSoldToId) {
     console.error('❌ fetchInvoiceCredits: No soldToId available');
     return { error: 'No soldToId available' };
   }
   
-  // Build URL params: credits/{value}?creditsonly=true&filter={filter}
-  let urlParams = `${value}?creditsonly=true`;
+  // Build URL params: credits/{value}?filter={filter}
+  let urlParams = value;
   if (filter && filter.length > 0) {
     const filterParam = Array.isArray(filter) ? filter.join(',') : filter;
-    urlParams += `&filter=${encodeURIComponent(filterParam)}`;
+    urlParams = `${value}?filter=${encodeURIComponent(filterParam)}`;
   }
   
   return callAzureInvoiceAPI("invoiceCredits", {
     payload: [finalSoldToId],
     urlParam: urlParams
-  });
+  }, accessToken);
 }
 
-export async function fetchInvoiceTrend({ soldToId, months, filter } = {}) {
+export async function fetchInvoiceTrend({ soldToId, months, filter, accessToken } = {}) {
   const finalSoldToId = soldToId || getSoldToIdFromRedux();
   if (!finalSoldToId) {
     console.error('❌ fetchInvoiceTrend: No soldToId available');
@@ -282,16 +307,16 @@ export async function fetchInvoiceTrend({ soldToId, months, filter } = {}) {
   return callAzureInvoiceAPI("invoiceTrend", {
     payload: [finalSoldToId],
     urlParam: urlParams
-  });
+  }, accessToken);
 }
 
 /**
  * Server-side data fetching for initial Azure Invoice page render
  * Uses generic API calls through centralized request system
  */
-export async function getInitialAzureInvoiceData({ soldToId, locationState }) {
+export async function getInitialAzureInvoiceData({ soldToId, locationState, accessToken }) {
   try {
-    const invoiceMonths = await fetchInvoiceMonths({ soldToId });
+    const invoiceMonths = await fetchInvoiceMonths({ soldToId, accessToken });
 
     if (!invoiceMonths?.length) {
       return {
@@ -314,9 +339,9 @@ export async function getInitialAzureInvoiceData({ soldToId, locationState }) {
 
     // Parallel API calls
     const [summary, credits, trend] = await Promise.allSettled([
-      fetchInvoiceSummary({ soldToId, value: currentMonthValue, filter: filterQuery }),
-      fetchInvoiceCredits({ soldToId, value: currentMonthValue, filter: filterQuery }),
-      fetchInvoiceTrend({ soldToId, months: 6, filter: trendFilter }),
+      fetchInvoiceSummary({ soldToId, value: currentMonthValue, filter: filterQuery, accessToken }),
+      fetchInvoiceCredits({ soldToId, value: currentMonthValue, filter: filterQuery, accessToken }),
+      fetchInvoiceTrend({ soldToId, months: 6, filter: trendFilter, accessToken }),
     ]);
 
     return {

@@ -1,85 +1,106 @@
-"use client";
-
-import { useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+// src/hooks/useAuth.js
+import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { setAuthenticated, setLoading, setUser, setLoginResponse, setAccessToken, clearAuth, initializeAuth } from '../store/authSlice';
+import { 
+  setAuthenticated, 
+  setLoading, 
+  setUser, 
+  setLoginResponse, 
+  setAccessToken,
+  setContextData,
+  setSoldTo,
+  setSalesOrg,
+  clearAuth 
+} from '@/store/authSlice';
 
 /**
- * Custom hook for authentication management
+ * Custom hook for authentication state management
  * Uses Redux for state management, only uses cookies (no localStorage)
  */
-export function useAuth() {
+export const useAuth = () => {
   const dispatch = useDispatch();
-  const { isAuthenticated, isLoading, user, loginResponse, accessToken, contextData, soldTo, salesOrg } = useSelector(state => state.auth);
-  const router = useRouter();
+  const auth = useSelector(state => state.auth);
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (isLoading) {
-        dispatch(setLoading(false));
-      }
-    }, 3000);
+  // Auto-authenticate for development immediately when hook is called
+  // Remove auto-authentication - let the real auth flow handle authentication
 
-    return () => clearTimeout(timeout);
-  }, [isLoading, dispatch]);
-
-  useEffect(() => {
-    if (isLoading && accessToken && isAuthenticated && user) {
-      dispatch(setLoading(false));
-    }
-  }, [isLoading, accessToken, isAuthenticated, user, dispatch]);
-
-  const getCookie = (name) => {
-    if (typeof document === 'undefined') return null;
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-    return null;
+  const login = (loginData) => {
+    dispatch(setAuthenticated(true));
+    dispatch(setUser(loginData.user));
+    dispatch(setLoginResponse(loginData));
+    dispatch(setAccessToken(loginData.accessToken));
+    dispatch(setLoading(false));
   };
 
-  const clearAuthData = () => {
-    // Clear session cookie
-    document.cookie = 'session_id=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    
+  const logout = () => {
     // Clear Redux state (this clears all sensitive data from memory)
     dispatch(clearAuth());
   };
 
-  const checkAuth = useCallback(() => {
-    if (typeof window !== 'undefined' && (window.location.pathname === '/auth/callback' || window.location.pathname === '/auth/processing')) {
-      return true;
-    }
+  const updateUser = (userData) => {
+    dispatch(setUser(userData));
+  };
 
-    const isValid = accessToken && isAuthenticated && user;
-    return isValid;
-  }, [accessToken, isAuthenticated, user]);
+  const setAuthLoading = (loading) => {
+    dispatch(setLoading(loading));
+  };
+
+  const updateContextData = (contextData) => {
+    dispatch(setContextData(contextData));
+  };
+
+  const updateSoldTo = (soldTo) => {
+    dispatch(setSoldTo(soldTo));
+  };
+
+  const updateSalesOrg = (salesOrg) => {
+    dispatch(setSalesOrg(salesOrg));
+  };
 
   const redirectToLogin = () => {
-    clearAuthData();
-    router.push('/');
-  };
+    try {
+      if (typeof dispatch !== 'function') {
+        console.error('🔧 Auth: Dispatch is not a function', typeof dispatch);
+        return;
+      }
 
-  const logout = () => {
-    clearAuthData();
-    router.push('/');
+      // Clear any existing auth state and redirect to home for authentication
+      console.log('🔧 Auth: Clearing auth state and redirecting to login');
+      dispatch(setAuthenticated(false));
+      dispatch(setUser(null));
+      dispatch(setAccessToken(null));
+      dispatch(setLoading(false));
+      
+      // Redirect to home page for authentication
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      }
+    } catch (error) {
+      console.error('🔧 Auth: Error in redirectToLogin:', error);
+    }
   };
-
-  // Remove useEffect that was causing multiple auth checks
-  // Let components call checkAuth when needed
 
   return {
-    isAuthenticated,
-    isLoading,
-    user,
-    loginResponse,
-    accessToken,
-    contextData,
-    soldTo,
-    salesOrg,
-    checkAuth,
-    redirectToLogin,
+    // State
+    isAuthenticated: auth.isAuthenticated,
+    isLoading: auth.isLoading,
+    user: auth.user,
+    loginResponse: auth.loginResponse,
+    accessToken: auth.accessToken,
+    contextData: auth.contextData,
+    soldTo: auth.soldTo,
+    salesOrg: auth.salesOrg,
+    
+    // Actions
+    login,
     logout,
-    clearAuth: clearAuthData
+    updateUser,
+    setAuthLoading,
+    updateContextData,
+    updateSoldTo,
+    updateSalesOrg,
+    redirectToLogin
   };
-}
+};
+
+export default useAuth;

@@ -11,6 +11,216 @@ import { CacheKeys, CacheTTL } from '@/lib/cache/cacheKeys';
  * This runs on the server and passes data to client components
  * @param {string} clientSoldToId - Optional soldToId from client-side auth
  */
+/**
+ * Fetch only invoice months data
+ */
+export async function fetchInvoiceMonthsServer(clientSoldToId = null) {
+  // Similar auth logic but return only months
+  try {
+    console.log('🚀 Server Action: Fetching Invoice Months');
+    const cookieStore = await cookies();
+    
+    // Debug all available cookies
+    const allCookies = cookieStore.getAll();
+    console.log('🔍 All available cookies:', allCookies.map(c => ({ name: c.name, hasValue: !!c.value })));
+    
+    const accessTokenCookie = cookieStore.get('access_token');
+    const userContextCookie = cookieStore.get('user_context');
+    
+    console.log('🔍 Server-side cookie debug:', {
+      accessTokenCookie: accessTokenCookie ? 'found' : 'not found',
+      userContextCookie: userContextCookie ? 'found' : 'not found',
+      clientSoldToId
+    });
+    
+    let soldToId = clientSoldToId;
+    let accessToken = null;
+    
+    // Try to get from cookies first, then fall back to client params
+    if (accessTokenCookie) {
+      accessToken = accessTokenCookie.value;
+      console.log('✅ Access token found in cookies');
+    }
+    
+    if (userContextCookie) {
+      try {
+        const userContext = JSON.parse(userContextCookie.value);
+        soldToId = userContext.soldToId || clientSoldToId;
+        console.log('✅ User context found in cookies, soldToId:', soldToId);
+      } catch (parseError) {
+        console.error('❌ Failed to parse user context cookie:', parseError);
+      }
+    }
+    
+    // Final validation
+    if (!soldToId) {
+      console.error('❌ No soldToId available from cookies or client');
+      return { error: 'Authentication required for months data - no soldToId', data: null };
+    }
+    
+    if (!accessToken) {
+      console.error('❌ No access token available from cookies');
+      return { error: 'Authentication required for months data - no access token', data: null };
+    }
+    
+    console.log('🔍 Using auth data:', { soldToId, hasAccessToken: !!accessToken });
+    
+    const data = await getInitialAzureInvoiceData({ soldToId, accessToken });
+    console.log('🔍 getInitialAzureInvoiceData returned:', JSON.stringify(data, null, 2));
+    console.log('🔍 invoiceMonths extracted:', data?.invoiceMonths);
+    return { 
+      error: null, 
+      data: { 
+        invoiceMonths: data?.invoiceMonths || [] 
+      } 
+    };
+  } catch (error) {
+    console.error('❌ fetchInvoiceMonthsServer error:', error);
+    return { 
+      error: error?.message || 'Failed to fetch invoice months', 
+      data: null 
+    };
+  }
+}
+
+/**
+ * Fetch summary data for selected month
+ */
+export async function fetchSummaryDataServer(clientSoldToId = null, selectedMonth = null) {
+  try {
+    console.log('🚀 Server Action: Fetching Summary Data for month:', selectedMonth);
+    const cookieStore = await cookies();
+    const accessTokenCookie = cookieStore.get('access_token');
+    const userContextCookie = cookieStore.get('user_context');
+    
+    let soldToId = clientSoldToId;
+    let accessToken = null;
+    
+    // Get access token from cookies
+    if (accessTokenCookie) {
+      accessToken = accessTokenCookie.value;
+    }
+    
+    // Get soldToId from cookies if not provided by client
+    if (!soldToId && userContextCookie) {
+      try {
+        const userContext = JSON.parse(userContextCookie.value);
+        soldToId = userContext.soldToId;
+      } catch (parseError) {
+        console.error('❌ Failed to parse user context for summary:', parseError);
+      }
+    }
+    
+    if (!soldToId || !accessToken) {
+      return { error: 'Authentication required for summary data', data: null };
+    }
+    
+    const data = await getInitialAzureInvoiceData({ soldToId, accessToken, locationState: { currentMonthObject: selectedMonth } });
+    return { 
+      error: null, 
+      data: data?.summary || null
+    };
+  } catch (error) {
+    console.error('❌ fetchSummaryDataServer error:', error);
+    return { 
+      error: error?.message || 'Failed to fetch summary data', 
+      data: null 
+    };
+  }
+}
+
+/**
+ * Fetch credits data for selected month
+ */
+export async function fetchCreditsDataServer(clientSoldToId = null, selectedMonth = null) {
+  try {
+    console.log('🚀 Server Action: Fetching Credits Data for month:', selectedMonth);
+    const cookieStore = await cookies();
+    const accessTokenCookie = cookieStore.get('access_token');
+    const userContextCookie = cookieStore.get('user_context');
+    
+    let soldToId = clientSoldToId;
+    let accessToken = null;
+    
+    // Get access token from cookies
+    if (accessTokenCookie) {
+      accessToken = accessTokenCookie.value;
+    }
+    
+    // Get soldToId from cookies if not provided by client
+    if (!soldToId && userContextCookie) {
+      try {
+        const userContext = JSON.parse(userContextCookie.value);
+        soldToId = userContext.soldToId;
+      } catch (parseError) {
+        console.error('❌ Failed to parse user context for credits:', parseError);
+      }
+    }
+    
+    if (!soldToId || !accessToken) {
+      return { error: 'Authentication required for credits data', data: null };
+    }
+    
+    const data = await getInitialAzureInvoiceData({ soldToId, accessToken, locationState: { currentMonthObject: selectedMonth } });
+    return { 
+      error: null, 
+      data: data?.credits || null
+    };
+  } catch (error) {
+    console.error('❌ fetchCreditsDataServer error:', error);
+    return { 
+      error: error?.message || 'Failed to fetch credits data', 
+      data: null 
+    };
+  }
+}
+
+/**
+ * Fetch trends data for selected month
+ */
+export async function fetchTrendsDataServer(clientSoldToId = null, selectedMonth = null) {
+  try {
+    console.log('🚀 Server Action: Fetching Trends Data for month:', selectedMonth);
+    const cookieStore = await cookies();
+    const accessTokenCookie = cookieStore.get('access_token');
+    const userContextCookie = cookieStore.get('user_context');
+    
+    let soldToId = clientSoldToId;
+    let accessToken = null;
+    
+    // Get access token from cookies
+    if (accessTokenCookie) {
+      accessToken = accessTokenCookie.value;
+    }
+    
+    // Get soldToId from cookies if not provided by client
+    if (!soldToId && userContextCookie) {
+      try {
+        const userContext = JSON.parse(userContextCookie.value);
+        soldToId = userContext.soldToId;
+      } catch (parseError) {
+        console.error('❌ Failed to parse user context for trends:', parseError);
+      }
+    }
+    
+    if (!soldToId || !accessToken) {
+      return { error: 'Authentication required for trends data', data: null };
+    }
+    
+    const data = await getInitialAzureInvoiceData({ soldToId, accessToken, locationState: { currentMonthObject: selectedMonth } });
+    return { 
+      error: null, 
+      data: data?.trend || null
+    };
+  } catch (error) {
+    console.error('❌ fetchTrendsDataServer error:', error);
+    return { 
+      error: error?.message || 'Failed to fetch trends data', 
+      data: null 
+    };
+  }
+}
+
 export async function fetchAzureInvoiceDataServer(clientSoldToId = null) {
   const startTime = Date.now();
   
@@ -218,6 +428,129 @@ export async function checkAuthenticationServer() {
       debug: {
         errorMessage: error.message,
         checkTime: new Date().toISOString()
+      }
+    };
+  }
+}
+
+/**
+ * Server action to fetch Azure Invoice data for a specific selected month
+ * @param {string} clientSoldToId - soldToId from client-side auth
+ * @param {object} selectedMonth - The selected month object {text, value, date}
+ */
+export async function fetchAzureInvoiceDataForMonth(clientSoldToId, selectedMonth) {
+  const startTime = Date.now();
+  
+  try {
+    console.log('🚀 Server Action: Fetching Azure Invoice data for selected month:', selectedMonth);
+    
+    // OPTIMIZATION: Fast auth check first
+    const cookieStore = await cookies();
+    
+    const accessTokenCookie = cookieStore.get('access_token');
+    const userContextCookie = cookieStore.get('user_context');
+    
+    let soldToId = null;
+    let accessToken = null;
+    
+    // OPTIMIZATION: Try regular cookies first (fastest path)  
+    if (accessTokenCookie && userContextCookie) {
+      try {
+        const userContext = JSON.parse(userContextCookie.value);
+        soldToId = userContext.soldToId;
+        accessToken = accessTokenCookie.value;
+        console.log('⚡ Server Action: Fast auth via regular cookies, soldToId:', soldToId);
+      } catch (error) {
+        console.log('⚠️ Server Action: Failed to parse user context cookie');
+      }
+    }
+    
+    // OPTIMIZATION: Only check Redux cookie if regular cookies failed
+    if (!soldToId) {
+      const reduxPersistCookie = cookieStore.get('persist:ccr-auth');
+      if (reduxPersistCookie) {
+        try {
+          const persistedState = JSON.parse(reduxPersistCookie.value);
+          if (persistedState.isAuthenticated && persistedState.loginResponse) {
+            soldToId = persistedState.loginResponse?.userProfile?.defaultContext?.[0]?.soldToId;
+            if (!accessToken && persistedState.accessToken) {
+              accessToken = persistedState.accessToken;
+            }
+            console.log('⚡ Server Action: Fallback auth via Redux persist, soldToId:', soldToId);
+          }
+        } catch (error) {
+          console.log('⚠️ Server Action: Failed to parse Redux persist cookie');
+        }
+      }
+    }
+    
+    // Use client-provided soldToId if available (from Redux store)
+    if (!soldToId && clientSoldToId) {
+      soldToId = clientSoldToId;
+      console.log('✅ Server Action: Using Redux store soldToId:', soldToId);
+    }
+    
+    // If still no authentication found, return error
+    if (!soldToId) {
+      console.log('❌ Server Action: No authentication found - user must be properly logged in');
+      return {
+        error: 'Authentication required - please ensure you are logged in with valid credentials',
+        data: null
+      };
+    }
+    
+    if (!selectedMonth || !selectedMonth.value) {
+      return {
+        error: 'Selected month is required',
+        data: null
+      };
+    }
+    
+    // Import the specific API functions we need
+    const { fetchInvoiceSummary, fetchInvoiceCredits, fetchInvoiceTrend } = await import('@/lib/azureInvoiceApi');
+    
+    const currentMonthValue = selectedMonth.value;
+    const filterQuery = [];
+    const trendFilter = "";
+    
+    console.log(`🔄 Server Action: Fetching data for month ${currentMonthValue}`);
+    
+    // Parallel API calls for the selected month
+    const [summary, credits, trend] = await Promise.allSettled([
+      fetchInvoiceSummary({ soldToId, value: currentMonthValue, filter: filterQuery }),
+      fetchInvoiceCredits({ soldToId, value: currentMonthValue, filter: filterQuery }),
+      fetchInvoiceTrend({ soldToId, months: 6, filter: trendFilter }),
+    ]);
+    
+    const totalTime = Date.now() - startTime;
+    console.log(`✅ Server Action: Month-specific data fetched in ${totalTime}ms`);
+    
+    return {
+      error: null,
+      data: {
+        currentMonthObject: selectedMonth,
+        usageMonth: currentMonthValue,
+        summary: summary.status === 'fulfilled' ? summary.value : null,
+        credits: credits.status === 'fulfilled' ? credits.value : null,
+        trend: trend.status === 'fulfilled' ? trend.value : null,
+      },
+      debug: {
+        soldToId,
+        selectedMonth,
+        fetchTime: new Date().toISOString(),
+        totalTime: `${totalTime}ms`,
+      }
+    };
+    
+  } catch (error) {
+    console.error('❌ Server Action: Error fetching month-specific data:', error);
+    return {
+      error: error.message,
+      data: null,
+      debug: {
+        errorMessage: error.message,
+        errorStack: error.stack,
+        fetchTime: new Date().toISOString()
       }
     };
   }

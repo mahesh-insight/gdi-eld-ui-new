@@ -39,17 +39,6 @@ export default function Loading() {
         Fetching your latest invoice data and analytics...
       </p>
       
-      <div style={{
-        marginTop: '30px',
-        padding: '15px 25px',
-        backgroundColor: '#f8f9fa',
-        border: '1px solid #e9ecef',
-        borderRadius: '8px',
-        fontSize: '14px',
-        color: '#6c757d'
-      }}>
-        ⚡ Optimized with server-side caching
-      </div>
       
       <style dangerouslySetInnerHTML={{
         __html: `

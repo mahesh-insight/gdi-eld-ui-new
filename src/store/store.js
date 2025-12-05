@@ -1,70 +1,52 @@
+// src/store/store.js
 import { configureStore } from '@reduxjs/toolkit';
 import { persistStore, persistReducer } from 'redux-persist';
-import createWebStorage from 'redux-persist/lib/storage/createWebStorage';
-import authReducer from './authSlice';
-import uiReducer from '../lib/store/slices/uiSlice';
-import azureInvoiceReducer from '../lib/store/slices/azureInvoiceSlice';
-import pageReducer from '../lib/store/slices/pageSlice';
-import userReducer from '../lib/store/slices/userSlice';
-import gridReducer from '../lib/store/slices/gridSlice';
+import storage from 'redux-persist/lib/storage';
+import { combineReducers } from '@reduxjs/toolkit';
 
-// Create a noop storage for SSR compatibility
-const createNoopStorage = () => {
-  return {
-    getItem(_key) {
-      return Promise.resolve(null);
-    },
-    setItem(_key, value) {
-      return Promise.resolve(value);
-    },
-    removeItem(_key) {
-      return Promise.resolve();
-    },
-  };
-};
+// Import slices
+import authSlice from './authSlice';
+import uiSlice from './uiSlice';
+import azureInvoiceSlice from './azureInvoiceSlice';
+import pageSlice from './pageSlice';
+import userSlice from './userSlice';
+import gridSlice from './gridSlice';
 
-// Use localStorage in browser, noop storage in SSR
-const storage = typeof window !== 'undefined' 
-  ? createWebStorage('local') 
-  : createNoopStorage();
-
-const persistConfig = {
+// Persist configuration for auth slice
+const authPersistConfig = {
   key: 'ccr-auth',
   storage,
-  whitelist: ['isAuthenticated', 'user', 'loginResponse', 'accessToken'], // Only persist specific fields
+  whitelist: ['isAuthenticated', 'user', 'loginResponse', 'accessToken', 'contextData', 'soldTo', 'salesOrg'], // Only persist these fields
 };
 
-const persistedAuthReducer = persistReducer(persistConfig, authReducer);
+// Root reducer combining all slices
+const rootReducer = combineReducers({
+  auth: persistReducer(authPersistConfig, authSlice),
+  ui: uiSlice,
+  azureInvoice: azureInvoiceSlice,
+  page: pageSlice,
+  user: userSlice,
+  grid: gridSlice,
+});
 
+// Configure the Redux store
 export const store = configureStore({
-  reducer: {
-    auth: persistedAuthReducer,
-    ui: uiReducer,
-    azureInvoice: azureInvoiceReducer,
-    page: pageReducer,
-    user: userReducer,
-    grid: gridReducer,
-  },
+  reducer: rootReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        ignoredActions: [
-          'persist/PERSIST',
-          'persist/REHYDRATE',
-          'persist/REGISTER',
-          'persist/PURGE',
-          'persist/FLUSH',
-          'persist/PAUSE',
-          'auth/setLoginResponse',
-          'auth/setContextData',
-          'auth/initializeAuth',
-        ],
-        ignoredPaths: [
-          'auth.loginResponse',
-          'auth.contextData',
-        ],
+        // Ignore these action types for serializable check
+        ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
+        // Ignore these field paths for serializable check (Date objects)
+        ignoredActionPaths: ['payload.loginResponse.userProfile.properties'],
+        ignoredPaths: ['auth.loginResponse.userProfile.properties'],
       },
     }),
+  devTools: process.env.NODE_ENV !== 'production',
 });
 
+// Create persistor for the store
 export const persistor = persistStore(store);
+
+// Export store for use in components
+export default store;

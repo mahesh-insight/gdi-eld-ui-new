@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import ProtectedRoute from '../../components/ProtectedRoute';
 
 export default function DashboardClient() {

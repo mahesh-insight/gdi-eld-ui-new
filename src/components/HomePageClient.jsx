@@ -3,12 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSelector, useDispatch } from 'react-redux';
-import { initializeAuth } from '../store/authSlice';
 import { 
-  fetchUiProperties, 
-  selectUiProperties, 
-  selectUiCacheValid 
-} from '../lib/store/slices/uiSlice';
+  initializeAuth
+} from '../store/authSlice';
+import { setProperties } from '../store/uiSlice';
 
 export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, salesOrg }) {
   console.log('🔍 DEBUG - HomePageClient props:', { 
@@ -23,8 +21,8 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
   const dispatch = useDispatch();
   const authState = useSelector(state => state.auth);
   const { isAuthenticated, user, accessToken, _persist } = authState;
-  const uiProperties = useSelector(selectUiProperties);
-  const uiCacheValid = useSelector(selectUiCacheValid);
+  const uiProperties = useSelector(state => state.ui.properties);
+  const uiCacheValid = useSelector(state => state.ui.loading === false);
   
   // Check if Redux store has been rehydrated
   const isRehydrated = _persist?.rehydrated !== false;
@@ -80,23 +78,9 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
     try {
       const { default: request } = await import('../lib/api/request');
       
-      // Development mode: simulate successful authentication
+      // Real authentication only - no mock data
       let response;
-      if (process.env.NODE_ENV === 'development' && code.startsWith('test-')) {
-        console.log('🔧 DEV MODE: Simulating successful authentication');
-        response = {
-          userProfile: {
-            defaultContext: [{
-              soldToId: 'Insight|SAP|0011082409|2400'
-            }]
-          },
-          tokens: {
-            bearerToken: 'dev-bearer-token-12345'
-          },
-          persona: 'Customer',
-          firstName: 'Test User'
-        };
-      } else {
+      try {
         response = await request.post('loginAuthCode', {
           data: code,
           params: { 
@@ -104,6 +88,12 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
             salesorg: finalSalesOrg 
           }
         });
+      } catch (authError) {
+        console.error('❌ Authentication API failed:', authError);
+        setProcessingMessage(`Authentication failed: ${authError?.response?.status === 403 ? 'Invalid credentials or missing parameters' : authError.message || 'Unknown error'}`);
+        sessionStorage.removeItem(hasProcessedKey);
+        setIsProcessing(false);
+        return;
       }
       
       if (response?.userProfile?.defaultContext?.[0] && response?.tokens?.bearerToken) {
@@ -111,9 +101,18 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
         sessionStorage.removeItem(hasProcessedKey);
         
         const bearerToken = response.tokens.bearerToken;
-        const userProfile = response.userProfile;
-        const defaultContext = userProfile.defaultContext?.[0];
+        const userProfile = response.userProfile || {};
+        const defaultContext = userProfile.defaultContext?.[0] || {};
         const soldToId = defaultContext?.soldToId;
+        
+        console.log('🔍 DEBUG - Auth response details:', {
+          hasBearerToken: !!bearerToken,
+          hasUserProfile: !!userProfile,
+          hasDefaultContext: !!defaultContext,
+          soldToId: soldToId,
+          defaultContextData: defaultContext,
+          userProfileKeys: userProfile ? Object.keys(userProfile) : 'no userProfile'
+        });
         
         setProcessingMessage('Fetching user context...');
         
@@ -173,18 +172,20 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
         console.log('✅ Authentication cookies set for server-side access');
 
         // Final dispatch to Redux store with complete auth data including context
+        // Use safe property access to prevent undefined errors
+        const safeResponse = response || {};
         dispatch(initializeAuth({
           isAuthenticated: true,
           user: {
-            soldToId: soldToId,
-            persona: response.persona,
-            firstName: response.firstName
+            soldToId: soldToId || null,
+            persona: safeResponse.persona || null,
+            firstName: safeResponse.firstName || null
           },
-          loginResponse: response,
-          accessToken: bearerToken,
-          contextData: contextResponse,
-          soldTo: finalSoldTo,
-          salesOrg: finalSalesOrg
+          loginResponse: safeResponse,
+          accessToken: bearerToken || null,
+          contextData: contextResponse || null,
+          soldTo: finalSoldTo || null,
+          salesOrg: finalSalesOrg || null
         }));
         
         setProcessingMessage('Authentication successful! Redirecting to dashboard...');
@@ -204,15 +205,57 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
     }
   };
 
-  // Handle redirect when already authenticated (only after rehydration)
+  // Handle redirect when already authenticated (STRICT validation)
   useEffect(() => {
-    if (isRehydrated && isAuthenticated && user && accessToken) {
-      console.log('✅ Already authenticated, redirecting to dashboard');
-      console.log('🔍 DEBUG - Auth state:', { isAuthenticated, user: !!user, accessToken: !!accessToken });
-      console.log('🔍 DEBUG - localStorage auth data:', localStorage.getItem('persist:ccr-auth'));
-      router.replace('/dashboard');
+    // Only redirect if we have complete, valid authentication AND an auth code is not being processed
+    if (isRehydrated && !authCode) {
+      // Strict validation: ALL criteria must be met for valid authentication
+      const hasSoldToId = user?.soldToId || authState?.loginResponse?.userProfile?.defaultContext?.[0]?.soldToId;
+      const hasValidToken = accessToken && 
+                           accessToken !== 'dev-bearer-token-12345' && 
+                           accessToken !== 'null' && 
+                           accessToken !== 'undefined' &&
+                           accessToken.length > 10; // Ensure it's a real token
+      const hasValidUser = user && user.soldToId && user.soldToId !== 'test-soldto';
+      const hasRealAuth = isAuthenticated && hasSoldToId && hasValidToken && hasValidUser;
+      
+      console.log('🔍 DEBUG - Strict auth validation:', {
+        isRehydrated,
+        isAuthenticated, 
+        hasUser: !!user, 
+        hasAccessToken: !!accessToken,
+        hasSoldToId,
+        hasValidToken,
+        hasValidUser,
+        hasRealAuth,
+        authCode: !!authCode,
+        userSoldToId: user?.soldToId,
+        accessTokenLength: accessToken?.length
+      });
+      
+      if (hasRealAuth) {
+        console.log('✅ Valid authentication confirmed, redirecting to dashboard');
+        router.replace('/dashboard');
+      } else if (isAuthenticated || user || accessToken) {
+        // We have some auth data but it's incomplete/invalid - clear it
+        console.log('⚠️ Incomplete/invalid authentication state detected - clearing all auth data');
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('persist:ccr-auth');
+          document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+          document.cookie = 'user_context=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        }
+        dispatch(initializeAuth({
+          isAuthenticated: false,
+          user: null,
+          loginResponse: null,
+          accessToken: null,
+          contextData: null,
+          soldTo: null,
+          salesOrg: null
+        }));
+      }
     }
-  }, [isRehydrated, isAuthenticated, user, accessToken, router]);
+  }, [isRehydrated, isAuthenticated, user, accessToken, authCode, router, authState, dispatch]);
 
   // Handle auth code processing (separate to prevent double calls)
   useEffect(() => {
@@ -253,7 +296,7 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
   useEffect(() => {
     if (isAuthenticated && !uiProperties) {
       console.log('🎨 Fetching UI properties for authenticated user...');
-      dispatch(fetchUiProperties());
+      dispatch(setProperties({ theme: 'light', navigation: 'standard' }));
     }
   }, [isAuthenticated, dispatch]); // Simplified dependencies to prevent excessive calls
 
