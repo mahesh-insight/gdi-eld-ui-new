@@ -41,7 +41,16 @@ const authSlice = createSlice({
       state.salesOrg = action?.payload ?? null;
     },
     initializeAuth: (state, action) => {
-      return { ...state, ...(action?.payload ?? {}) };
+      // Safely handle payload with fallback
+      const payload = action?.payload;
+      
+      // If no payload or payload is not an object, return current state
+      if (!payload || typeof payload !== 'object') {
+        console.warn('⚠️ initializeAuth called with invalid payload:', payload);
+        return state;
+      }
+      
+      return { ...state, ...payload };
     },
     clearAuth: (state) => {
       return {

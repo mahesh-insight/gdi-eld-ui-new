@@ -26,19 +26,22 @@ export default function AzureInvoicePage() {
   const [mode, setMode] = useState('loading');
   const [storeReady, setStoreReady] = useState(false);
   
-  // Access Redux store safely
+  // Access Redux store safely with error handling
   let cacheMetadata = null;
   let cachedData = {};
   
   try {
     const store = useStore();
-    if (store) {
+    if (store && typeof store.getState === 'function') {
       const state = store.getState();
-      cacheMetadata = state?.azureInvoice?.cacheMetadata || null;
-      cachedData = state?.azureInvoice || {};
+      if (state && typeof state === 'object') {
+        cacheMetadata = state?.azureInvoice?.cacheMetadata || null;
+        cachedData = state?.azureInvoice || {};
+      }
     }
   } catch (error) {
-    console.warn('Redux store not ready yet:', error);
+    console.warn('⚠️ Redux store access error:', error);
+    // Continue with empty cache data
   }
   
   useEffect(() => {
@@ -146,7 +149,7 @@ export default function AzureInvoicePage() {
     }
     
     loadData();
-  }, [storeReady, cacheMetadata, cachedData]);
+  }, [storeReady]);
   
   if (loading) {
     return (
