@@ -161,6 +161,7 @@ import {
   selectMonthDataCache
 } from '../../store/azureInvoiceSlice';
 import { useHasRehydrated } from '@/hooks/useHasRehydrated';
+import { DropDownList, MultiSelect } from '@progress/kendo-react-dropdowns';
 
 export default function AzureInvoiceClientContent({
   mode = 'with-data',
@@ -353,9 +354,9 @@ export default function AzureInvoiceClientContent({
   const [currentChartIndex, setCurrentChartIndex] = useState(0);
   const [trendingChartType, setTrendingChartType] = useState('column');
   const [topExpensiveChartType, setTopExpensiveChartType] = useState('bar');
-  const [productCategoryFilter, setProductCategoryFilter] = useState({ text: 'All', value: 'All' });
-  const [productNameFilter, setProductNameFilter] = useState({ text: 'All', value: 'All' });
-  const [skuNameFilter, setSkuNameFilter] = useState({ text: 'All', value: 'All' });
+  const [productCategoryFilter, setProductCategoryFilter] = useState([]);
+  const [productNameFilter, setProductNameFilter] = useState([]);
+  const [skuNameFilter, setSkuNameFilter] = useState([]);
   
   // Processed data state - moved from render function to proper state management
   const [invoiceMonths, setInvoiceMonthsLocal] = useState(() => {
@@ -1027,18 +1028,7 @@ export default function AzureInvoiceClientContent({
 
   // Set default filter values when selectLists are available
   useEffect(() => {
-    if (selectListOptions.productCategory?.length > 1 && 
-        (!productCategoryFilter || productCategoryFilter.value !== 'All')) {
-      setProductCategoryFilter(selectListOptions.productCategory[0]);
-    }
-    if (selectListOptions.productName?.length > 1 && 
-        (!productNameFilter || productNameFilter.value !== 'All')) {
-      setProductNameFilter(selectListOptions.productName[0]);
-    }
-    if (selectListOptions.skuName?.length > 1 && 
-        (!skuNameFilter || skuNameFilter.value !== 'All')) {
-      setSkuNameFilter(selectListOptions.skuName[0]);
-    }
+    // All filters are now arrays for MultiSelect, so no default single value needed
   }, [selectListOptions]);
 
 
@@ -1616,21 +1606,17 @@ export default function AzureInvoiceClientContent({
         <div>         
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
             <label style={{ fontWeight: '600', color: '#495057', minWidth: '100px' }}>Invoice Month:</label>
-            <select
-              value={selectedMonth?.value || (invoiceMonths.length > 0 ? invoiceMonths[0].value : '')}
+            <DropDownList
+              data={invoiceMonths}
+              textField="text"
+              dataItemKey="value"
+              value={selectedMonth || (invoiceMonths.length > 0 ? invoiceMonths[0] : null)}
               onChange={(e) => {
-                const selected = invoiceMonths.find(m => m.value === e.target.value);
-                handleMonthChange({ target: { value: selected } });
+                handleMonthChange({ target: { value: e.target.value } });
               }}
-              style={{ width: '200px', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+              style={{ width: '200px' }}
               disabled={monthDataLoading}
-            >
-              {invoiceMonths.map(month => (
-                <option key={month.value} value={month.value}>
-                  {month.text}
-                </option>
-              ))}
-            </select>
+            />
 
             {monthDataLoading && (
               <span style={{ color: '#6c757d', fontSize: '14px' }}>
@@ -1643,58 +1629,47 @@ export default function AzureInvoiceClientContent({
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <label style={{ fontWeight: '500', color: '#495057', fontSize: '14px' }}>Category:</label>
-              <select
-                value={productCategoryFilter?.value || 'All'}
+              <MultiSelect
+                data={selectListOptions.productCategory.filter(item => item.value !== 'All')}
+                textField="text"
+                dataItemKey="value"
+                value={productCategoryFilter}
+                placeholder="All"
                 onChange={(e) => {
-                  const selected = selectListOptions.productCategory.find(item => item.value === e.target.value);
-                  setProductCategoryFilter(selected);
+                  setProductCategoryFilter(e.target.value);
                 }}
-                style={{ width: '150px', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-              >
-                {(() => {
-                  return selectListOptions.productCategory.map(item => (
-                    <option key={item.value} value={item.value}>
-                      {item.text}
-                    </option>
-                  ));
-                })()}
-              </select>
+                style={{ width: '200px' }}
+              />
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <label style={{ fontWeight: '500', color: '#495057', fontSize: '14px' }}>Product:</label>
-              <select
-                value={productNameFilter?.value || 'All'}
+              <MultiSelect
+                data={selectListOptions.productName.filter(item => item.value !== 'All')}
+                textField="text"
+                dataItemKey="value"
+                value={productNameFilter}
+                placeholder="All"
                 onChange={(e) => {
-                  const selected = selectListOptions.productName.find(item => item.value === e.target.value);
-                  setProductNameFilter(selected);
+                  setProductNameFilter(e.target.value);
                 }}
-                style={{ width: '150px', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-              >
-                {selectListOptions.productName.map(item => (
-                  <option key={item.value} value={item.value}>
-                    {item.text}
-                  </option>
-                ))}
-              </select>
+                style={{ width: '200px' }}
+              />
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <label style={{ fontWeight: '500', color: '#495057', fontSize: '14px' }}>SKU:</label>
-              <select
-                value={skuNameFilter?.value || 'All'}
+              <MultiSelect
+                data={selectListOptions.skuName.filter(item => item.value !== 'All')}
+                textField="text"
+                dataItemKey="value"
+                value={skuNameFilter}
+                placeholder="All"
                 onChange={(e) => {
-                  const selected = selectListOptions.skuName.find(item => item.value === e.target.value);
-                  setSkuNameFilter(selected);
+                  setSkuNameFilter(e.target.value);
                 }}
-                style={{ width: '150px', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-              >
-                {selectListOptions.skuName.map(item => (
-                  <option key={item.value} value={item.value}>
-                    {item.text}
-                  </option>
-                ))}
-              </select>
+                style={{ width: '200px' }}
+              />
             </div>
           </div>
         </div>
