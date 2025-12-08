@@ -243,6 +243,14 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
         // Final dispatch to Redux store with complete auth data including context
         // Use safe property access to prevent undefined errors
         const safeResponse = response || {};
+        
+        // Extract only serializable data from contextResponse (avoid AxiosHeaders)
+        const serializableContextData = contextResponse ? {
+          data: contextResponse.data,
+          status: contextResponse.status,
+          statusText: contextResponse.statusText
+        } : null;
+        
         const authPayload = {
           isAuthenticated: true,
           user: {
@@ -252,7 +260,7 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
           },
           loginResponse: safeResponse,
           accessToken: bearerToken || null,
-          contextData: contextResponse || null,
+          contextData: serializableContextData,
           soldTo: finalSoldTo || null,
           salesOrg: finalSalesOrg || null
         };

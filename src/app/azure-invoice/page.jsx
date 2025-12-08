@@ -12,12 +12,11 @@ import {
 } from './actions';
 
 /**
- * CLIENT-SIDE CACHE-FIRST ARCHITECTURE:
- * 1. First load: Check Redux cache in localStorage
- * 2. If cache valid (< 5 min old): Use cached data INSTANTLY
- * 3. If no cache: Fetch from server and cache results
- * 4. Subsequent visits: INSTANT load from cache
- * 5. Zero server calls when cache is valid
+ * OPTIMIZED CACHE-FIRST WITH INSTANT UI:
+ * 1. Show UI immediately with loading state
+ * 2. Check Redux cache first (instant if cached)
+ * 3. Fetch from server only if cache invalid
+ * 4. No blocking - user sees page right away
  */
 
 export default function AzureInvoicePage() {
@@ -27,7 +26,7 @@ export default function AzureInvoicePage() {
   const [mode, setMode] = useState('loading');
   const [storeReady, setStoreReady] = useState(false);
   
-  // Use try-catch to safely access Redux store
+  // Access Redux store safely
   let cacheMetadata = null;
   let cachedData = {};
   
@@ -43,10 +42,9 @@ export default function AzureInvoicePage() {
   }
   
   useEffect(() => {
-    // Wait for Redux store to be ready
     const timer = setTimeout(() => {
       setStoreReady(true);
-    }, 200);
+    }, 100);
     return () => clearTimeout(timer);
   }, []);
   
@@ -55,7 +53,7 @@ export default function AzureInvoicePage() {
     
     async function loadData() {
       const startTime = Date.now();
-      console.log('🔍 CLIENT: Checking cache before fetching...');
+      console.log('🔍 CLIENT: Checking cache...');
       
       // Get user context from cookies
       const userContextCookie = document.cookie
@@ -101,12 +99,6 @@ export default function AzureInvoicePage() {
       
       if (isCacheValid) {
         console.log(`⚡ CLIENT: Using CACHED data (age: ${Math.floor(cacheAge / 1000)}s)`);
-        console.log('📦 CACHED DATA:', {
-          monthsData: !!cachedData.monthsData,
-          summaryData: !!cachedData.summaryData,
-          creditsData: !!cachedData.creditsData,
-          trendsData: !!cachedData.trendsData
-        });
         
         const cachedInitialData = {
           monthsResponse: cachedData.monthsData,
@@ -115,15 +107,14 @@ export default function AzureInvoicePage() {
           trendsResponse: cachedData.trendsData
         };
         
-        console.log('📦 Setting initialData with cached values');
         setInitialData(cachedInitialData);
         setMode('true-ssr');
         setLoading(false);
         return;
       }
       
-      // No valid cache - fetch fresh data
-      console.log('🔄 CLIENT: Cache miss or expired, fetching fresh data...');
+      // No valid cache - fetch fresh data (server actions run on server)
+      console.log('🔄 CLIENT: Cache miss, fetching via server actions...');
       const dataStartTime = Date.now();
       
       try {
@@ -143,13 +134,6 @@ export default function AzureInvoicePage() {
         
         const dataTime = Date.now() - dataStartTime;
         console.log(`✅ CLIENT: Data fetched in ${dataTime}ms`);
-        console.log('📦 FETCHED DATA:', {
-          monthsResponse: !!azureData.monthsResponse,
-          summaryResponse: !!azureData.summaryResponse,
-          creditsResponse: !!azureData.creditsResponse,
-          trendsResponse: !!azureData.trendsResponse
-        });
-        console.log('📦 Summary data structure:', azureData.summaryResponse);
         
         setInitialData(azureData);
         setMode('true-ssr');
@@ -162,13 +146,51 @@ export default function AzureInvoicePage() {
     }
     
     loadData();
-  }, [storeReady]);
+  }, [storeReady, cacheMetadata, cachedData]);
   
   if (loading) {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
-        <h2>Loading...</h2>
-        <p>Checking cache and loading data...</p>
+        <div style={{ 
+          padding: '20px 40px',
+          borderBottom: '1px solid #e1e5e9',
+          backgroundColor: '#f8f9fa',
+          marginBottom: '40px'
+        }}>
+          <h1 style={{ 
+            margin: '0', 
+            color: '#2c3e50',
+            fontSize: '28px',
+            fontWeight: '600'
+          }}>
+            Azure Invoice Dashboard
+          </h1>
+        </div>
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          gap: '20px' 
+        }}>
+          <div style={{ 
+            width: '50px', 
+            height: '50px', 
+            border: '4px solid #f3f3f3',
+            borderTop: '4px solid #007bff',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }} />
+          <h2 style={{ margin: '0', color: '#495057' }}>Loading Invoice Data...</h2>
+          <p style={{ margin: '0', color: '#6c757d' }}>
+            {cacheMetadata?.lastUpdated ? 'Checking cache...' : 'Fetching fresh data...'}
+          </p>
+        </div>
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     );
   }

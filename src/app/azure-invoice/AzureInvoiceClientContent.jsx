@@ -124,7 +124,6 @@ function clearAzureInvoiceCache(soldToId = null) {
       // Clear specific user's cache
       localStorage.removeItem(`azure-invoice-${soldToId}`);
       localStorage.removeItem(`azure-session-${soldToId}`);
-      console.log('🗑️ Cleared cache for soldToId:', soldToId.substring(0, 20) + '...');
     } else {
       // Clear all Azure Invoice related cache
       const keys = Object.keys(localStorage);
@@ -133,7 +132,6 @@ function clearAzureInvoiceCache(soldToId = null) {
           localStorage.removeItem(key);
         }
       });
-      console.log('🗑️ Cleared all Azure Invoice cache data');
     }
   } catch (error) {
     console.error('Cache clear error:', error);
@@ -190,26 +188,8 @@ export default function AzureInvoiceClientContent({
   const cacheMetadata = useSelector(selectCacheMetadata);
   const monthDataCache = useSelector(selectMonthDataCache);
   
-  console.log('🏪 REDUX STATE CHECK:', {
-    isRehydrated, // Log rehydration status
-    hasCachedData: !!reduxAzureData.monthsData,
-    cacheTimestamp: cacheMetadata?.lastUpdated,
-    cachedSoldToId: cacheMetadata?.soldToId?.substring(0, 20) + '...' || 'N/A',
-    currentSoldToId: userContext?.soldToId?.substring(0, 20) + '...' || 'N/A',
-    monthCacheKeys: Object.keys(monthDataCache || {}),
-    reduxChartDataLength: reduxProcessedChartData?.invoiceBreakdownData?.length || 0
-  });
   
   // 🚨 CRITICAL DEBUG: Check if Redux persist is working
-  console.log('🔍 REDUX PERSIST DEBUG:', {
-    reduxAzureDataKeys: Object.keys(reduxAzureData || {}),
-    hasRawData: !!reduxAzureData.monthsData,
-    hasProcessedData: !!reduxProcessedChartData?.invoiceBreakdownData?.length,
-    hasSelectLists: !!reduxSelectListOptions?.productCategory?.length,
-    hasInvoiceMonths: !!reduxInvoiceMonths?.length,
-    cacheMetadata: cacheMetadata,
-    localStorage: typeof window !== 'undefined' ? Object.keys(localStorage).filter(k => k.includes('persist')) : 'SSR'
-  });
   
   // Handle new true-ssr mode with initialData structure
   const actualInitialMonthsData = mode === 'true-ssr' ? initialData?.monthsResponse : initialMonthsData;
@@ -217,22 +197,10 @@ export default function AzureInvoiceClientContent({
   const actualInitialCreditsData = mode === 'true-ssr' ? initialData?.creditsResponse : initialCreditsData;
   const actualInitialTrendsData = mode === 'true-ssr' ? initialData?.trendsResponse : initialTrendsData;
 
-  console.log('🚀🚀🚀 AZURE INVOICE COMPONENT RENDER 🚀🚀🚀');
-  console.log('🔥 CURRENT MODE:', mode);
-  console.log('🔥 TRUE SSR MODE:', mode === 'true-ssr' ? 'YES' : 'NO');
-  console.log('🔥 Component render timestamp:', new Date().toISOString());
   
   // CRITICAL DEBUG: See what server actually sent
-  console.log('🔍 SERVER DATA DEBUG:');
-  console.log('🔍 initialData keys:', initialData ? Object.keys(initialData) : 'NO initialData');
-  console.log('🔍 initialData.monthsResponse exists?', !!initialData?.monthsResponse);
-  console.log('🔍 initialData.monthsResponse type:', typeof initialData?.monthsResponse);
-  console.log('🔍 initialData.monthsResponse:', initialData?.monthsResponse);
   
   if (initialData?.monthsResponse) {
-    console.log('🔍 monthsResponse keys:', Object.keys(initialData.monthsResponse));
-    console.log('🔍 monthsResponse.invoiceMonths?', !!initialData.monthsResponse.invoiceMonths);
-    console.log('🔍 monthsResponse full object:', JSON.stringify(initialData.monthsResponse, null, 2));
   }
   
   if (mode === 'true-ssr') {
@@ -264,20 +232,6 @@ export default function AzureInvoiceClientContent({
     reduxInvoiceMonths?.length
   );
   
-  console.log('🔍 DETAILED CACHE VALIDATION:', {
-    sessionValid: sessionValid,
-    sessionReason: !userContext?.soldToId ? 'no user context' : (cacheMetadata?.soldToId === userContext?.soldToId ? 'soldToId matches' : 'soldToId mismatch'),
-    hasCachedRawData: hasCachedRawData,
-    rawDataReason: !reduxAzureData?.monthsData ? 'no monthsData' : (!cacheMetadata?.lastUpdated ? 'no timestamp' : 'has raw data'),
-    hasCachedProcessedData: hasCachedProcessedData,
-    processedDataCount: reduxProcessedChartData?.invoiceBreakdownData?.length || 0,
-    hasCachedSelectLists: hasCachedSelectLists,
-    selectListCount: reduxSelectListOptions?.productCategory?.length || 0,
-    hasCachedInvoiceMonths: hasCachedInvoiceMonths,
-    invoiceMonthsCount: reduxInvoiceMonths?.length || 0,
-    hasAnyReduxData: hasAnyReduxData,
-    reduxDataKeys: Object.keys(reduxAzureData || {})
-  });
   
   // 🚀 ULTRA-AGGRESSIVE CACHE STRATEGY - Use cached data immediately if available
   const cacheAge = cacheMetadata?.lastUpdated ? Date.now() - cacheMetadata.lastUpdated : null;
@@ -288,43 +242,12 @@ export default function AzureInvoiceClientContent({
   // Override cache decision - use cache aggressively
   const isCacheValid = forceCacheUsage;
   
-  console.log('⚡ FORCE CACHE DECISION:', {
-    hasCachedProcessedData: hasCachedProcessedData,
-    hasCachedSelectLists: hasCachedSelectLists,
-    hasCachedInvoiceMonths: hasCachedInvoiceMonths,
-    hasAnyReduxData: hasAnyReduxData,
-    cacheAge: cacheAge ? `${Math.floor(cacheAge / 60000)} minutes` : 'N/A',
-    forceCacheUsage: forceCacheUsage,
-    finalDecision: isCacheValid ? '⚡ FORCE_CACHE' : '🔄 FRESH_LOAD'
-  });
 
   // 🔍 DEEP REDUX STORE INSPECTION
-  console.log('🔍 REDUX STORE DEEP DIVE:', {
-    reduxAzureData: reduxAzureData,
-    reduxProcessedChartData: reduxProcessedChartData,
-    reduxSelectListOptions: reduxSelectListOptions, 
-    reduxInvoiceMonths: reduxInvoiceMonths,
-    cacheMetadata: cacheMetadata,
-    userContext: userContext
-  });
 
   // Performance timing
   const componentStartTime = Date.now();
   
-  console.log('🚀 AGGRESSIVE CACHE DECISION:', {
-    isRehydrated, // Log rehydration status
-    sessionValid,
-    hasCachedRawData,
-    hasCachedProcessedData,
-    hasCachedSelectLists, 
-    hasCachedInvoiceMonths,
-    cacheAge: cacheAge ? `${Math.floor(cacheAge / 60000)} minutes` : 'N/A',
-    isCacheValid,
-    willUseCache: isCacheValid,
-    componentStartTime: new Date(componentStartTime).toLocaleTimeString(),
-    decision: isCacheValid ? '⚡ INSTANT_CACHE_LOAD' : '🐌 FRESH_LOAD',
-    strategy: 'USE_ANY_AVAILABLE_CACHE'
-  });
   
   // Check localStorage as fallback if Redux isn't working
   let hasLocalStorageCache = false;
@@ -334,11 +257,6 @@ export default function AzureInvoiceClientContent({
       if (persistedState) {
         const parsed = JSON.parse(persistedState);
         hasLocalStorageCache = !!(parsed.monthsData || parsed.processedChartData);
-        console.log('📱 LOCALSTORAGE CHECK:', {
-          hasPersistedState: !!persistedState,
-          hasUsefulData: hasLocalStorageCache,
-          keys: Object.keys(parsed)
-        });
       }
     } catch (error) {
       console.warn('📱 LocalStorage check failed:', error);
@@ -351,22 +269,10 @@ export default function AzureInvoiceClientContent({
     (isCacheValid ? '⚡ REDUX_INSTANT_CACHE' : (hasLocalStorageCache ? '📱 LOCALSTORAGE_FALLBACK' : '🔥 EMERGENCY_REDUX_OVERRIDE')) : 
     (isRehydrated ? '🐌 SSR_SLOW_FRESH' : '⏳ AWAITING_REHYDRATION');
   
-  console.log('📊 DATA SOURCE DECISION:', {
-    dataSource,
-    isCacheValid,
-    hasLocalStorageCache,
-    hasAnyReduxData,
-    finalUseReduxData: useReduxData
-  });
   
   // 🛑 IMMEDIATE EARLY TERMINATION FLAG - Skip if we have ANY cached data
   const shouldSkipAllProcessing = useReduxData && hasAnyReduxData;
   
-  console.log('🛑 SKIP PROCESSING FLAG:', {
-    shouldSkipAllProcessing,
-    reason: shouldSkipAllProcessing ? 'CACHE_AVAILABLE' : 'NO_CACHE_FOUND',
-    willRunUseEffects: !shouldSkipAllProcessing
-  });
   
   // ⚡ ULTRA-AGGRESSIVE STATE INITIALIZATION - Use cached data immediately, ignore SSR
   const [invoiceMonthsData] = useState(useReduxData ? reduxAzureData.monthsData : actualInitialMonthsData);
@@ -378,7 +284,6 @@ export default function AzureInvoiceClientContent({
   useEffect(() => {
     // Only run this on initial load when we have SSR data and no cache
     if (!useReduxData && mode === 'true-ssr' && initialData) {
-      console.log('🚀 DISPATCHING initial SSR data to Redux store...');
       dispatch(setInitialSSRData({
         monthsData: initialData.monthsResponse,
         summaryData: initialData.summaryResponse,
@@ -389,14 +294,6 @@ export default function AzureInvoiceClientContent({
     }
   }, [useReduxData, mode, initialData, dispatch, userContext]);
 
-  console.log('⚡ INSTANT STATE INIT:', {
-    useReduxData,
-    dataSource,
-    hasInitialMonthsData: !!invoiceMonthsData,
-    hasInitialSummaryData: !!summaryData,
-    hasInitialCreditsData: !!creditsData,
-    hasInitialTrendsData: !!trendsData
-  });
   const [error] = useState(monthsError || summaryError || creditsError || trendsError);
   const [selectedMonth, setSelectedMonthLocal] = useState(() => {
     if (useReduxData && reduxSelectedMonth) {
@@ -423,7 +320,6 @@ export default function AzureInvoiceClientContent({
       loadSource: useReduxData ? 'REDUX_INSTANT' : (isRehydrated ? 'SERVER_FRESH' : 'AWAITING_CACHE'),
       timestamp: new Date().toLocaleTimeString()
     };
-    console.log('⚡ INSTANT LOAD PERFORMANCE:', initialPerf);
     return initialPerf;
   });
   
@@ -446,18 +342,14 @@ export default function AzureInvoiceClientContent({
   const [invoiceMonths, setInvoiceMonths] = useState([]);
   // Initialize selectListOptions - process immediately if SSR data exists
   const initialSelectListOptions = (() => {
-    console.log('🔥 IMMEDIATE selectLists processing...');
     
     // PRIORITY 1: Use cached data if available
     if (useReduxData && reduxSelectListOptions?.productCategory?.length > 1) {
-      console.log('⚡ USING CACHED SELECT LISTS immediately!');
       return reduxSelectListOptions;
     }
     
     // PRIORITY 2: Process SSR data
     if (initialSummaryData?.selectLists && mode !== 'client-ssr') {
-      console.log('🔥 Processing selectLists immediately from SSR data');
-      console.log('🔥 Available selectLists:', initialSummaryData.selectLists?.map(s => ({ name: s?.name, itemCount: s?.items?.length })));
       
       // Simple inline processing to avoid function reference issues
       const lists = {
@@ -476,31 +368,21 @@ export default function AzureInvoiceClientContent({
         
         const finalList = [{ text: 'All', value: 'All' }, ...processedItems];
         
-        console.log(`🔥 Processing "${selectList.name}" with ${processedItems.length} items`);
         
         // Direct exact matching
         if (selectList.name === 'productcategory') {
-          console.log('✅ EXACT MATCH: productcategory');
           lists.productCategory = finalList;
         } else if (selectList.name === 'productname') {
-          console.log('✅ EXACT MATCH: productname');
           lists.productName = finalList;
         } else if (selectList.name === 'skuname') {
-          console.log('✅ EXACT MATCH: skuname');
           lists.skuName = finalList;
         }
       });
       
-      console.log('🔥 Final processed lists:', {
-        productCategory: lists.productCategory.length,
-        productName: lists.productName.length,
-        skuName: lists.skuName.length
-      });
       
       return lists;
     }
     
-    console.log('🔥 No SSR selectLists to process');
     return {
       productCategory: [{ text: 'All', value: 'All' }],
       productName: [{ text: 'All', value: 'All' }], 
@@ -517,7 +399,6 @@ export default function AzureInvoiceClientContent({
   // INSTANT STATE INITIALIZATION - Use cached data immediately
   const [processedChartData, setProcessedChartDataLocal] = useState(() => {
     if (useReduxData) {
-      console.log('⚡ INSTANT CACHE LOAD - Chart Data:', reduxProcessedChartData);
       return reduxProcessedChartData?.invoiceBreakdownData?.length > 0 ? 
         reduxProcessedChartData : {
           invoiceBreakdownData: [{ label: 'Azure Usage', value: 14.2 }, { label: 'Marketplace', value: 30.4 }],
@@ -526,7 +407,6 @@ export default function AzureInvoiceClientContent({
           creditsApplied: 46.1
         };
     }
-    console.log('📊 Initializing empty chart data - will process from SSR data');
     return {
       invoiceBreakdownData: [],
       monthlyTrendData: [],
@@ -537,13 +417,11 @@ export default function AzureInvoiceClientContent({
   
   // Helper function to update both local and Redux state
   const setProcessedChartData = (newData) => {
-    console.log('📊 UPDATING CHART DATA - Local + Redux');
     setProcessedChartDataLocal(newData);
     dispatch(setProcessedChartDataRedux(newData));
   };
   
   const setSelectedMonth = (newMonth) => {
-    console.log('📅 UPDATING SELECTED MONTH - Local + Redux');
     setSelectedMonthLocal(newMonth);
     dispatch(setSelectedMonthRedux(newMonth));
   };
@@ -554,113 +432,79 @@ export default function AzureInvoiceClientContent({
   // ⚡ INSTANT CACHE INITIALIZATION - Set all state immediately if cache is available
   useEffect(() => {
     if (shouldSkipAllProcessing && useReduxData) {
-      console.log('⚡ INSTANT CACHE INITIALIZATION - Setting all cached state immediately!');
       
       // Set invoice months from cache
       if (reduxInvoiceMonths?.length > 0 && invoiceMonths.length === 0) {
-        console.log('⚡ Setting cached invoice months:', reduxInvoiceMonths.length);
         setInvoiceMonths(reduxInvoiceMonths);
       }
       
       // Set selected month from cache
       if (reduxSelectedMonth && !selectedMonth) {
-        console.log('⚡ Setting cached selected month:', reduxSelectedMonth);
         setSelectedMonth(reduxSelectedMonth);
       }
       
       // Set select list options from cache
       if (reduxSelectListOptions?.productCategory?.length > 1) {
-        console.log('⚡ Setting cached select list options');
         setSelectListOptionsLocal(reduxSelectListOptions);
       }
       
       // Set processed chart data from cache
       if (reduxProcessedChartData?.invoiceBreakdownData?.length > 0) {
-        console.log('⚡ Setting cached processed chart data');
         setProcessedChartDataLocal(reduxProcessedChartData);
       }
       
       // Set raw data from cache for display (invoice total, etc.)
       if (reduxAzureData.summaryData) {
-        console.log('⚡ Setting cached summary data for display');
         setSummaryData(reduxAzureData.summaryData);
       }
       if (reduxAzureData.creditsData) {
-        console.log('⚡ Setting cached credits data for display');
         setCreditsData(reduxAzureData.creditsData);
       }
       if (reduxAzureData.trendsData) {
-        console.log('⚡ Setting cached trends data for display');
         setTrendsData(reduxAzureData.trendsData);
       }
       
       // Mark charts as loaded immediately for cached data
       if (reduxProcessedChartData?.invoiceBreakdownData?.length > 0) {
-        console.log('⚡ Charts ready immediately from cache');
         setChartsLoaded(true);
       }
       
-      console.log('⚡ INSTANT INITIALIZATION COMPLETE!');
     }
   }, [shouldSkipAllProcessing, useReduxData]); // Run immediately when cache is detected
 
   // Track processedChartData changes for debugging
   useEffect(() => {
-    console.log('🔄 processedChartData CHANGED:', processedChartData);
   }, [processedChartData]);
 
   // 🚨 PERFORMANCE ALERT - Show cache vs SSR decision prominently
   useEffect(() => {
     if (useReduxData) {
-      console.log('');
-      console.log('🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀');
-      console.log('⚡ INSTANT CACHE LOAD ACTIVATED - IGNORING SERVER DATA!');
-      console.log('⚡ Expected performance: ~85ms instead of 10+ seconds');
-      console.log('⚡ Server SSR calls will still happen (normal), but client uses cache');
-      console.log('🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀');
-      console.log('');
     } else {
-      console.log('');
-      console.log('🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌');
-      console.log('🔄 FRESH SSR LOAD - Using server data (first load)');
-      console.log('🔄 Expected performance: ~10+ seconds for initial load');
-      console.log('🔄 Next load will be instant with cache!');
-      console.log('🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌🐌');
-      console.log('');
     }
   }, [useReduxData]); // Run when cache decision is made
 
   // DEBUG LOGGING - Now that state is initialized
-  console.log('🎯 IMMEDIATE STATE CHECK (after initialization):');
-  console.log('🎯 invoiceMonths state length:', invoiceMonths?.length || 0);
-  console.log('🎯 selectedMonth state:', selectedMonth);
-  console.log('🎯 invoiceMonths full array:', invoiceMonths);
 
   // Initialize selectLists from server data on component mount
   useEffect(() => {
-    console.log('🚀 INITIALIZATION USEEFFECT - MODE:', mode);
     
     // 🛑 IMMEDIATE CACHE CHECK - Skip if we have any cached data
     if (shouldSkipAllProcessing) {
-      console.log('⚡ SKIPPING initialization useEffect - CACHE AVAILABLE!');
       return;
     }
     
     // Skip this useEffect completely in true-ssr mode - let the TRUE-SSR useEffect handle everything
     if (mode === 'true-ssr') {
-      console.log('🚫 SKIPPING initialization useEffect - true-ssr mode will handle this');
       return;
     }
     
     const summaryDataToProcess = initialSummaryData;
     
     if (mode !== 'client-ssr' && summaryDataToProcess?.selectLists) {
-      console.log('✅ Processing server-side selectLists...');
       
       try {
         // Call processSelectLists function directly
         const processedSelectLists = processSelectLists(summaryDataToProcess);
-        console.log('✅ Got processed selectLists:', processedSelectLists);
         
         setSelectListOptions(processedSelectLists);
         console.log('✅ SelectListOptions state updated - NO CLIENT API CALLS MADE!');
@@ -668,62 +512,43 @@ export default function AzureInvoiceClientContent({
         console.error('❌ Error processing server selectLists:', error);
       }
     } else {
-      console.log('⏸️ Skipping selectLists processing - mode:', mode, 'hasSelectLists:', !!summaryDataToProcess?.selectLists);
     }
   }, []); // Run only once on mount
 
   // Track months state changes
   useEffect(() => {
-    console.log('🔄 MONTHS STATE CHANGED!');
-    console.log('🔄 New invoiceMonths length:', invoiceMonths?.length || 0);
-    console.log('🔄 New invoiceMonths:', invoiceMonths);
-    console.log('🔄 New selectedMonth:', selectedMonth);
-    console.log('🔄 Current timestamp:', Date.now());
   }, [invoiceMonths, selectedMonth]);
 
   // DEDICATED MONTHS PROCESSOR - SIMPLE AND DIRECT
   useEffect(() => {
-    console.log('🎯🎯🎯 DEDICATED MONTHS PROCESSOR RUNNING! 🎯🎯🎯');
     
     // 🛑 ULTIMATE CACHE CHECK - Skip if we have cached months data
     if (shouldSkipAllProcessing || (useReduxData && reduxInvoiceMonths?.length > 0)) {
-      console.log('⚡ SKIPPING months processor - CACHED MONTHS AVAILABLE!', reduxInvoiceMonths?.length, 'months');
       return;
     }
     
-    console.log('🎯 Mode:', mode);
-    console.log('🎯 actualInitialMonthsData exists?', !!actualInitialMonthsData);
     
     // Try multiple possible data structures based on what we see in console
     if (mode === 'true-ssr') {
-      console.log('🎯 PROCESSING MONTHS - Trying multiple data paths...');
       
       let monthsArray = null;
       
       // Try different possible structures based on actual API response
       if (actualInitialMonthsData?.data?.invoiceMonths) {
-        console.log('🎯 Found months at actualInitialMonthsData.data.invoiceMonths');
         monthsArray = actualInitialMonthsData.data.invoiceMonths;
       } else if (initialData?.monthsResponse?.data?.invoiceMonths) {
-        console.log('🎯 Found months at initialData.monthsResponse.data.invoiceMonths');
         monthsArray = initialData.monthsResponse.data.invoiceMonths;
       } else if (actualInitialMonthsData?.invoiceMonths) {
-        console.log('🎯 Found months at actualInitialMonthsData.invoiceMonths');
         monthsArray = actualInitialMonthsData.invoiceMonths;
       } else if (initialData?.monthsResponse?.invoiceMonths) {
-        console.log('🎯 Found months at initialData.monthsResponse.invoiceMonths');
         monthsArray = initialData.monthsResponse.invoiceMonths;
       } else if (initialData?.monthsResponse) {
-        console.log('🎯 Found months at initialData.monthsResponse (direct)');
         monthsArray = initialData.monthsResponse;
       } else if (Array.isArray(actualInitialMonthsData)) {
-        console.log('🎯 actualInitialMonthsData is array');
         monthsArray = actualInitialMonthsData;
       }
       
       if (monthsArray && monthsArray.length > 0) {
-        console.log('🎯 PROCESSING MONTHS NOW!', monthsArray.length, 'months found');
-        console.log('🎯 First month sample:', monthsArray[0]);
         
         const months = monthsArray.map(month => ({
           text: month.text,
@@ -732,56 +557,31 @@ export default function AzureInvoiceClientContent({
           __source: 'DEDICATED_PROCESSOR'
         }));
         
-        console.log('🎯 Processed months:', months);
         setInvoiceMonths(months);
         setSelectedMonth(months[0]);
-        console.log('🎯 MONTHS SET! Should see dropdown populate now.');
       } else {
-        console.log('🎯 NO MONTHS FOUND in any expected location');
-        console.log('🎯 actualInitialMonthsData:', actualInitialMonthsData);
-        console.log('🎯 initialData?.monthsResponse:', initialData?.monthsResponse);
       }
       
       // Aggressive verification - check state every 50ms for 1 second
       let checkCount = 0;
       const interval = setInterval(() => {
         checkCount++;
-        console.log(`🔍 STATE CHECK #${checkCount}:`, {
-          invoiceMonthsLength: invoiceMonths.length,
-          selectedMonthExists: !!selectedMonth,
-          dropdownOptionsCount: document.querySelector('select[style*="width: 200px"]')?.options.length || 'not found'
-        });
         
         if (checkCount >= 20) {
           clearInterval(interval);
-          console.log('🔍 STATE VERIFICATION COMPLETE');
         }
       }, 50);
     } else {
-      console.log('🎯 Skipping months processing:', {
-        mode: mode,
-        isTrueSsr: mode === 'true-ssr',
-        hasMonthsData: !!actualInitialMonthsData?.invoiceMonths
-      });
     }
   }, [mode, actualInitialMonthsData]); // Run when mode or monthsData changes
 
   // Ensure we're on the client side before rendering charts
   useEffect(() => {
-    console.log('🎯 Setting isClient to true - MODE:', mode);
     
     // Track performance
     const clientReadyTime = Date.now();
     const totalInitTime = clientReadyTime - componentStartTime;
     
-    console.log('⚡ COMPONENT PERFORMANCE:', {
-      componentStartTime: new Date(componentStartTime).toLocaleTimeString(),
-      clientReadyTime: new Date(clientReadyTime).toLocaleTimeString(),
-      totalInitTime: `${totalInitTime}ms`,
-      dataSource,
-      useReduxCache: useReduxData,
-      performanceGain: useReduxData ? `INSTANT (${totalInitTime}ms)` : `STANDARD (${totalInitTime}ms)`
-    });
     
     // Update performance data
     setDataPerformance(prev => ({
@@ -796,7 +596,6 @@ export default function AzureInvoiceClientContent({
     
     // Small delay to ensure dynamic components are loaded
     const timer = setTimeout(() => {
-      console.log('🎯 Setting chartsLoaded to true');
       setChartsLoaded(true);
     }, 100);
     
@@ -806,18 +605,9 @@ export default function AzureInvoiceClientContent({
       
       // 🔧 DEBUG TOOLS - Expose cache inspection utilities
       window.debugCache = () => {
-        console.log('🔧 CACHE DEBUG REPORT:');
-        console.log('🔧 Redux State:', {
-          azureInvoice: reduxAzureData,
-          processedChartData: reduxProcessedChartData,
-          selectListOptions: reduxSelectListOptions,
-          invoiceMonths: reduxInvoiceMonths,
-          cacheMetadata: cacheMetadata
-        });
         
         try {
           const persistedState = localStorage.getItem('persist:ccr-azure-invoice');
-          console.log('🔧 LocalStorage:', persistedState ? JSON.parse(persistedState) : 'Not found');
         } catch (error) {
           console.error('🔧 LocalStorage error:', error);
         }
@@ -831,12 +621,10 @@ export default function AzureInvoiceClientContent({
       };
       
       window.forceReprocessCache = () => {
-        console.log('🔄 FORCING CACHE REPROCESS...');
         if (actualInitialSummaryData) {
           const newSelectListOptions = processSelectLists(actualInitialSummaryData);
           setSelectListOptions(newSelectListOptions);
           dispatch(setSelectListOptionsRedux(newSelectListOptions));
-          console.log('✅ Reprocessed select lists');
         }
       };
     }
@@ -854,7 +642,6 @@ export default function AzureInvoiceClientContent({
             const userContext = JSON.parse(decodeURIComponent(userContextCookie.split('=')[1]));
             if (userContext.soldToId) {
               // Simple redirect to same page without query params
-              console.log('🔀 Client: Redirecting to enable server-side rendering with session auth');
               window.location.href = window.location.pathname;
               return;
             }
@@ -876,9 +663,6 @@ export default function AzureInvoiceClientContent({
     if (false && mode === 'client-ssr') {
       
       const loadDataWithCaching = async () => {
-        console.log('🟢🟢🟢🟢🟢 loadDataWithCaching FUNCTION STARTED 🟢🟢🟢🟢🟢');
-        console.log('🚀🚀🚀 CLIENT-SSR MODE: Starting data fetch process...');
-        console.log('⏰ Timestamp:', new Date().toISOString());
         const startTime = Date.now();
         
         // Check authentication
@@ -900,8 +684,6 @@ export default function AzureInvoiceClientContent({
         
         if (!soldToId) {
           console.log('❌❌❌ AUTHENTICATION FAILED: No soldToId found');
-          console.log('🔍 Available cookies:', document.cookie);
-          console.log('🔄 Redirecting to login in 3 seconds...');
           setTimeout(() => {
             window.location.href = '/';
           }, 3000);
@@ -922,7 +704,6 @@ export default function AzureInvoiceClientContent({
             const tokenValue = accessTokenCookie.split('=')[1];
             tokenTimestamp = tokenValue ? tokenValue.slice(-10) : Date.now();
           } catch (error) {
-            console.log('Token processing error:', error);
           }
         }
         
@@ -955,7 +736,6 @@ export default function AzureInvoiceClientContent({
               };
               
               // Set state with cached data
-              console.log('📋 Loading from cache, cachedData:', cachedData);
               setClientMonthsData(cachedData.monthsData || null);
               setSummaryData(cachedData.summaryData);
               setCreditsData(cachedData.creditsData);  
@@ -963,7 +743,6 @@ export default function AzureInvoiceClientContent({
               
               // Set invoice months and default selected month from cache
               if (cachedData.monthsData?.invoiceMonths && cachedData.monthsData.invoiceMonths.length > 0 && !selectedMonth) {
-                console.log('🔄 Setting default month from cache:', cachedData.monthsData.invoiceMonths[0]);
                 setSelectedMonth(cachedData.monthsData.invoiceMonths[0]);
               }
               
@@ -977,7 +756,6 @@ export default function AzureInvoiceClientContent({
             console.error('Cache parse error:', error);
           }
         } else if (isNewSession) {
-          console.log('🔄 New authentication session detected, clearing cache and fetching fresh data');
           localStorage.removeItem(cacheKey);
           localStorage.setItem(sessionKey, currentSessionId);
         }
@@ -987,7 +765,6 @@ export default function AzureInvoiceClientContent({
         setLoading(true);
         
         try {
-          console.log('🔄 Calling server actions...');
           
           // Call them individually to catch which one fails
           let monthsResult, summaryResult, creditsResult, trendsResult;
@@ -1016,7 +793,6 @@ export default function AzureInvoiceClientContent({
             const endTime = Date.now();
             console.log('✅ fetchSummaryDataServer completed in', endTime - startTime, 'ms');
             console.log('📊 Summary result:', summaryResult);
-            console.log('📊 Summary data keys:', summaryResult?.data ? Object.keys(summaryResult.data) : 'no data');
             console.log('📊 Summary error:', summaryResult?.error);
           } catch (error) {
             console.error('❌❌❌ fetchSummaryDataServer FAILED:', error);
@@ -1057,15 +833,7 @@ export default function AzureInvoiceClientContent({
           
           // Detailed debugging for selectLists
           if (summaryResult?.data) {
-            console.log('🔍🔍🔍 SUMMARY DATA DETAILED ANALYSIS:');
-            console.log('📋 Keys in summaryResult.data:', Object.keys(summaryResult.data));
-            console.log('📋 selectLists exists?', 'selectLists' in summaryResult.data);
-            console.log('📋 selectLists value:', summaryResult.data.selectLists);
-            console.log('📋 selectLists type:', typeof summaryResult.data.selectLists);
-            console.log('📋 selectLists is array?', Array.isArray(summaryResult.data.selectLists));
             if (summaryResult.data.selectLists) {
-              console.log('📋 selectLists length:', summaryResult.data.selectLists.length);
-              console.log('📋 First selectList item:', summaryResult.data.selectLists[0]);
             }
           }
           
@@ -1084,32 +852,19 @@ export default function AzureInvoiceClientContent({
           };
           
           localStorage.setItem(cacheKey, JSON.stringify(cacheData));
-          console.log('💾 Data cached for future visits', { 
-            soldToId: soldToId.substring(0, 20) + '...',
-            dataTypes: ['summary', 'credits', 'trends']
-          });
           
           // Update state
-      console.log('🔄🔄🔄 UPDATING COMPONENT STATE...');
       console.log('📊 Setting clientMonthsData:', monthsResult.data);
-      console.log('📊 Setting summaryData keys:', summaryResult.data ? Object.keys(summaryResult.data) : 'no data');
       console.log('📊 Setting creditsData:', creditsResult.data);
       console.log('📊 Setting trendsData:', trendsResult.data);
       
-      console.log('🎯 Component States Check:', {
-        isClient: isClient,
-        chartsLoaded: chartsLoaded,
-        loading: loading
-      });          setClientMonthsData(monthsResult.data || null);
           setSummaryData(summaryResult.data || null);
           setCreditsData(creditsResult.data || null);
           setTrendsData(trendsResult.data || null);
           
-          console.log('✅✅✅ STATE UPDATE COMPLETE - Component should re-render now');
           
           // Set default selected month from months API response
           if (monthsResult.data?.invoiceMonths && monthsResult.data.invoiceMonths.length > 0 && !selectedMonth) {
-            console.log('🔄 Setting default month from months API response:', monthsResult.data.invoiceMonths[0]);
             setSelectedMonth(monthsResult.data.invoiceMonths[0]);
           }
           
@@ -1121,12 +876,6 @@ export default function AzureInvoiceClientContent({
           };
           setDataPerformance(perfData);
           
-          console.log('✅ Fresh data fetched and displayed', { 
-            fetchTime: Date.now() - startTime,
-            soldToId: soldToId.substring(0, 20) + '...',
-            dataSource: useReduxData ? 'REDUX_CACHE' : 'SSR_FRESH',
-            cachePerformanceGain: useReduxData ? 'INSTANT_LOAD' : 'N/A'
-          });
           
         } catch (error) {
           console.error('❌ Data fetch failed:', error);
@@ -1135,7 +884,6 @@ export default function AzureInvoiceClientContent({
         }
       };
       
-      console.log('🚀🚀🚀 CALLING loadDataWithCaching() now...');
       loadDataWithCaching();
     }
     
@@ -1146,49 +894,27 @@ export default function AzureInvoiceClientContent({
 
   // Process API responses using useEffect to update state
   useEffect(() => {
-    console.log('🔄 Processing API data for UI components - MODE:', mode);
     
     // 🛑 NUCLEAR CACHE CHECK - Absolutely no processing if cache exists
     if (shouldSkipAllProcessing) {
-      console.log('🚫⚡ NUCLEAR CACHE SKIP - NO PROCESSING WHATSOEVER!');
-      console.log('⚡ Reason: shouldSkipAllProcessing =', shouldSkipAllProcessing);
-      console.log('⚡ Cache source:', dataSource);
       return;
     }
     
     // Skip this useEffect completely in true-ssr mode - let the TRUE-SSR useEffect handle everything
     if (mode === 'true-ssr') {
-      console.log('🚫 SKIPPING main processing useEffect - true-ssr mode will handle this');
       return;
     }
     
     // 🚨 DOUBLE-CHECK CACHE - Skip expensive processing if ANY cached data exists
     if (useReduxData) {
-      console.log('🚀 CACHE DETECTED - Skipping all expensive processing!');
-      console.log('🚀 Cache source:', dataSource);
-      console.log('🚀 Available data:', {
-        processedChartData: !!processedChartData?.invoiceBreakdownData?.length,
-        selectListOptions: !!selectListOptions?.productCategory?.length,
-        invoiceMonths: !!invoiceMonths?.length
-      });
       return;
     }
     
     // Extra safety check
     if (processedChartData?.invoiceBreakdownData?.length > 0 && selectListOptions?.productCategory?.length > 1) {
-      console.log('🚀 DATA ALREADY PROCESSED - Skipping reprocessing!');
       return;
     }
     
-    console.log('🔄 Data availability:', {
-      summaryData: !!summaryData,
-      creditsData: !!creditsData,
-      trendsData: !!trendsData,
-      invoiceMonthsData: !!invoiceMonthsData,
-      actualInitialSummaryData: !!actualInitialSummaryData,
-      actualInitialCreditsData: !!actualInitialCreditsData,
-      actualInitialTrendsData: !!actualInitialTrendsData
-    });
     
     let invoiceBreakdownData = [];
     let trendingChartData = [];
@@ -1221,13 +947,7 @@ export default function AzureInvoiceClientContent({
       invoiceBreakdownData = processInvoiceBreakdownData(summaryData);
       
       // Process selectLists for filter dropdowns (Category, Product, SKU)
-      console.log('🔍 DEBUG: Processing selectLists from summaryData:', {
-        summaryData: summaryData,
-        'summaryData?.selectLists': summaryData?.selectLists,
-        'summaryData keys': summaryData ? Object.keys(summaryData) : 'null'
-      });
       newSelectListOptions = processSelectLists(summaryData);
-      console.log('🔍 DEBUG: Processed selectListOptions:', newSelectListOptions);
       
       // Process credits data for Credits Applied field
       creditsApplied = processCreditsData(creditsData);
@@ -1249,27 +969,11 @@ export default function AzureInvoiceClientContent({
     
     // Log if no real data is available
     if (finalInvoiceMonths.length === 0) {
-      console.log('⚠️ No invoice months data available from API');
     } else {
-      console.log('📅 Final invoiceMonths for dropdown:', finalInvoiceMonths);
     }
     
     // Update all state at once
-    console.log('📊 UPDATING FINAL STATE:', {
-      finalInvoiceMonths: finalInvoiceMonths,
-      newSelectListOptions: newSelectListOptions,
-      'newSelectListOptions.productCategory length': newSelectListOptions.productCategory?.length,
-      'newSelectListOptions.productName length': newSelectListOptions.productName?.length,
-      'newSelectListOptions.skuName length': newSelectListOptions.skuName?.length,
-      invoiceBreakdownData: invoiceBreakdownData,
-      trendingChartData: trendingChartData
-    });
     
-    console.log('🔍 Current selectListOptions before update:', selectListOptions);
-    console.log('🚨 Setting NEW selectListOptions to:', newSelectListOptions);
-    console.log('🚨 newSelectListOptions.productCategory length:', newSelectListOptions?.productCategory?.length);
-    console.log('🚨 newSelectListOptions.productName length:', newSelectListOptions?.productName?.length);
-    console.log('🚨 newSelectListOptions.skuName length:', newSelectListOptions?.skuName?.length);
     
     setInvoiceMonths(finalInvoiceMonths);
     setSelectListOptions(newSelectListOptions);
@@ -1280,38 +984,27 @@ export default function AzureInvoiceClientContent({
       creditsApplied
     });
     
-    console.log('✅ State updated - component should re-render with new data');
     
     // Add timeout to check state after React updates
     setTimeout(() => {
-      console.log('🔍 SelectListOptions after state update:', selectListOptions);
     }, 100);
     
     // Force a re-render check
     setTimeout(() => {
-      console.log('🔍 SelectListOptions after state update:', {
-        productCategory: selectListOptions.productCategory?.length,
-        productName: selectListOptions.productName?.length,
-        skuName: selectListOptions.skuName?.length
-      });
     }, 100);
   }, [clientMonthsData, initialMonthsData, invoiceMonthsData, summaryData, creditsData, trendsData, mode]);
 
   // Set default selected month when invoice months are available
   useEffect(() => {
-    console.log('🔄 useEffect for months - invoiceMonths:', invoiceMonths, 'selectedMonth:', selectedMonth);
     if (invoiceMonths && invoiceMonths.length > 0 && !selectedMonth) {
-      console.log('🔄 Setting default selected month:', invoiceMonths[0]);
       setSelectedMonth(invoiceMonths[0]);
     }
   }, [invoiceMonths]);
 
   // Set default filter values when selectLists are available
   useEffect(() => {
-    console.log('🔄 useEffect for selectListOptions:', selectListOptions);
     if (selectListOptions.productCategory?.length > 1 && 
         (!productCategoryFilter || productCategoryFilter.value !== 'All')) {
-      console.log('🔄 Setting productCategoryFilter to:', selectListOptions.productCategory[0]);
       setProductCategoryFilter(selectListOptions.productCategory[0]);
     }
     if (selectListOptions.productName?.length > 1 && 
@@ -1333,17 +1026,11 @@ export default function AzureInvoiceClientContent({
   
   const handleMonthChange = async (event) => {
     const newMonth = event.target.value;
-    console.log('📅 Client: Month changed to:', newMonth);
     
     setSelectedMonth(newMonth);
     setMonthDataLoading(true);
     
     try {
-      console.log('🔄 Client: Calling server action for selected month:', newMonth?.text || newMonth);
-      console.log('🔍 Client: Parameters to server action:', {
-        soldToId: userContext?.soldToId,
-        selectedMonth: newMonth
-      });
       
       // Check Redux cache first for this specific month
       const monthValue = newMonth?.value || newMonth;
@@ -1354,7 +1041,6 @@ export default function AzureInvoiceClientContent({
       let summary, credits, trend;
       
       if (isMonthCacheValid) {
-        console.log('🚀 USING CACHED MONTH DATA from Redux:', monthValue);
         summary = cachedMonthData.summaryData;
         credits = cachedMonthData.creditsData;
         trend = cachedMonthData.trendsData;
@@ -1364,7 +1050,6 @@ export default function AzureInvoiceClientContent({
         setCreditsData(credits);
         setTrendsData(trend);
       } else {
-        console.log('📡 FETCHING FRESH MONTH DATA via server action:', monthValue);
         
         // Use server action to fetch fresh data
         const result = await fetchAzureInvoiceDataForMonth(userContext?.soldToId, newMonth);
@@ -1389,43 +1074,23 @@ export default function AzureInvoiceClientContent({
           trendsData: trend
         }));
         
-        console.log('✅ Month data cached to Redux for:', monthValue);
       }
       
-      console.log('🔍 Client: Using data (cached or fresh):', { summary: !!summary, credits: !!credits, trend: !!trend });
 
       // Log the actual response data received from server action
-      console.log('📊 CLIENT: SUMMARY DATA RECEIVED (RAW):', summary);
-      console.log('📊 CLIENT: SUMMARY DATA TYPE:', typeof summary);
-      console.log('📊 CLIENT: SUMMARY DATA KEYS:', summary ? Object.keys(summary) : 'null');
-      console.log('💰 CLIENT: CREDITS DATA RECEIVED:', credits);
-      console.log('📈 CLIENT: TREND DATA RECEIVED:', trend);
 
-      console.log('✅ Client: Month-specific data received from server action', {
-        summary: summary ? 'received' : 'undefined',
-        credits: credits ? 'received' : 'undefined', 
-        trend: trend ? 'received' : 'undefined'
-      });      // Validate responses before using
       if (!summary || !credits || !trend) {
         throw new Error('One or more server responses failed for month data');
       }
       
       // Process the new data and update charts immediately
-      console.log('🔄 CLIENT: Starting data processing...');
-      console.log('🔍 CLIENT: About to process summary data:', summary);
-      console.log('🔍 CLIENT: Summary exists?', !!summary);
       const invoiceBreakdownData = summary ? processInvoiceBreakdownData(summary) : [];
-      console.log('📊 CLIENT: Processed invoiceBreakdownData LENGTH:', invoiceBreakdownData.length);
-      console.log('📊 CLIENT: Processed invoiceBreakdownData CONTENT:', invoiceBreakdownData);
       
       const monthlyTrendData = trend ? processTrendingData(trend) : [];
-      console.log('📈 CLIENT: Processed monthlyTrendData:', monthlyTrendData);
       
       const topExpensiveData = summary ? processTopExpensiveProducts(summary) : [];
-      console.log('🏆 CLIENT: Processed topExpensiveData:', topExpensiveData);
       
       const creditsApplied = credits?.creditsApplied || credits?.totalSpend || 0;
-      console.log('💰 CLIENT: Processed creditsApplied:', creditsApplied);
 
       console.log('📊 Processing month change data:', {
         invoiceBreakdownData: invoiceBreakdownData.length,
@@ -1439,12 +1104,10 @@ export default function AzureInvoiceClientContent({
         topExpensiveData,
         creditsApplied
       };
-      console.log('🔄 CLIENT: Setting new chart data:', newChartData);
       setProcessedChartData(newChartData);
 
       // Update filter options if available
       if (summary?.selectLists) {
-        console.log('📋 CLIENT: Processing selectLists:', summary.selectLists);
         const newSelectListOptions = {
           productCategory: [{ text: 'All', value: 'All' }],
           productName: [{ text: 'All', value: 'All' }],
@@ -1473,11 +1136,8 @@ export default function AzureInvoiceClientContent({
         });
         
         setSelectListOptions(newSelectListOptions);
-        console.log('📋 Filter options updated for new month');
       }
       
-      console.log('✅ Month change complete via server action - all components updated');
-      console.log('🎯 CLIENT: Final state update - setting monthDataLoading to false');
       
       setMonthDataLoading(false);
     } catch (error) {
@@ -1488,12 +1148,8 @@ export default function AzureInvoiceClientContent({
 
   // Data processing functions for mapping API responses to UI components
   const processInvoiceBreakdownData = (summaryData) => {
-    console.log('🔍 processInvoiceBreakdownData called with:', summaryData);
-    console.log('🔍 SUMMARY DATA KEYS:', summaryData ? Object.keys(summaryData) : 'null');
-    console.log('🔍 SUMMARY DATA TYPE:', typeof summaryData);
     
     if (!summaryData) {
-      console.log('⚠️ No summaryData provided');
       return [];
     }
     
@@ -1504,28 +1160,12 @@ export default function AzureInvoiceClientContent({
     
     if (summaryData.spendPeriod && summaryData.spendPeriod.spend) {
       spendArray = summaryData.spendPeriod.spend;
-      console.log('📊 Using nested structure: summaryData.spendPeriod.spend');
-      console.log('📊 NESTED SPEND ARRAY:', spendArray);
     } else if (summaryData.spend && Array.isArray(summaryData.spend)) {
       spendArray = summaryData.spend;
-      console.log('📊 Using direct structure: summaryData.spend');
-      console.log('📊 DIRECT SPEND ARRAY:', spendArray);
     } else {
-      console.log('❌ NO VALID SPEND STRUCTURE FOUND');
-      console.log('🔍 spendPeriod exists:', !!summaryData.spendPeriod);
-      console.log('🔍 spendPeriod.spend exists:', !!(summaryData.spendPeriod && summaryData.spendPeriod.spend));
-      console.log('🔍 direct spend exists:', !!summaryData.spend);
-      console.log('🔍 direct spend is array:', Array.isArray(summaryData.spend));
     }
     
     if (!spendArray || !Array.isArray(spendArray)) {
-      console.log('⚠️ Missing or invalid spend data:', {
-        hasSummaryData: !!summaryData,
-        hasSpendPeriod: !!(summaryData && summaryData.spendPeriod),
-        hasNestedSpend: !!(summaryData && summaryData.spendPeriod && summaryData.spendPeriod.spend),
-        hasDirectSpend: !!(summaryData && summaryData.spend),
-        summaryKeys: summaryData ? Object.keys(summaryData) : 'null'
-      });
       return [];
     }
     
@@ -1553,8 +1193,6 @@ export default function AzureInvoiceClientContent({
 
   // Process summary selectLists for filter dropdowns
   const processSelectLists = (summaryData) => {
-    console.log('🚀🚀🚀 PROCESS SELECT LISTS FUNCTION CALLED 🚀🚀🚀');
-    console.log('🔍 processSelectLists called with summaryData:', summaryData);
     
     const defaultLists = {
       productCategory: [{ text: 'All', value: 'All' }],
@@ -1563,53 +1201,34 @@ export default function AzureInvoiceClientContent({
     };
 
     if (!summaryData || !summaryData.selectLists) {
-      console.log('⚠️ No summaryData.selectLists found, returning defaults');
       return defaultLists;
     }
 
-    console.log('🔍 Found selectLists:', summaryData.selectLists);
-    console.log('🔍 selectLists is array?', Array.isArray(summaryData.selectLists));
-    console.log('🔍 selectLists length:', summaryData.selectLists.length);
     
     // Log all selectList names for debugging
     const selectListNames = summaryData.selectLists.map(list => list?.name);
-    console.log('🔍 ALL selectList names found:', selectListNames);
     
     // Log full structure of first few selectLists
     summaryData.selectLists.slice(0, 3).forEach((list, index) => {
-      console.log(`🔍 SelectList[${index}] FULL STRUCTURE:`, {
-        name: list?.name,
-        itemCount: list?.items?.length || 0,
-        firstItem: list?.items?.[0],
-        items: list?.items
-      });
     });
 
     const lists = { ...defaultLists };
     
     summaryData.selectLists.forEach((selectList, index) => {
       try {
-        console.log(`🔍 Processing selectList[${index}]:`, selectList);
         
         if (!selectList || typeof selectList !== 'object') {
           console.warn(`⚠️ Invalid selectList at index ${index}:`, selectList);
           return;
         }
         
-        console.log(`🔍 selectList.name: "${selectList.name}"`);
-        console.log(`🔍 selectList.items:`, selectList.items);
         
         const listName = selectList.name?.toLowerCase();
         const items = selectList.items || [];
         
-        console.log(`🔍 Normalized listName: "${listName}"`);
-        console.log(`🔍 Items count: ${items.length}`);
         
         // Debug: log the first few items to see their structure
         if (Array.isArray(items) && items.length > 0) {
-          console.log(`🔍 First item structure:`, items[0]);
-          console.log(`🔍 First item type:`, typeof items[0]);
-          console.log(`🔍 First item keys:`, typeof items[0] === 'object' ? Object.keys(items[0]) : 'not an object');
         }
       } catch (error) {
         console.error(`❌ Error in selectList processing at index ${index}:`, error);
@@ -1617,8 +1236,6 @@ export default function AzureInvoiceClientContent({
       }
       
       try {
-        console.log(`🔍 CHECKING MATCH: listName="${listName}" vs expected values`);
-        console.log(`🔍 RAW selectList.name: "${selectList.name}"`);
         
         // Process items into proper format first
         const processedItems = Array.isArray(items) ? items.map(item => {
@@ -1629,7 +1246,6 @@ export default function AzureInvoiceClientContent({
           };
         }).filter(Boolean) : [];
         
-        console.log(`🔍 Processed ${processedItems.length} items from selectList`);
         
         // Direct name-based assignment - exact match first, then flexible
         if (processedItems.length > 0) {
@@ -1637,35 +1253,27 @@ export default function AzureInvoiceClientContent({
           
           // Direct exact matches for known API names
           if (selectList.name === 'productcategory') {
-            console.log(`✅ EXACT MATCH: "${selectList.name}" → productCategory (${processedItems.length} items)`);
             lists.productCategory = finalList;
           }
           else if (selectList.name === 'productname') {
-            console.log(`✅ EXACT MATCH: "${selectList.name}" → productName (${processedItems.length} items)`);
             lists.productName = finalList;
           }
           else if (selectList.name === 'skuname') {
-            console.log(`✅ EXACT MATCH: "${selectList.name}" → skuName (${processedItems.length} items)`);
             lists.skuName = finalList;
           }
           // Fallback flexible matching
           else if (listName.includes('category') && lists.productCategory.length === 1) {
-            console.log(`✅ PARTIAL MATCH: "${selectList.name}" → productCategory (${processedItems.length} items)`);
             lists.productCategory = finalList;
           }
           else if ((listName.includes('product') || listName.includes('name')) && lists.productName.length === 1) {
-            console.log(`✅ PARTIAL MATCH: "${selectList.name}" → productName (${processedItems.length} items)`);
             lists.productName = finalList;
           }
           else if (listName.includes('sku') && lists.skuName.length === 1) {
-            console.log(`✅ PARTIAL MATCH: "${selectList.name}" → skuName (${processedItems.length} items)`);
             lists.skuName = finalList;
           }
           else {
-            console.log(`⏭️ NO MATCH: "${selectList.name}" (${processedItems.length} items) - no appropriate dropdown found`);
           }
         } else {
-          console.log(`❌ SKIPPING: "${selectList.name}" - no valid items (${items?.length} raw items)`);
         }
         
 
@@ -1675,17 +1283,7 @@ export default function AzureInvoiceClientContent({
       }
     });
 
-    console.log('🎯 Final processed selectLists:', lists);
-    console.log('🎯 FINAL COUNTS:');
-    console.log('🎯 productCategory count:', lists.productCategory.length);
-    console.log('🎯 productName count:', lists.productName.length);
-    console.log('🎯 skuName count:', lists.skuName.length);
     
-    console.log('🔍 FINAL RETURN VALUE:', {
-      productCategory: lists.productCategory,
-      productName: lists.productName,
-      skuName: lists.skuName
-    });
     
     return lists;
   };
@@ -1757,7 +1355,6 @@ export default function AzureInvoiceClientContent({
   // Cache SSR data to Redux for fast subsequent loads
   useEffect(() => {
     if (mode === 'true-ssr' && !useReduxData && userContext?.soldToId) {
-      console.log('🏪 CACHING SSR DATA TO REDUX for fast subsequent loads');
       
       // Validate session and cache data
       dispatch(validateSession({ soldToId: userContext.soldToId }));
@@ -1771,70 +1368,51 @@ export default function AzureInvoiceClientContent({
         userContext
       }));
       
-      console.log('✅ Raw SSR data cached to Redux');
       
       // Also cache processed data to avoid reprocessing on refresh
       setTimeout(() => {
-        console.log('🏪 CACHING PROCESSED DATA TO REDUX...');
         
         // Cache processed chart data if available
         if (processedChartData?.invoiceBreakdownData?.length > 0) {
           dispatch(setProcessedChartDataRedux(processedChartData));
-          console.log('✅ Processed chart data cached to Redux');
         }
         
         // Cache select list options if available  
         if (selectListOptions?.productCategory?.length > 1) {
           dispatch(setSelectListOptionsRedux(selectListOptions));
-          console.log('✅ Select list options cached to Redux');
         }
         
         // Cache invoice months if available
         if (invoiceMonths?.length > 0) {
           dispatch(setInvoiceMonthsRedux(invoiceMonths));
-          console.log('✅ Invoice months cached to Redux');
         }
         
         // Cache selected month if available
         if (selectedMonth) {
           dispatch(setSelectedMonthRedux(selectedMonth));
-          console.log('✅ Selected month cached to Redux');
         }
         
-        console.log('🎉 COMPLETE CACHE READY - Next page load will be instant!');
       }, 100); // Small delay to ensure state is updated
       
     } else if (useReduxData) {
-      console.log('🚀 USING CACHED REDUX DATA - No SSR caching needed');
     }
   }, [mode, useReduxData, userContext?.soldToId, processedChartData, selectListOptions, invoiceMonths, selectedMonth]);
   
   // SIMPLIFIED TEST - Direct state update without complex processing
   useEffect(() => {
-    console.log('🔥🔥🔥 SIMPLIFIED TEST useEffect FIRED! 🔥🔥🔥');
     
     // 🛑 IMMEDIATE CACHE ABORT - No test processing if cache available
     if (shouldSkipAllProcessing) {
-      console.log('⚡⚡⚡ ABORTING TEST PROCESSING - CACHE BYPASS ENGAGED!');
-      console.log('⚡ Cache source:', dataSource);
-      console.log('⚡ Available cached data:', {
-        processedChartData: !!processedChartData?.invoiceBreakdownData?.length,
-        selectListOptions: !!selectListOptions?.productCategory?.length,
-        invoiceMonths: !!invoiceMonths?.length
-      });
       return;
     }
     
-    console.log('🔥 Mode:', mode);
     
     // Skip if we already have cached data loaded
     if (useReduxData && processedChartData?.invoiceBreakdownData?.length > 0) {
-      console.log('🚀 SKIPPING TEST PROCESSING - Using cached data from Redux!');
       return;
     }
     
     // Force immediate state update - no conditions, no complex logic
-    console.log('🧪 SETTING STATE TO TEST VALUES...');
     
     const testChartData = {
       invoiceBreakdownData: [
@@ -1853,26 +1431,15 @@ export default function AzureInvoiceClientContent({
       creditsApplied: 46.10
     };
     
-    console.log('🧪 Previous state:', processedChartData);
-    console.log('🧪 New state being set:', testChartData);
     setProcessedChartData(testChartData);
     
-    console.log('🧪 setProcessedChartData CALLED!');
     
     // Now populate the dropdowns with server data
-    console.log('🔄 Populating dropdowns...');
     
     // Debug months data structure
-    console.log('📅 actualInitialMonthsData:', actualInitialMonthsData);
-    console.log('📅 actualInitialMonthsData keys:', actualInitialMonthsData ? Object.keys(actualInitialMonthsData) : 'none');
-    console.log('📅 invoiceMonths exists?', !!actualInitialMonthsData?.invoiceMonths);
     
     // DISABLED: This conflicts with SIMPLE processing above
     if (false && actualInitialMonthsData?.invoiceMonths) {
-      console.log('📅 DISABLED: This months processing is disabled to avoid conflicts');
-      console.log('📅 Found invoice months:', actualInitialMonthsData.invoiceMonths.length);
-      console.log('📅 First month sample:', actualInitialMonthsData.invoiceMonths[0]);
-      console.log('📅 All months raw data:', JSON.stringify(actualInitialMonthsData.invoiceMonths, null, 2));
       
       const processedMonths = actualInitialMonthsData.invoiceMonths.map(month => ({
         text: month.text,  // Keep as 'text' since that's what HTML select uses
@@ -1880,14 +1447,11 @@ export default function AzureInvoiceClientContent({
         date: month.date
       }));
       
-      console.log('📅 Processed months:', processedMonths.length, processedMonths);
       setInvoiceMonths(processedMonths);
       
       // Set default selected month
-      console.log('📅 Setting default month:', processedMonths[0]);
       setSelectedMonth(processedMonths[0]);
     } else if (actualInitialMonthsData && Array.isArray(actualInitialMonthsData)) {
-      console.log('📅 months data is direct array:', actualInitialMonthsData.length);
       const processedArray = actualInitialMonthsData.map(month => ({
         text: month.text,
         value: month.value,
@@ -1896,14 +1460,12 @@ export default function AzureInvoiceClientContent({
       setInvoiceMonths(processedArray);
       setSelectedMonth(processedArray[0]);
     } else if (actualInitialMonthsData && typeof actualInitialMonthsData === 'object') {
-      console.log('📅 Checking for other possible month structures...');
       // Try different possible structures
       const possibleMonths = actualInitialMonthsData.months || 
                             actualInitialMonthsData.data || 
                             actualInitialMonthsData.items;
       
       if (possibleMonths && Array.isArray(possibleMonths)) {
-        console.log('📅 Found months in alternate structure:', possibleMonths.length);
         const processedAlt = possibleMonths.map(month => ({
           text: month.text,
           value: month.value,
@@ -1912,16 +1474,10 @@ export default function AzureInvoiceClientContent({
         setInvoiceMonths(processedAlt);
         setSelectedMonth(processedAlt[0]);
       } else {
-        console.log('📅 NO MONTHS DATA FOUND IN OBJECT!');
-        console.log('📅 actualInitialMonthsData keys:', Object.keys(actualInitialMonthsData));
-        console.log('📅 actualInitialMonthsData stringified:', JSON.stringify(actualInitialMonthsData, null, 2));
       }
     } else {
-      console.log('📅 NO MONTHS DATA FOUND AT ALL!');
-      console.log('📅 actualInitialMonthsData:', actualInitialMonthsData);
       
       // Add test data to verify dropdown works
-      console.log('📅 Setting TEST MONTHS data to verify dropdown functionality...');
       const testMonths = [
         { text: 'December 2024', value: '202412', date: '2024-12-01' },
         { text: 'November 2024', value: '202411', date: '2024-11-01' },
@@ -1929,11 +1485,9 @@ export default function AzureInvoiceClientContent({
       ];
       setInvoiceMonths(testMonths);
       setSelectedMonth(testMonths[0]);
-      console.log('📅 Test months set:', testMonths);
     }
     
     if (actualInitialSummaryData?.selectLists) {
-      console.log('📋 Setting select lists:', actualInitialSummaryData.selectLists.length, 'lists');
       
       const processedLists = {
         productCategory: [{ text: 'All', value: 'All' }],
@@ -1963,49 +1517,31 @@ export default function AzureInvoiceClientContent({
       });
       
       setSelectListOptions(processedLists);
-      console.log('📋 Select lists updated:', processedLists);
     }
     
     if (true) { // Enable SIMPLE processing for months data only
-      console.log('🚀 TRUE-SSR: SIMPLE Processing - months data only...');
       
       // 🛑 CRITICAL CACHE CHECK - Skip SSR processing if cache is available
       if (shouldSkipAllProcessing) {
-        console.log('⚡⚡⚡ CACHE BYPASS - Skipping TRUE-SSR SIMPLE processing!');
-        console.log('⚡ Cache source:', dataSource);
-        console.log('⚡ Available cached data:', {
-          processedChartData: !!processedChartData?.invoiceBreakdownData?.length,
-          selectListOptions: !!selectListOptions?.productCategory?.length,
-          invoiceMonths: !!invoiceMonths?.length
-        });
         return;
       }
       
       // JUST PROCESS MONTHS - SKIP COMPLEX CHART PROCESSING
       try {
-        console.log('📅 SIMPLE: Processing months data...');
         if (actualInitialMonthsData?.invoiceMonths) {
-          console.log('📅 SIMPLE: Found', actualInitialMonthsData.invoiceMonths.length, 'months');
           const processedMonths = actualInitialMonthsData.invoiceMonths.map(month => ({
             text: month.text,
             value: month.value,
             date: month.date,
             __source: 'SIMPLE_PROCESSING' // Track source
           }));
-          console.log('📅 SIMPLE: About to set state with months:', processedMonths);
           setInvoiceMonths(processedMonths);
           setSelectedMonth(processedMonths[0]);
-          console.log('✅ SIMPLE: Months processed successfully!', processedMonths.length);
           
           // Verify state update with a timeout
           setTimeout(() => {
-            console.log('🔍 VERIFICATION: State after 100ms:', {
-              invoiceMonthsLength: document.querySelector('select')?.options.length || 'no select found',
-              selectedValue: document.querySelector('select')?.value || 'no select found'
-            });
           }, 100);
         } else {
-          console.log('❌ SIMPLE: No months data found');
         }
         
         // Set simple success state
@@ -2033,91 +1569,31 @@ export default function AzureInvoiceClientContent({
         console.error('❌ SIMPLE: Error in simple processing:', error);
       }
       
-      console.log('🔥 Available server data:', {
-        actualInitialSummaryData: !!actualInitialSummaryData,
-        actualInitialTrendsData: !!actualInitialTrendsData,
-        actualInitialMonthsData: !!actualInitialMonthsData,
-        actualInitialCreditsData: !!actualInitialCreditsData
-      });
       
       // Deep debug the data structure
-      console.log('🔥 Deep data structure:', {
-        summaryData: actualInitialSummaryData,
-        trendsData: actualInitialTrendsData,
-        monthsData: actualInitialMonthsData,
-        creditsData: actualInitialCreditsData
-      });
       
       try {
-        console.log('🔄 Step 1: Processing invoice breakdown data...');
-        console.log('🔄 Step 1a: actualInitialSummaryData structure:', {
-          exists: !!actualInitialSummaryData,
-          keys: actualInitialSummaryData ? Object.keys(actualInitialSummaryData) : 'none',
-          spendPeriod: actualInitialSummaryData?.spendPeriod ? 'exists' : 'missing',
-          spendPeriodKeys: actualInitialSummaryData?.spendPeriod ? Object.keys(actualInitialSummaryData.spendPeriod) : 'none',
-          spend: actualInitialSummaryData?.spendPeriod?.spend ? `array of ${actualInitialSummaryData.spendPeriod.spend.length} items` : 'missing'
-        });
         const invoiceBreakdownData = actualInitialSummaryData ? processInvoiceBreakdownData(actualInitialSummaryData) : [];
         console.log('✅ Step 1 completed:', invoiceBreakdownData?.length, invoiceBreakdownData);
         
-        console.log('🔄 Step 2: Processing trending data...');
-        console.log('🔄 Step 2a: actualInitialTrendsData structure:', {
-          exists: !!actualInitialTrendsData,
-          keys: actualInitialTrendsData ? Object.keys(actualInitialTrendsData) : 'none',
-          type: typeof actualInitialTrendsData,
-          isArray: Array.isArray(actualInitialTrendsData),
-          length: actualInitialTrendsData?.length || 'no length property'
-        });
         const monthlyTrendData = actualInitialTrendsData ? processTrendingData(actualInitialTrendsData) : [];
         console.log('✅ Step 2 completed:', monthlyTrendData?.length, 'processed data:', monthlyTrendData);
         
-        console.log('🔄 Step 3: Processing top expensive data...');
-        console.log('🔄 Step 3a: actualInitialSummaryData for top expensive:', {
-          exists: !!actualInitialSummaryData,
-          hasTopNExpensiveProducts: !!actualInitialSummaryData?.topNExpensiveProducts,
-          topExpensiveKeys: actualInitialSummaryData?.topNExpensiveProducts ? Object.keys(actualInitialSummaryData.topNExpensiveProducts) : 'none',
-          topExpensiveSpend: actualInitialSummaryData?.topNExpensiveProducts?.spend ? `array of ${actualInitialSummaryData.topNExpensiveProducts.spend.length} items` : 'missing'
-        });
         const topExpensiveData = actualInitialSummaryData ? processTopExpensiveProducts(actualInitialSummaryData) : [];
         console.log('✅ Step 3 completed:', topExpensiveData?.length, 'processed data:', topExpensiveData);
         
-        console.log('🔄 Step 4: Processing credits...');
-        console.log('🔄 Step 4a: actualInitialCreditsData structure:', {
-          exists: !!actualInitialCreditsData,
-          keys: actualInitialCreditsData ? Object.keys(actualInitialCreditsData) : 'none',
-          totalSpend: actualInitialCreditsData?.totalSpend,
-          type: typeof actualInitialCreditsData?.totalSpend,
-          oldCreditsTotal: actualInitialCreditsData?.creditsTotal
-        });
         const creditsApplied = actualInitialCreditsData?.totalSpend || 0;
         console.log('✅ Step 4 completed:', creditsApplied);
         
-        console.log('🔄 Step 5: Processing months data...');
         const monthsSource = actualInitialMonthsData?.invoiceMonths || actualInitialMonthsData;
-        console.log('🔄 Step 5a: monthsSource:', monthsSource);
         const processedMonths = processInvoiceMonths(monthsSource) || [];
         console.log('✅ Step 5 completed:', processedMonths?.length);
         
-        console.log('🔄 Step 6: Processing select lists...');
         const processedSelectLists = processSelectLists(actualInitialSummaryData);
         console.log('✅ Step 6 completed:', processedSelectLists);
         
-        console.log('✅ TRUE-SSR: Data processed successfully!', {
-          invoiceBreakdownData: invoiceBreakdownData.length,
-          monthlyTrendData: monthlyTrendData.length,
-          topExpensiveData: topExpensiveData.length,
-          creditsApplied,
-          processedMonths: processedMonths.length,
-          selectLists: processedSelectLists
-        });
         
         // Update all state at once
-        console.log('🔥 ABOUT TO SET processedChartData with:', {
-          invoiceBreakdownData: invoiceBreakdownData.length,
-          monthlyTrendData: monthlyTrendData.length,
-          topExpensiveData: topExpensiveData.length,
-          creditsApplied
-        });
         
         const newChartDataObj = {
           invoiceBreakdownData,
@@ -2126,75 +1602,42 @@ export default function AzureInvoiceClientContent({
           creditsApplied
         };
         
-        console.log('🔄 CLIENT: CURRENT processedChartData:', processedChartData);
-        console.log('🆕 CLIENT: NEW chart data object:', newChartDataObj);
-        console.log('📊 CLIENT: SUMMARY invoiceBreakdownData LENGTH:', invoiceBreakdownData?.length || 0);
-        console.log('📊 CLIENT: SUMMARY invoiceBreakdownData CONTENT:', invoiceBreakdownData);
-        console.log('📊 CLIENT: DATA WILL CHANGE?', JSON.stringify(processedChartData) !== JSON.stringify(newChartDataObj));
         
         setProcessedChartData(newChartDataObj);
         
-        console.log('🔥 setProcessedChartData CALLED');
         
-        console.log('🗓️ ABOUT TO SET invoiceMonths with:', processedMonths);
         setInvoiceMonths(processedMonths);
         dispatch(setInvoiceMonthsRedux(processedMonths)); // Sync to Redux
-        console.log('🗓️ setInvoiceMonths CALLED (Local + Redux)');
         
-        console.log('📋 ABOUT TO SET selectListOptions with:', processedSelectLists);
         setSelectListOptions(processedSelectLists);
-        console.log('📋 setSelectListOptions CALLED');
         
         // Set default selected month
         if (processedMonths.length > 0) {
           setSelectedMonth(processedMonths[0]);
         }
         
-        console.log('✅ TRUE-SSR: All data state updated - components should now populate!');
         
         // Verify state was actually updated
         setTimeout(() => {
-          console.log('🔍 STATE VERIFICATION - After setProcessedChartData (500ms later):', {
-            invoiceBreakdownDataLength: processedChartData.invoiceBreakdownData?.length,
-            monthlyTrendDataLength: processedChartData.monthlyTrendData?.length,
-            topExpensiveDataLength: processedChartData.topExpensiveData?.length,
-            creditsApplied: processedChartData.creditsApplied,
-            fullState: processedChartData
-          });
         }, 500);
         
       } catch (error) {
         console.error('❌ TRUE-SSR: Error processing server data:', error);
       }
     } else {
-      console.log('🚫 TRUE-SSR useEffect skipped because mode is not true-ssr. Current mode:', mode);
     }
   }, [mode]); // Only run when mode changes or on mount
 
   // Separate useEffect to verify processedChartData state updates
   useEffect(() => {
-    console.log('🎯 processedChartData state changed:', {
-      invoiceBreakdownDataLength: processedChartData.invoiceBreakdownData?.length,
-      monthlyTrendDataLength: processedChartData.monthlyTrendData?.length,
-      topExpensiveDataLength: processedChartData.topExpensiveData?.length,
-      creditsApplied: processedChartData.creditsApplied,
-      timestamp: new Date().toISOString()
-    });
   }, [processedChartData]);
 
   // Track invoiceMonths state updates
   useEffect(() => {
-    console.log('🗓️ invoiceMonths state changed:', {
-      length: invoiceMonths?.length,
-      firstMonth: invoiceMonths?.[0],
-      lastMonth: invoiceMonths?.[invoiceMonths?.length - 1],
-      timestamp: new Date().toISOString()
-    });
   }, [invoiceMonths]);
 
   // Helper function to update both local and Redux state
   const setSelectListOptions = (newOptions) => {
-    console.log('📋 UPDATING SELECT LIST OPTIONS - Local + Redux');
     setSelectListOptionsLocal(newOptions);
     dispatch(setSelectListOptionsRedux(newOptions));
   };
@@ -2418,9 +1861,7 @@ export default function AzureInvoiceClientContent({
                 </option>
               ))}
             </select>
-            <div style={{ fontSize: '10px', color: '#999', marginLeft: '10px' }}>
-              Debug: {invoiceMonths?.length || 0} months, selected: {selectedMonth?.text || 'none'}
-            </div>
+
             {monthDataLoading && (
               <span style={{ color: '#6c757d', fontSize: '14px' }}>
                 Loading month data...
@@ -2435,15 +1876,12 @@ export default function AzureInvoiceClientContent({
               <select
                 value={productCategoryFilter?.value || 'All'}
                 onChange={(e) => {
-                  console.log('🔄 Category dropdown changed to:', e.target.value);
                   const selected = selectListOptions.productCategory.find(item => item.value === e.target.value);
-                  console.log('🔍 Selected category object:', selected);
                   setProductCategoryFilter(selected);
                 }}
                 style={{ width: '150px', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
               >
                 {(() => {
-                  console.log('🔍 Rendering productCategory dropdown with options:', selectListOptions.productCategory);
                   return selectListOptions.productCategory.map(item => (
                     <option key={item.value} value={item.value}>
                       {item.text}
@@ -2516,7 +1954,17 @@ export default function AzureInvoiceClientContent({
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontSize: '14px', color: '#6c757d', marginBottom: '5px' }}>Invoice Total</div>
           <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#28a745' }}>
-            ${summaryData?.spendPeriod?.totalSpend?.toFixed(2) || creditsData?.totalSpend?.toFixed(2) || '0.00'}
+            ${(() => {
+              const summaryValue = summaryData?.spendPeriod?.totalSpend?.toFixed(2);
+              const creditsValue = creditsData?.totalSpend?.toFixed(2);
+              console.log('💰 INVOICE TOTAL DEBUG:', {
+                summaryData_spendPeriod_totalSpend: summaryData?.spendPeriod?.totalSpend,
+                summaryValue,
+                creditsValue,
+                result: summaryValue || creditsValue || '0.00'
+              });
+              return summaryValue || creditsValue || '0.00';
+            })()}
           </div>
           {/* Debug: Show what values we have */}
           <div style={{ fontSize: '10px', color: '#999' }}>
@@ -2630,13 +2078,6 @@ export default function AzureInvoiceClientContent({
                   Invoice Breakdown
                 </p>
                 {(() => {
-                  console.log('📈 Chart Render Check:', {
-                    isClient: isClient,
-                    chartsLoaded: chartsLoaded,
-                    conditionMet: isClient && chartsLoaded,
-                    invoiceBreakdownDataLength: processedChartData.invoiceBreakdownData?.length || 0,
-                    hasChartData: !!(processedChartData.invoiceBreakdownData && processedChartData.invoiceBreakdownData.length > 0)
-                  });
                   return (isClient && chartsLoaded);
                 })() && processedChartData.invoiceBreakdownData?.length > 0 ? (
                   <div style={{ 
