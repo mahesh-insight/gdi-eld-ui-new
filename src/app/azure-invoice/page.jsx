@@ -44,6 +44,11 @@ export default function AzureInvoicePage() {
     // Continue with empty cache data
   }
   
+  // Set page title
+  useEffect(() => {
+    document.title = 'Azure Invoice';
+  }, []);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setStoreReady(true);
