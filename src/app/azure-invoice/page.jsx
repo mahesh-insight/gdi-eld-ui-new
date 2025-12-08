@@ -108,11 +108,12 @@ export default function AzureInvoicePage() {
       if (isCacheValid) {
         console.log(`⚡ CLIENT: Using CACHED data (age: ${Math.floor(cacheAge / 1000)}s)`);
         
+        // Wrap cached data in same structure as server actions {error, data}
         const cachedInitialData = {
-          monthsResponse: cachedData.monthsData,
-          summaryResponse: cachedData.summaryData,
-          creditsResponse: cachedData.creditsData,
-          trendsResponse: cachedData.trendsData
+          monthsResponse: { error: null, data: cachedData.monthsData },
+          summaryResponse: { error: null, data: cachedData.summaryData },
+          creditsResponse: { error: null, data: cachedData.creditsData },
+          trendsResponse: { error: null, data: cachedData.trendsData }
         };
         
         setInitialData(cachedInitialData);

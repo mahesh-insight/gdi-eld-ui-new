@@ -64,9 +64,15 @@ const azureInvoiceSlice = createSlice({
     
     // SSR Data caching actions
     setInitialSSRData: (state, action) => {
-      const { monthsData, summaryData, creditsData, trendsData, userContext } = action.payload || {};
+      if (!action?.payload) {
+        console.warn('🏪 REDUX: setInitialSSRData called with no payload');
+        return;
+      }
+      
+      const { monthsData, summaryData, creditsData, trendsData, userContext } = action.payload;
       
       console.log('🏪 REDUX: Setting initial SSR data:', {
+        hasPayload: !!action.payload,
         monthsData: !!monthsData,
         summaryData: !!summaryData,
         creditsData: !!creditsData,
