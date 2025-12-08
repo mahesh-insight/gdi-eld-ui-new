@@ -26,18 +26,8 @@ export default function Loading() {
         fontSize: '24px',
         fontWeight: '600'
       }}>
-        Loading Azure Invoice
+        Loading
       </h1>
-      
-      <p style={{ 
-        margin: '0', 
-        color: '#666', 
-        textAlign: 'center',
-        fontSize: '16px',
-        lineHeight: '1.5'
-      }}>
-        Fetching your latest invoice data and analytics...
-      </p>
       
       
       <style dangerouslySetInnerHTML={{

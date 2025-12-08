@@ -665,14 +665,6 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
               margin: '0 auto 20px auto'
             }}></div>
             
-            <h3 style={{ 
-              marginBottom: '15px', 
-              color: '#333',
-              fontSize: '18px',
-              fontWeight: 'bold'
-            }}>
-              {isProcessing ? 'Processing Authentication' : 'Initializing Authentication'}
-            </h3>
             
             <p style={{ 
               color: '#666', 

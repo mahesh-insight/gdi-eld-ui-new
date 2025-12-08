@@ -1,8 +1,23 @@
 // src/store/store.js
 import { configureStore } from '@reduxjs/toolkit';
 import { persistStore, persistReducer } from 'redux-persist';
-import storage from 'redux-persist/lib/storage';
 import { combineReducers } from '@reduxjs/toolkit';
+
+// Create conditional storage that works on both client and server
+let storage;
+if (typeof window !== 'undefined') {
+  // Client-side
+  storage = require('redux-persist/lib/storage').default;
+} else {
+  // Server-side - use a no-op storage
+  storage = {
+    getItem: () => Promise.resolve(null),
+    setItem: () => Promise.resolve(),
+    removeItem: () => Promise.resolve(),
+  };
+}
+
+console.log('🔧 Redux Persist Storage:', typeof window !== 'undefined' ? 'Client (localStorage)' : 'Server (no-op)');
 
 // Import slices
 import authSlice from './authSlice';
@@ -38,11 +53,62 @@ const authPersistConfig = {
   ]
 };
 
-// Root reducer combining all slices
+// Persist configuration for Azure Invoice slice - cache data for fast loading
+const azureInvoicePersistConfig = {
+  key: 'ccr-azure-invoice',
+  storage,
+  whitelist: [
+    'monthsData', 
+    'summaryData', 
+    'creditsData', 
+    'trendsData',
+    'monthDataCache',
+    'invoiceMonths',
+    'selectedMonth',
+    'processedChartData',
+    'selectListOptions',
+    'cacheMetadata'
+  ], // Cache all important data for fast loading
+  transforms: [
+    {
+      in: (inboundState, key) => {
+        // Validate and clean cache data before persisting
+        if (!inboundState || typeof inboundState !== 'object') {
+          return {};
+        }
+        
+        // Clean old cache entries (older than 1 hour)
+        if (inboundState.monthDataCache) {
+          const oneHourAgo = Date.now() - (60 * 60 * 1000);
+          const cleanedCache = {};
+          
+          Object.entries(inboundState.monthDataCache).forEach(([month, data]) => {
+            if (data.timestamp && data.timestamp > oneHourAgo) {
+              cleanedCache[month] = data;
+            }
+          });
+          
+          inboundState.monthDataCache = cleanedCache;
+        }
+        
+        return inboundState;
+      },
+      out: (outboundState, key) => {
+        // Ensure rehydrated state is valid
+        if (!outboundState || typeof outboundState !== 'object') {
+          return {};
+        }
+        return outboundState;
+      }
+    }
+  ]
+};
+
+// Root reducer combining all slices with persistence
 const rootReducer = combineReducers({
   auth: persistReducer(authPersistConfig, authSlice),
   ui: uiSlice,
-  azureInvoice: azureInvoiceSlice,
+  azureInvoice: persistReducer(azureInvoicePersistConfig, azureInvoiceSlice),
   page: pageSlice,
   user: userSlice,
   grid: gridSlice,
@@ -89,14 +155,32 @@ export const persistor = persistStore(store, null, () => {
 
 // Add error handling for corrupted persist data
 if (typeof window !== 'undefined') {
+  // Clean up auth persist data
   try {
-    const persistData = localStorage.getItem('persist:ccr-auth');
-    if (persistData) {
-      JSON.parse(persistData);
+    const authPersistData = localStorage.getItem('persist:ccr-auth');
+    if (authPersistData) {
+      JSON.parse(authPersistData);
     }
   } catch (error) {
-    console.warn('🔧 Corrupted persist data detected, clearing...', error);
+    console.warn('🔧 Corrupted auth persist data detected, clearing...', error);
     localStorage.removeItem('persist:ccr-auth');
+  }
+  
+  // Clean up Azure Invoice persist data
+  try {
+    const azurePersistData = localStorage.getItem('persist:ccr-azure-invoice');
+    if (azurePersistData) {
+      const parsed = JSON.parse(azurePersistData);
+      // Check cache age and clear if too old (1 day)
+      const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+      if (parsed.cacheMetadata && parsed.cacheMetadata.lastUpdated < oneDayAgo) {
+        console.log('🧹 Azure Invoice cache expired (>24h), clearing...');
+        localStorage.removeItem('persist:ccr-azure-invoice');
+      }
+    }
+  } catch (error) {
+    console.warn('🔧 Corrupted Azure Invoice persist data detected, clearing...', error);
+    localStorage.removeItem('persist:ccr-azure-invoice');
   }
 }
 

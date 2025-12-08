@@ -513,18 +513,34 @@ export async function fetchAzureInvoiceDataForMonth(clientSoldToId, selectedMont
     const filterQuery = [];
     const trendFilter = "";
     
-    console.log(`🔄 Server Action: Fetching data for month ${currentMonthValue}`);
+    console.log(`🔄 Server Action: Fetching data for month ${currentMonthValue} with soldToId: ${soldToId}`);
     
     // Parallel API calls for the selected month
     const [summary, credits, trend] = await Promise.allSettled([
-      fetchInvoiceSummary({ soldToId, value: currentMonthValue, filter: filterQuery }),
-      fetchInvoiceCredits({ soldToId, value: currentMonthValue, filter: filterQuery }),
-      fetchInvoiceTrend({ soldToId, months: 6, filter: trendFilter }),
+      fetchInvoiceSummary({ soldToId, value: currentMonthValue, filter: filterQuery, accessToken }),
+      fetchInvoiceCredits({ soldToId, value: currentMonthValue, filter: filterQuery, accessToken }),
+      fetchInvoiceTrend({ soldToId, months: 6, filter: trendFilter, accessToken }),
     ]);
     
     const totalTime = Date.now() - startTime;
     console.log(`✅ Server Action: Month-specific data fetched in ${totalTime}ms`);
-    
+    console.log('🔍 API Results:', {
+      summary: summary.status === 'fulfilled' ? 'SUCCESS' : `ERROR: ${summary.reason}`,
+      credits: credits.status === 'fulfilled' ? 'SUCCESS' : `ERROR: ${credits.reason}`,
+      trend: trend.status === 'fulfilled' ? 'SUCCESS' : `ERROR: ${trend.reason}`,
+    });
+
+    // Log actual response data
+    if (summary.status === 'fulfilled') {
+      console.log('📊 SUMMARY API RESPONSE:', JSON.stringify(summary.value, null, 2));
+    }
+    if (credits.status === 'fulfilled') {
+      console.log('💰 CREDITS API RESPONSE:', JSON.stringify(credits.value, null, 2));
+    }
+    if (trend.status === 'fulfilled') {
+      console.log('📈 TREND API RESPONSE:', JSON.stringify(trend.value, null, 2));
+    }
+
     return {
       error: null,
       data: {
