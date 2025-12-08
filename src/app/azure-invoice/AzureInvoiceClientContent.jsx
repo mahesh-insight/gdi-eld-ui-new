@@ -1090,6 +1090,11 @@ export default function AzureInvoiceClientContent({
         credits = resultData.credits;
         trend = resultData.trend;
         
+        // Update current data state
+        setSummaryData(summary);
+        setCreditsData(credits);
+        setTrendsData(trend);
+        
         // Cache the new month data in Redux
         dispatch(setMonthData({
           monthValue,
