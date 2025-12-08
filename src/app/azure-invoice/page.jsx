@@ -100,7 +100,7 @@ export default function AzureInvoicePage() {
       const isCacheValid = cacheMetadata && 
                           cachedData &&
                           cacheAge && 
-                          cacheAge < 5 * 60 * 1000 && // 5 minutes
+                          cacheAge < 10 * 60 * 1000 && // 10 minutes
                           cacheMetadata.soldToId === soldToId &&
                           cachedData.monthsData && 
                           cachedData.summaryData;

@@ -296,7 +296,7 @@ export async function fetchAzureInvoiceDataServer(clientSoldToId = null) {
     const authTime = Date.now() - startTime;
     console.log(`⚡ Server Action: Auth check completed in ${authTime}ms, checking cache for soldToId: ${soldToId}`);
     
-    // OPTIMIZATION: Use cache with 5-minute TTL for performance
+    // OPTIMIZATION: Use cache with 10-minute TTL for performance
     const cacheKey = `azure-invoice-data:${soldToId}`;
     console.log(`🗂️ Server Action: Using cache key: ${cacheKey}`);
     

@@ -47,4 +47,5 @@ export const CacheTTL = {
   API_RESPONSE: 5 * 60 * 1000,    // 5 minutes
   CONFIGURATION: 60 * 60 * 1000,  // 1 hour
   REPORTS: 15 * 60 * 1000,        // 15 minutes
+  AZURE_INVOICE_DATA: 10 * 60 * 1000, // 10 minutes
 };

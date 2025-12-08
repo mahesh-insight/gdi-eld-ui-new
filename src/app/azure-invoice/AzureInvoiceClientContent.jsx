@@ -745,7 +745,7 @@ export default function AzureInvoiceClientContent({
             const cachedData = JSON.parse(cached);
             const cacheAge = Date.now() - cachedData.timestamp;
             
-            if (cacheAge < 5 * 60 * 1000) { // 5 minutes
+            if (cacheAge < 10 * 60 * 1000) { // 10 minutes
               console.log('🚀 CACHE HIT! Loading from localStorage', { 
                 cacheAgeMs: cacheAge,
                 soldToId: soldToId.substring(0, 20) + '...'
@@ -1659,7 +1659,6 @@ export default function AzureInvoiceClientContent({
                   ));
                 })()}
               </select>
-              <div style={{ fontSize: '8px', color: '#999' }}>({selectListOptions.productCategory?.length || 0} items)</div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -2039,35 +2038,123 @@ export default function AzureInvoiceClientContent({
       </div>
 
       {/* Raw Data Debug (for development) */}
-      <details style={{ marginTop: '30px' }}>
-        <summary style={{ 
-          cursor: 'pointer', 
-          padding: '10px', 
-          backgroundColor: '#e9ecef', 
-          border: '1px solid #ced4da',
-          borderRadius: '5px'
-        }}>
-          🔍 Debug: Raw Data Structure (Click to expand)
-        </summary>
-        <div style={{ 
-          padding: '15px', 
-          backgroundColor: '#f8f9fa', 
-          border: '1px solid #ced4da',
-          borderRadius: '0 0 5px 5px',
-          fontSize: '12px',
-          fontFamily: 'monospace',
-          maxHeight: '300px',
-          overflow: 'auto'
-        }}>
-          <div><strong>Invoice Months:</strong> {JSON.stringify(invoiceMonthsData, null, 2)}</div>
-          <hr />
-          <div><strong>Summary Data:</strong> {JSON.stringify(summaryData, null, 2)}</div>
-          <hr />
-          <div><strong>Credits Data:</strong> {JSON.stringify(creditsData, null, 2)}</div>
-          <hr />
-          <div><strong>Trends Data:</strong> {JSON.stringify(trendsData, null, 2)}</div>
-        </div>
-      </details>
+      <div style={{ marginTop: '30px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        {/* Invoice Months Data */}
+        <details open>
+          <summary style={{ 
+            cursor: 'pointer', 
+            padding: '10px', 
+            backgroundColor: '#e3f2fd', 
+            border: '1px solid #90caf9',
+            borderRadius: '5px',
+            fontWeight: 'bold',
+            color: '#1976d2'
+          }}>
+            📅 Invoice Months Data
+          </summary>
+          <div style={{ 
+            padding: '15px', 
+            backgroundColor: '#f8f9fa', 
+            border: '1px solid #90caf9',
+            borderRadius: '0 0 5px 5px',
+            fontSize: '11px',
+            fontFamily: 'Consolas, Monaco, monospace',
+            maxHeight: '400px',
+            overflow: 'auto',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word'
+          }}>
+            {JSON.stringify(invoiceMonthsData, null, 2)}
+          </div>
+        </details>
+
+        {/* Summary Data */}
+        <details open>
+          <summary style={{ 
+            cursor: 'pointer', 
+            padding: '10px', 
+            backgroundColor: '#e8f5e9', 
+            border: '1px solid #81c784',
+            borderRadius: '5px',
+            fontWeight: 'bold',
+            color: '#388e3c'
+          }}>
+            📊 Summary Data
+          </summary>
+          <div style={{ 
+            padding: '15px', 
+            backgroundColor: '#f8f9fa', 
+            border: '1px solid #81c784',
+            borderRadius: '0 0 5px 5px',
+            fontSize: '11px',
+            fontFamily: 'Consolas, Monaco, monospace',
+            maxHeight: '400px',
+            overflow: 'auto',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word'
+          }}>
+            {JSON.stringify(summaryData, null, 2)}
+          </div>
+        </details>
+
+        {/* Credits Data */}
+        <details open>
+          <summary style={{ 
+            cursor: 'pointer', 
+            padding: '10px', 
+            backgroundColor: '#fff3e0', 
+            border: '1px solid #ffb74d',
+            borderRadius: '5px',
+            fontWeight: 'bold',
+            color: '#f57c00'
+          }}>
+            💳 Credits Data
+          </summary>
+          <div style={{ 
+            padding: '15px', 
+            backgroundColor: '#f8f9fa', 
+            border: '1px solid #ffb74d',
+            borderRadius: '0 0 5px 5px',
+            fontSize: '11px',
+            fontFamily: 'Consolas, Monaco, monospace',
+            maxHeight: '400px',
+            overflow: 'auto',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word'
+          }}>
+            {JSON.stringify(creditsData, null, 2)}
+          </div>
+        </details>
+
+        {/* Trends Data */}
+        <details open>
+          <summary style={{ 
+            cursor: 'pointer', 
+            padding: '10px', 
+            backgroundColor: '#f3e5f5', 
+            border: '1px solid #ba68c8',
+            borderRadius: '5px',
+            fontWeight: 'bold',
+            color: '#7b1fa2'
+          }}>
+            📈 Trends Data
+          </summary>
+          <div style={{ 
+            padding: '15px', 
+            backgroundColor: '#f8f9fa', 
+            border: '1px solid #ba68c8',
+            borderRadius: '0 0 5px 5px',
+            fontSize: '11px',
+            fontFamily: 'Consolas, Monaco, monospace',
+            maxHeight: '400px',
+            overflow: 'auto',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word'
+          }}>
+            {JSON.stringify(trendsData, null, 2)}
+          </div>
+        </details>
+      </div>
     </div>
   );
 }
