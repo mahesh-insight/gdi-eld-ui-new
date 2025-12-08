@@ -58,13 +58,16 @@ export async function callAzureInvoiceAPI(serviceName, payload, serverAccessToke
     if (Array.isArray(payload)) {
       // Direct array payload (for invoiceMonths)
       soldToArray = payload;
-    } else if (payload && typeof payload === 'object' && payload.payload) {
+    } else if (payload && typeof payload === 'object' && payload.hasOwnProperty('payload')) {
       // Object with payload array and other config (for other APIs with urlParam)
       soldToArray = payload.payload;
       urlParams = payload.urlParam || '';
-    } else {
+    } else if (payload) {
       console.error('❌ Invalid payload format:', payload);
       return { error: 'Invalid payload format' };
+    } else {
+      console.error('❌ No payload provided');
+      return { error: 'No payload provided' };
     }
     
     // Build the complete URL
@@ -195,7 +198,8 @@ export async function callAzureInvoiceAPI(serviceName, payload, serverAccessToke
       error: error.message,
       status: error?.response?.status,
       statusText: error?.response?.statusText,
-      payload
+      originalPayload: payload,
+      processedPayload: soldToArray
     });
     
     // Return empty object instead of throwing to prevent app crash

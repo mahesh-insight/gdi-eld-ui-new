@@ -43,6 +43,7 @@
     "axios": "^1.13.2",
     "classnames": "^2.5.1",
     "date-fns": "^4.1.0",
+    "hammerjs": "^2.0.8",
     "i18next": "^25.6.3",
     "Insight-Theme": "file:./kendo-insight-theme",
     "ioredis": "^5.8.2",

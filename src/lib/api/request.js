@@ -165,25 +165,56 @@ const instance = (serviceName, configuration = {}) => {
       if (isBrowser) {
         // Check if this is an auth endpoint that doesn't need tokens
         if (config?.noAuthHeader || config.baseURL.includes("ccr-login-service")) {
+          console.log('🔓 Auth endpoint detected, skipping auth header:', config.baseURL);
           // No auth header needed
         } else {
-          // Get token from Redux store
+          // Get token from Redux store with improved error handling
           let accessToken = null;
           
           try {
-            // Get Redux store state from window if available
+            // First try to get from Redux store
             if (window.__REDUX_STORE__) {
               const state = window.__REDUX_STORE__.getState();
               accessToken = state?.auth?.accessToken;
+              console.log('🔍 Got token from Redux store:', !!accessToken);
             }
           } catch (error) {
-            // Fallback to localStorage if Redux store not available
-            accessToken = localStorage.getItem("access_token");
+            console.warn('⚠️ Redux store access failed:', error.message);
+          }
+          
+          // Fallback to cookies, then localStorage
+          if (!accessToken) {
+            try {
+              // Try to get from cookies first (set during auth process)
+              const cookies = document.cookie.split(';');
+              const accessTokenCookie = cookies.find(cookie => 
+                cookie.trim().startsWith('access_token=')
+              );
+              if (accessTokenCookie) {
+                accessToken = accessTokenCookie.split('=')[1];
+                console.log('🍪 Got token from cookie:', !!accessToken);
+              }
+            } catch (cookieError) {
+              console.warn('⚠️ Cookie access failed:', cookieError.message);
+            }
+          }
+          
+          // Final fallback to localStorage
+          if (!accessToken) {
+            try {
+              accessToken = localStorage.getItem("access_token");
+              console.log('💾 Got token from localStorage:', !!accessToken);
+            } catch (storageError) {
+              console.warn('⚠️ localStorage access failed:', storageError.message);
+            }
           }
           
           // Add token if available
           if (accessToken) {
             config.headers.Authorization = `Bearer ${accessToken}`;
+            console.log('🔐 Added Authorization header for:', config.baseURL);
+          } else {
+            console.warn('⚠️ No access token available for API call:', config.baseURL);
           }
         }
       } else {
@@ -192,12 +223,14 @@ const instance = (serviceName, configuration = {}) => {
           // For server-side requests that need auth, you can pass token in configuration
           if (configuration.accessToken) {
             config.headers.Authorization = `Bearer ${configuration.accessToken}`;
+            console.log('🔐 Server-side: Added Authorization header');
           }
         }
       }
       return config;
     },
     function (error) {
+      console.error('❌ Request interceptor error:', error);
       return Promise.reject(error);
     }
   );

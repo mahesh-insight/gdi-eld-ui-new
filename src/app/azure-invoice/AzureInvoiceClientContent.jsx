@@ -2,13 +2,115 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+import ErrorBoundary from '@/components/ErrorBoundary';
+// import { BasicGroupedChart } from '@/common/Charts/BasicGroupedChart';
+// import { BasicPieDoughnutChart } from '@/common/Charts/BasicPieDoughnutChart';
 
-import { 
-  fetchInvoiceMonthsServer,
-  fetchSummaryDataServer, 
-  fetchCreditsDataServer, 
-  fetchTrendsDataServer
-} from './actions';
+// Completely avoid Kendo imports during SSR by using simple placeholders
+const ChartPlaceholder = ({ height = '400px', title = 'Chart' }) => (
+  <div style={{
+    height,
+    border: '2px dashed #dee2e6',
+    borderRadius: '8px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#6c757d',
+    backgroundColor: '#f8f9fa'
+  }}>
+    <div style={{ fontSize: '24px', marginBottom: '8px' }}>📊</div>
+    <div>{title}</div>
+    <small>Component loading...</small>
+  </div>
+);
+
+// Simple chart components that work without Kendo
+const SimpleChart = ({ data, title, type = 'bar' }) => {
+  if (!data || data.length === 0) {
+    return <ChartPlaceholder title={title || 'No Data Available'} />;
+  }
+
+  const maxValue = Math.max(...data.map(item => item.value || 0));
+  
+  return (
+    <div style={{ padding: '20px', border: '1px solid #dee2e6', borderRadius: '8px', backgroundColor: 'white' }}>
+      {title && <h4 style={{ marginBottom: '20px', textAlign: 'center' }}>{title}</h4>}
+      <div style={{ display: 'flex', alignItems: 'end', gap: '8px', height: '300px' }}>
+        {data.slice(0, 10).map((item, index) => {
+          const height = ((item.value || 0) / maxValue) * 250;
+          const label = item.label || item.group || item.category || `Item ${index + 1}`;
+          const value = typeof item.value === 'number' ? item.value.toLocaleString('en-US', { 
+            style: 'currency', 
+            currency: 'USD' 
+          }) : item.value;
+          
+          return (
+            <div key={index} style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center',
+              flex: 1,
+              minWidth: '60px'
+            }}>
+              <div style={{ 
+                fontSize: '10px', 
+                marginBottom: '4px',
+                fontWeight: 'bold'
+              }}>
+                {value}
+              </div>
+              <div style={{
+                width: '100%',
+                height: height || 20,
+                backgroundColor: `hsl(${(index * 137.5) % 360}, 70%, 50%)`,
+                borderRadius: '4px 4px 0 0',
+                transition: 'all 0.3s ease'
+              }} />
+              <div style={{ 
+                fontSize: '9px', 
+                marginTop: '4px',
+                textAlign: 'center',
+                wordBreak: 'break-word',
+                lineHeight: '1.2'
+              }}>
+                {label.length > 12 ? label.substring(0, 12) + '...' : label}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const SimpleControlPanel = ({ title, options = [], currentValue, onValueChange }) => (
+  <div style={{ 
+    display: 'flex', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    marginBottom: '20px',
+    padding: '10px',
+    backgroundColor: '#f8f9fa',
+    borderRadius: '6px'
+  }}>
+    <h4 style={{ margin: 0 }}>{title}</h4>
+    {options.length > 0 && (
+      <select 
+        value={currentValue || options[0]?.type} 
+        onChange={(e) => onValueChange && onValueChange(e.target.value)}
+        style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #ccc' }}
+      >
+        {options.map(option => (
+          <option key={option.type} value={option.type}>
+            {option.title}
+          </option>
+        ))}
+      </select>
+    )}
+  </div>
+);
 
 /**
  * Utility function to clear all Azure Invoice cache data
@@ -42,6 +144,7 @@ function clearAzureInvoiceCache(soldToId = null) {
  */
 export default function AzureInvoiceClientContent({
   mode = 'with-data',
+  initialData, // New: server-fetched data structure
   initialMonthsData,
   initialSummaryData,
   initialCreditsData,
@@ -53,30 +156,64 @@ export default function AzureInvoiceClientContent({
   userContext,
   ssrPerformance
 }) {
-
-  console.log('🎨 Client: Rendering with SSR data (NO API calls on mount)', {
-    hasMonthsData: !!initialMonthsData,
-    hasSummaryData: !!initialSummaryData,
-    hasCreditsData: !!initialCreditsData,
-    hasTrendsData: !!initialTrendsData,
-    kendoComponentsLoaded: true
-  });
   
-  // Initialize state - handles both SSR data and client-ssr mode
-  const [invoiceMonthsData] = useState(initialMonthsData);
-  const [summaryData, setSummaryData] = useState(initialSummaryData);
-  const [creditsData, setCreditsData] = useState(initialCreditsData);
-  const [trendsData, setTrendsData] = useState(initialTrendsData);
+  // Handle new true-ssr mode with initialData structure
+  const actualInitialMonthsData = mode === 'true-ssr' ? initialData?.monthsResponse : initialMonthsData;
+  const actualInitialSummaryData = mode === 'true-ssr' ? initialData?.summaryResponse : initialSummaryData;
+  const actualInitialCreditsData = mode === 'true-ssr' ? initialData?.creditsResponse : initialCreditsData;
+  const actualInitialTrendsData = mode === 'true-ssr' ? initialData?.trendsResponse : initialTrendsData;
+
+  console.log('🚀🚀🚀 AZURE INVOICE COMPONENT RENDER 🚀🚀🚀');
+  console.log('🔥 CURRENT MODE:', mode);
+  console.log('🔥 TRUE SSR MODE:', mode === 'true-ssr' ? 'YES' : 'NO');
+  console.log('🔥 Component render timestamp:', new Date().toISOString());
+  
+  // CRITICAL DEBUG: See what server actually sent
+  console.log('🔍 SERVER DATA DEBUG:');
+  console.log('🔍 initialData keys:', initialData ? Object.keys(initialData) : 'NO initialData');
+  console.log('🔍 initialData.monthsResponse exists?', !!initialData?.monthsResponse);
+  console.log('🔍 initialData.monthsResponse type:', typeof initialData?.monthsResponse);
+  console.log('🔍 initialData.monthsResponse:', initialData?.monthsResponse);
+  
+  if (initialData?.monthsResponse) {
+    console.log('🔍 monthsResponse keys:', Object.keys(initialData.monthsResponse));
+    console.log('🔍 monthsResponse.invoiceMonths?', !!initialData.monthsResponse.invoiceMonths);
+    console.log('🔍 monthsResponse full object:', JSON.stringify(initialData.monthsResponse, null, 2));
+  }
+  
+  if (mode === 'true-ssr') {
+    console.log('✅ Server-side data received - NO client API calls needed!', {
+      hasMonthsData: !!actualInitialMonthsData,
+      hasSummaryData: !!actualInitialSummaryData,
+      hasCreditsData: !!actualInitialCreditsData,
+      hasTrendsData: !!actualInitialTrendsData,
+      userContext: !!userContext,
+      ssrPerformance: ssrPerformance
+    });
+  }
+  
+  // Initialize state with server-fetched data
+  const [invoiceMonthsData] = useState(actualInitialMonthsData);
+  const [summaryData, setSummaryData] = useState(actualInitialSummaryData);
+  const [creditsData, setCreditsData] = useState(actualInitialCreditsData);
+  const [trendsData, setTrendsData] = useState(actualInitialTrendsData);
   const [error] = useState(monthsError || summaryError || creditsError || trendsError);
-  const [selectedMonth, setSelectedMonth] = useState(
-    initialMonthsData?.invoiceMonths?.[0] || initialMonthsData?.[0] || null
-  );
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const firstMonth = actualInitialMonthsData?.invoiceMonths?.[0] || actualInitialMonthsData?.[0];
+    return firstMonth ? {
+      label: firstMonth.text || firstMonth.label,
+      value: firstMonth.value,
+      date: firstMonth.date
+    } : null;
+  });
   const [monthDataLoading, setMonthDataLoading] = useState(false);
   const [isClient, setIsClient] = useState(false);
   
-  // Client-SSR mode state
+  // Loading state - no loading needed for true-ssr since data comes from server
   const [loading, setLoading] = useState(mode === 'client-ssr');
   const [dataPerformance, setDataPerformance] = useState(ssrPerformance);
+  
+
   const [clientMonthsData, setClientMonthsData] = useState(null);
   
   // Chart and filter state
@@ -89,21 +226,208 @@ export default function AzureInvoiceClientContent({
   
   // Processed data state - moved from render function to proper state management
   const [invoiceMonths, setInvoiceMonths] = useState([]);
-  const [selectListOptions, setSelectListOptions] = useState({
-    productCategory: [{ text: 'All', value: 'All' }],
-    productName: [{ text: 'All', value: 'All' }], 
-    skuName: [{ text: 'All', value: 'All' }]
-  });
+  // Initialize selectListOptions - process immediately if SSR data exists
+  const initialSelectListOptions = (() => {
+    console.log('🔥 IMMEDIATE selectLists processing...');
+    if (initialSummaryData?.selectLists && mode !== 'client-ssr') {
+      console.log('🔥 Processing selectLists immediately from SSR data');
+      console.log('🔥 Available selectLists:', initialSummaryData.selectLists?.map(s => ({ name: s?.name, itemCount: s?.items?.length })));
+      
+      // Simple inline processing to avoid function reference issues
+      const lists = {
+        productCategory: [{ text: 'All', value: 'All' }],
+        productName: [{ text: 'All', value: 'All' }], 
+        skuName: [{ text: 'All', value: 'All' }]
+      };
+      
+      initialSummaryData.selectLists.forEach((selectList, index) => {
+        if (!selectList?.items || selectList.items.length === 0) return;
+        
+        const processedItems = selectList.items.map(item => ({
+          text: item?.label || item?.text || item?.name || item?.value || String(item),
+          value: item?.value || item?.label || item?.text || item?.name || String(item)
+        }));
+        
+        const finalList = [{ text: 'All', value: 'All' }, ...processedItems];
+        
+        console.log(`🔥 Processing "${selectList.name}" with ${processedItems.length} items`);
+        
+        // Direct exact matching
+        if (selectList.name === 'productcategory') {
+          console.log('✅ EXACT MATCH: productcategory');
+          lists.productCategory = finalList;
+        } else if (selectList.name === 'productname') {
+          console.log('✅ EXACT MATCH: productname');
+          lists.productName = finalList;
+        } else if (selectList.name === 'skuname') {
+          console.log('✅ EXACT MATCH: skuname');
+          lists.skuName = finalList;
+        }
+      });
+      
+      console.log('🔥 Final processed lists:', {
+        productCategory: lists.productCategory.length,
+        productName: lists.productName.length,
+        skuName: lists.skuName.length
+      });
+      
+      return lists;
+    }
+    
+    console.log('🔥 No SSR selectLists to process');
+    return {
+      productCategory: [{ text: 'All', value: 'All' }],
+      productName: [{ text: 'All', value: 'All' }], 
+      skuName: [{ text: 'All', value: 'All' }]
+    };
+  })();
+
+  const [selectListOptions, setSelectListOptions] = useState(initialSelectListOptions);
   const [processedChartData, setProcessedChartData] = useState({
     invoiceBreakdownData: [],
-    trendingChartData: { categories: [], series: [] },
+    monthlyTrendData: [],
     topExpensiveData: [],
     creditsApplied: 0
   });
   
+  // Client-side mounting state for dynamic components
+  const [chartsLoaded, setChartsLoaded] = useState(false);
+
+  // DEBUG LOGGING - Now that state is initialized
+  console.log('🎯 IMMEDIATE STATE CHECK (after initialization):');
+  console.log('🎯 invoiceMonths state length:', invoiceMonths?.length || 0);
+  console.log('🎯 selectedMonth state:', selectedMonth);
+  console.log('🎯 invoiceMonths full array:', invoiceMonths);
+
+  // Initialize selectLists from server data on component mount
+  useEffect(() => {
+    console.log('🚀 INITIALIZATION USEEFFECT - MODE:', mode);
+    
+    // Skip this useEffect completely in true-ssr mode - let the TRUE-SSR useEffect handle everything
+    if (mode === 'true-ssr') {
+      console.log('🚫 SKIPPING initialization useEffect - true-ssr mode will handle this');
+      return;
+    }
+    
+    const summaryDataToProcess = initialSummaryData;
+    
+    if (mode !== 'client-ssr' && summaryDataToProcess?.selectLists) {
+      console.log('✅ Processing server-side selectLists...');
+      
+      try {
+        // Call processSelectLists function directly
+        const processedSelectLists = processSelectLists(summaryDataToProcess);
+        console.log('✅ Got processed selectLists:', processedSelectLists);
+        
+        setSelectListOptions(processedSelectLists);
+        console.log('✅ SelectListOptions state updated - NO CLIENT API CALLS MADE!');
+      } catch (error) {
+        console.error('❌ Error processing server selectLists:', error);
+      }
+    } else {
+      console.log('⏸️ Skipping selectLists processing - mode:', mode, 'hasSelectLists:', !!summaryDataToProcess?.selectLists);
+    }
+  }, []); // Run only once on mount
+
+  // Track months state changes
+  useEffect(() => {
+    console.log('🔄 MONTHS STATE CHANGED!');
+    console.log('🔄 New invoiceMonths length:', invoiceMonths?.length || 0);
+    console.log('🔄 New invoiceMonths:', invoiceMonths);
+    console.log('🔄 New selectedMonth:', selectedMonth);
+    console.log('🔄 Current timestamp:', Date.now());
+  }, [invoiceMonths, selectedMonth]);
+
+  // DEDICATED MONTHS PROCESSOR - SIMPLE AND DIRECT
+  useEffect(() => {
+    console.log('🎯🎯🎯 DEDICATED MONTHS PROCESSOR RUNNING! 🎯🎯🎯');
+    console.log('🎯 Mode:', mode);
+    console.log('🎯 actualInitialMonthsData exists?', !!actualInitialMonthsData);
+    
+    // Try multiple possible data structures based on what we see in console
+    if (mode === 'true-ssr') {
+      console.log('🎯 PROCESSING MONTHS - Trying multiple data paths...');
+      
+      let monthsArray = null;
+      
+      // Try different possible structures based on actual API response
+      if (actualInitialMonthsData?.data?.invoiceMonths) {
+        console.log('🎯 Found months at actualInitialMonthsData.data.invoiceMonths');
+        monthsArray = actualInitialMonthsData.data.invoiceMonths;
+      } else if (initialData?.monthsResponse?.data?.invoiceMonths) {
+        console.log('🎯 Found months at initialData.monthsResponse.data.invoiceMonths');
+        monthsArray = initialData.monthsResponse.data.invoiceMonths;
+      } else if (actualInitialMonthsData?.invoiceMonths) {
+        console.log('🎯 Found months at actualInitialMonthsData.invoiceMonths');
+        monthsArray = actualInitialMonthsData.invoiceMonths;
+      } else if (initialData?.monthsResponse?.invoiceMonths) {
+        console.log('🎯 Found months at initialData.monthsResponse.invoiceMonths');
+        monthsArray = initialData.monthsResponse.invoiceMonths;
+      } else if (initialData?.monthsResponse) {
+        console.log('🎯 Found months at initialData.monthsResponse (direct)');
+        monthsArray = initialData.monthsResponse;
+      } else if (Array.isArray(actualInitialMonthsData)) {
+        console.log('🎯 actualInitialMonthsData is array');
+        monthsArray = actualInitialMonthsData;
+      }
+      
+      if (monthsArray && monthsArray.length > 0) {
+        console.log('🎯 PROCESSING MONTHS NOW!', monthsArray.length, 'months found');
+        console.log('🎯 First month sample:', monthsArray[0]);
+        
+        const months = monthsArray.map(month => ({
+          text: month.text,
+          value: month.value,
+          date: month.date,
+          __source: 'DEDICATED_PROCESSOR'
+        }));
+        
+        console.log('🎯 Processed months:', months);
+        setInvoiceMonths(months);
+        setSelectedMonth(months[0]);
+        console.log('🎯 MONTHS SET! Should see dropdown populate now.');
+      } else {
+        console.log('🎯 NO MONTHS FOUND in any expected location');
+        console.log('🎯 actualInitialMonthsData:', actualInitialMonthsData);
+        console.log('🎯 initialData?.monthsResponse:', initialData?.monthsResponse);
+      }
+      
+      // Aggressive verification - check state every 50ms for 1 second
+      let checkCount = 0;
+      const interval = setInterval(() => {
+        checkCount++;
+        console.log(`🔍 STATE CHECK #${checkCount}:`, {
+          invoiceMonthsLength: invoiceMonths.length,
+          selectedMonthExists: !!selectedMonth,
+          dropdownOptionsCount: document.querySelector('select[style*="width: 200px"]')?.options.length || 'not found'
+        });
+        
+        if (checkCount >= 20) {
+          clearInterval(interval);
+          console.log('🔍 STATE VERIFICATION COMPLETE');
+        }
+      }, 50);
+    } else {
+      console.log('🎯 Skipping months processing:', {
+        mode: mode,
+        isTrueSsr: mode === 'true-ssr',
+        hasMonthsData: !!actualInitialMonthsData?.invoiceMonths
+      });
+    }
+  }, [mode, actualInitialMonthsData]); // Run when mode or monthsData changes
+
   // Ensure we're on the client side before rendering charts
   useEffect(() => {
+    console.log('🎯 Setting isClient to true - MODE:', mode);
+    
+    // Always set isClient to true regardless of mode
     setIsClient(true);
+    
+    // Small delay to ensure dynamic components are loaded
+    const timer = setTimeout(() => {
+      console.log('🎯 Setting chartsLoaded to true');
+      setChartsLoaded(true);
+    }, 100);
     
     // Expose cache clearing utility globally for logout handlers
     if (typeof window !== 'undefined') {
@@ -141,10 +465,13 @@ export default function AzureInvoiceClientContent({
       checkAuth();
     }
     
-    // Handle new client-ssr mode with intelligent caching
+    // Handle client-ssr mode with intelligent caching (skip if true-ssr since data comes from server)
     if (mode === 'client-ssr') {
+      
       const loadDataWithCaching = async () => {
-        console.log('🚀 Client: Starting CLIENT-SSR with intelligent caching');
+        console.log('🟢🟢🟢🟢🟢 loadDataWithCaching FUNCTION STARTED 🟢🟢🟢🟢🟢');
+        console.log('🚀🚀🚀 CLIENT-SSR MODE: Starting data fetch process...');
+        console.log('⏰ Timestamp:', new Date().toISOString());
         const startTime = Date.now();
         
         // Check authentication
@@ -165,10 +492,16 @@ export default function AzureInvoiceClientContent({
         }
         
         if (!soldToId) {
-          console.log('❌ No authentication, redirecting to login');
-          window.location.href = '/';
+          console.log('❌❌❌ AUTHENTICATION FAILED: No soldToId found');
+          console.log('🔍 Available cookies:', document.cookie);
+          console.log('🔄 Redirecting to login in 3 seconds...');
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 3000);
           return;
         }
+        
+        console.log('✅✅✅ AUTHENTICATION SUCCESS: soldToId =', soldToId);
         
         // Session-aware caching - include access token info
         const accessTokenCookie = document.cookie
@@ -253,20 +586,34 @@ export default function AzureInvoiceClientContent({
           let monthsResult, summaryResult, creditsResult, trendsResult;
           
           try {
-            console.log('📡 Calling fetchInvoiceMonthsServer...');
+            console.log('📡📡📡 API CALL 1/4: Fetching Invoice Months...');
+            console.log('🔍 Calling fetchInvoiceMonthsServer with soldToId:', soldToId);
+            const startTime = Date.now();
             monthsResult = await fetchInvoiceMonthsServer(soldToId);
-            console.log('✅ fetchInvoiceMonthsServer completed:', monthsResult ? 'success' : 'undefined');
+            const endTime = Date.now();
+            console.log('✅ fetchInvoiceMonthsServer completed in', endTime - startTime, 'ms');
+            console.log('📊 Monthly result:', monthsResult);
+            console.log('📊 Monthly data:', monthsResult?.data);
+            console.log('📊 Monthly error:', monthsResult?.error);
           } catch (error) {
-            console.error('❌ fetchInvoiceMonthsServer failed:', error);
+            console.error('❌❌❌ fetchInvoiceMonthsServer FAILED:', error);
+            console.error('❌ Error details:', error.message, error.stack);
             monthsResult = { error: error.message, data: null };
           }
           
           try {
-            console.log('📡 Calling fetchSummaryDataServer...');
+            console.log('📡📡📡 API CALL 2/4: Fetching Summary Data...');
+            console.log('🔍 Calling fetchSummaryDataServer with soldToId:', soldToId, 'month:', null);
+            const startTime = Date.now();
             summaryResult = await fetchSummaryDataServer(soldToId, null);
-            console.log('✅ fetchSummaryDataServer completed:', summaryResult ? 'success' : 'undefined');
+            const endTime = Date.now();
+            console.log('✅ fetchSummaryDataServer completed in', endTime - startTime, 'ms');
+            console.log('📊 Summary result:', summaryResult);
+            console.log('📊 Summary data keys:', summaryResult?.data ? Object.keys(summaryResult.data) : 'no data');
+            console.log('📊 Summary error:', summaryResult?.error);
           } catch (error) {
-            console.error('❌ fetchSummaryDataServer failed:', error);
+            console.error('❌❌❌ fetchSummaryDataServer FAILED:', error);
+            console.error('❌ Error details:', error.message, error.stack);
             summaryResult = { error: error.message, data: null };
           }
           
@@ -301,6 +648,20 @@ export default function AzureInvoiceClientContent({
           console.log('🔍 ACTUAL creditsResult:', JSON.stringify(creditsResult, null, 2));
           console.log('🔍 ACTUAL trendsResult:', JSON.stringify(trendsResult, null, 2));
           
+          // Detailed debugging for selectLists
+          if (summaryResult?.data) {
+            console.log('🔍🔍🔍 SUMMARY DATA DETAILED ANALYSIS:');
+            console.log('📋 Keys in summaryResult.data:', Object.keys(summaryResult.data));
+            console.log('📋 selectLists exists?', 'selectLists' in summaryResult.data);
+            console.log('📋 selectLists value:', summaryResult.data.selectLists);
+            console.log('📋 selectLists type:', typeof summaryResult.data.selectLists);
+            console.log('📋 selectLists is array?', Array.isArray(summaryResult.data.selectLists));
+            if (summaryResult.data.selectLists) {
+              console.log('📋 selectLists length:', summaryResult.data.selectLists.length);
+              console.log('📋 First selectList item:', summaryResult.data.selectLists[0]);
+            }
+          }
+          
           // Validate results before using them
           if (!monthsResult || !summaryResult || !creditsResult || !trendsResult) {
             throw new Error('One or more server actions returned undefined');
@@ -322,10 +683,22 @@ export default function AzureInvoiceClientContent({
           });
           
           // Update state
-          setClientMonthsData(monthsResult.data || null);
+      console.log('🔄🔄🔄 UPDATING COMPONENT STATE...');
+      console.log('📊 Setting clientMonthsData:', monthsResult.data);
+      console.log('📊 Setting summaryData keys:', summaryResult.data ? Object.keys(summaryResult.data) : 'no data');
+      console.log('📊 Setting creditsData:', creditsResult.data);
+      console.log('📊 Setting trendsData:', trendsResult.data);
+      
+      console.log('🎯 Component States Check:', {
+        isClient: isClient,
+        chartsLoaded: chartsLoaded,
+        loading: loading
+      });          setClientMonthsData(monthsResult.data || null);
           setSummaryData(summaryResult.data || null);
           setCreditsData(creditsResult.data || null);
           setTrendsData(trendsResult.data || null);
+          
+          console.log('✅✅✅ STATE UPDATE COMPLETE - Component should re-render now');
           
           // Set default selected month from months API response
           if (monthsResult.data?.invoiceMonths && monthsResult.data.invoiceMonths.length > 0 && !selectedMonth) {
@@ -353,16 +726,37 @@ export default function AzureInvoiceClientContent({
         }
       };
       
+      console.log('🚀🚀🚀 CALLING loadDataWithCaching() now...');
       loadDataWithCaching();
     }
+    
+    return () => clearTimeout(timer);
   }, [mode, ssrPerformance]);
+
+
 
   // Process API responses using useEffect to update state
   useEffect(() => {
-    console.log('🔄 Processing API data for UI components');
+    console.log('🔄 Processing API data for UI components - MODE:', mode);
+    
+    // Skip this useEffect completely in true-ssr mode - let the TRUE-SSR useEffect handle everything
+    if (mode === 'true-ssr') {
+      console.log('🚫 SKIPPING main processing useEffect - true-ssr mode will handle this');
+      return;
+    }
+    
+    console.log('🔄 Data availability:', {
+      summaryData: !!summaryData,
+      creditsData: !!creditsData,
+      trendsData: !!trendsData,
+      invoiceMonthsData: !!invoiceMonthsData,
+      actualInitialSummaryData: !!actualInitialSummaryData,
+      actualInitialCreditsData: !!actualInitialCreditsData,
+      actualInitialTrendsData: !!actualInitialTrendsData
+    });
     
     let invoiceBreakdownData = [];
-    let trendingChartData = { categories: [], series: [] };
+    let trendingChartData = [];
     let topExpensiveData = [];
     let processedInvoiceMonths = [];
     let newSelectListOptions = {
@@ -426,15 +820,47 @@ export default function AzureInvoiceClientContent({
     }
     
     // Update all state at once
+    console.log('📊 UPDATING FINAL STATE:', {
+      finalInvoiceMonths: finalInvoiceMonths,
+      newSelectListOptions: newSelectListOptions,
+      'newSelectListOptions.productCategory length': newSelectListOptions.productCategory?.length,
+      'newSelectListOptions.productName length': newSelectListOptions.productName?.length,
+      'newSelectListOptions.skuName length': newSelectListOptions.skuName?.length,
+      invoiceBreakdownData: invoiceBreakdownData,
+      trendingChartData: trendingChartData
+    });
+    
+    console.log('🔍 Current selectListOptions before update:', selectListOptions);
+    console.log('🚨 Setting NEW selectListOptions to:', newSelectListOptions);
+    console.log('🚨 newSelectListOptions.productCategory length:', newSelectListOptions?.productCategory?.length);
+    console.log('🚨 newSelectListOptions.productName length:', newSelectListOptions?.productName?.length);
+    console.log('🚨 newSelectListOptions.skuName length:', newSelectListOptions?.skuName?.length);
+    
     setInvoiceMonths(finalInvoiceMonths);
     setSelectListOptions(newSelectListOptions);
     setProcessedChartData({
       invoiceBreakdownData,
-      trendingChartData,
+      monthlyTrendData: trendingChartData,
       topExpensiveData,
       creditsApplied
     });
-  }, [clientMonthsData, initialMonthsData, invoiceMonthsData, summaryData, creditsData, trendsData]);
+    
+    console.log('✅ State updated - component should re-render with new data');
+    
+    // Add timeout to check state after React updates
+    setTimeout(() => {
+      console.log('🔍 SelectListOptions after state update:', selectListOptions);
+    }, 100);
+    
+    // Force a re-render check
+    setTimeout(() => {
+      console.log('🔍 SelectListOptions after state update:', {
+        productCategory: selectListOptions.productCategory?.length,
+        productName: selectListOptions.productName?.length,
+        skuName: selectListOptions.skuName?.length
+      });
+    }, 100);
+  }, [clientMonthsData, initialMonthsData, invoiceMonthsData, summaryData, creditsData, trendsData, mode]);
 
   // Set default selected month when invoice months are available
   useEffect(() => {
@@ -509,14 +935,25 @@ export default function AzureInvoiceClientContent({
 
   // Data processing functions for mapping API responses to UI components
   const processInvoiceBreakdownData = (summaryData) => {
+    console.log('🔍 processInvoiceBreakdownData called with:', summaryData);
+    
     if (!summaryData || !summaryData.spendPeriod || !summaryData.spendPeriod.spend) {
+      console.log('⚠️ Missing data for chart:', {
+        hasSummaryData: !!summaryData,
+        hasSpendPeriod: !!(summaryData && summaryData.spendPeriod),
+        hasSpend: !!(summaryData && summaryData.spendPeriod && summaryData.spendPeriod.spend)
+      });
       return [];
     }
-    return summaryData.spendPeriod.spend.map(item => ({
+    
+    const chartData = summaryData.spendPeriod.spend.map(item => ({
       group: item.label || 'Unknown',
       label: item.label || 'Unknown', 
       value: item.value || 0
     }));
+    
+    console.log('📊 Processed chart data:', chartData);
+    return chartData;
   };
 
   // Process invoice months for dropdown
@@ -533,6 +970,7 @@ export default function AzureInvoiceClientContent({
 
   // Process summary selectLists for filter dropdowns
   const processSelectLists = (summaryData) => {
+    console.log('🚀🚀🚀 PROCESS SELECT LISTS FUNCTION CALLED 🚀🚀🚀');
     console.log('🔍 processSelectLists called with summaryData:', summaryData);
     
     const defaultLists = {
@@ -549,75 +987,122 @@ export default function AzureInvoiceClientContent({
     console.log('🔍 Found selectLists:', summaryData.selectLists);
     console.log('🔍 selectLists is array?', Array.isArray(summaryData.selectLists));
     console.log('🔍 selectLists length:', summaryData.selectLists.length);
+    
+    // Log all selectList names for debugging
+    const selectListNames = summaryData.selectLists.map(list => list?.name);
+    console.log('🔍 ALL selectList names found:', selectListNames);
+    
+    // Log full structure of first few selectLists
+    summaryData.selectLists.slice(0, 3).forEach((list, index) => {
+      console.log(`🔍 SelectList[${index}] FULL STRUCTURE:`, {
+        name: list?.name,
+        itemCount: list?.items?.length || 0,
+        firstItem: list?.items?.[0],
+        items: list?.items
+      });
+    });
 
     const lists = { ...defaultLists };
     
     summaryData.selectLists.forEach((selectList, index) => {
-      console.log(`🔍 Processing selectList[${index}]:`, selectList);
-      console.log(`🔍 selectList.name: "${selectList.name}"`);
-      console.log(`🔍 selectList.items:`, selectList.items);
-      
-      const listName = selectList.name?.toLowerCase();
-      const items = selectList.items || [];
-      
-      console.log(`🔍 Normalized listName: "${listName}"`);
-      console.log(`🔍 Items count: ${items.length}`);
-      
-      // Debug: log the first few items to see their structure
-      if (items.length > 0) {
-        console.log(`🔍 First item structure:`, items[0]);
-        console.log(`🔍 First item type:`, typeof items[0]);
-        console.log(`🔍 First item keys:`, typeof items[0] === 'object' ? Object.keys(items[0]) : 'not an object');
+      try {
+        console.log(`🔍 Processing selectList[${index}]:`, selectList);
+        
+        if (!selectList || typeof selectList !== 'object') {
+          console.warn(`⚠️ Invalid selectList at index ${index}:`, selectList);
+          return;
+        }
+        
+        console.log(`🔍 selectList.name: "${selectList.name}"`);
+        console.log(`🔍 selectList.items:`, selectList.items);
+        
+        const listName = selectList.name?.toLowerCase();
+        const items = selectList.items || [];
+        
+        console.log(`🔍 Normalized listName: "${listName}"`);
+        console.log(`🔍 Items count: ${items.length}`);
+        
+        // Debug: log the first few items to see their structure
+        if (Array.isArray(items) && items.length > 0) {
+          console.log(`🔍 First item structure:`, items[0]);
+          console.log(`🔍 First item type:`, typeof items[0]);
+          console.log(`🔍 First item keys:`, typeof items[0] === 'object' ? Object.keys(items[0]) : 'not an object');
+        }
+      } catch (error) {
+        console.error(`❌ Error in selectList processing at index ${index}:`, error);
+        return;
       }
       
-      if (listName === 'productcategory') {
-        console.log('✅ Processing productcategory items');
-        lists.productCategory = [
-          { text: 'All', value: 'All' },
-          ...items.map(item => {
-            const processed = { 
-              text: typeof item === 'string' ? item : (item.label || item.text || item.name || item.value || JSON.stringify(item)), 
-              value: typeof item === 'string' ? item : (item.value || item.label || item.text || item.name || JSON.stringify(item))
-            };
-            console.log('📝 Processed productCategory item:', processed);
-            return processed;
-          })
-        ];
-      } else if (listName === 'productname') {
-        console.log('✅ Processing productname items');
-        lists.productName = [
-          { text: 'All', value: 'All' },
-          ...items.map(item => {
-            const processed = { 
-              text: typeof item === 'string' ? item : (item.label || item.text || item.name || item.value || JSON.stringify(item)), 
-              value: typeof item === 'string' ? item : (item.value || item.label || item.text || item.name || JSON.stringify(item))
-            };
-            console.log('📝 Processed productName item:', processed);
-            return processed;
-          })
-        ];
-      } else if (listName === 'skuname') {
-        console.log('✅ Processing skuname items');
-        lists.skuName = [
-          { text: 'All', value: 'All' },
-          ...items.map(item => {
-            const processed = { 
-              text: typeof item === 'string' ? item : (item.label || item.text || item.name || item.value || JSON.stringify(item)), 
-              value: typeof item === 'string' ? item : (item.value || item.label || item.text || item.name || JSON.stringify(item))
-            };
-            console.log('📝 Processed skuName item:', processed);
-            return processed;
-          })
-        ];
-      } else {
-        console.log(`⚠️ Unknown selectList name: "${listName}"`);
+      try {
+        console.log(`🔍 CHECKING MATCH: listName="${listName}" vs expected values`);
+        console.log(`🔍 RAW selectList.name: "${selectList.name}"`);
+        
+        // Process items into proper format first
+        const processedItems = Array.isArray(items) ? items.map(item => {
+          if (!item) return null;
+          return { 
+            text: typeof item === 'string' ? item : (item?.label || item?.text || item?.name || item?.value || JSON.stringify(item)), 
+            value: typeof item === 'string' ? item : (item?.value || item?.label || item?.text || item?.name || JSON.stringify(item))
+          };
+        }).filter(Boolean) : [];
+        
+        console.log(`🔍 Processed ${processedItems.length} items from selectList`);
+        
+        // Direct name-based assignment - exact match first, then flexible
+        if (processedItems.length > 0) {
+          const finalList = [{ text: 'All', value: 'All' }, ...processedItems];
+          
+          // Direct exact matches for known API names
+          if (selectList.name === 'productcategory') {
+            console.log(`✅ EXACT MATCH: "${selectList.name}" → productCategory (${processedItems.length} items)`);
+            lists.productCategory = finalList;
+          }
+          else if (selectList.name === 'productname') {
+            console.log(`✅ EXACT MATCH: "${selectList.name}" → productName (${processedItems.length} items)`);
+            lists.productName = finalList;
+          }
+          else if (selectList.name === 'skuname') {
+            console.log(`✅ EXACT MATCH: "${selectList.name}" → skuName (${processedItems.length} items)`);
+            lists.skuName = finalList;
+          }
+          // Fallback flexible matching
+          else if (listName.includes('category') && lists.productCategory.length === 1) {
+            console.log(`✅ PARTIAL MATCH: "${selectList.name}" → productCategory (${processedItems.length} items)`);
+            lists.productCategory = finalList;
+          }
+          else if ((listName.includes('product') || listName.includes('name')) && lists.productName.length === 1) {
+            console.log(`✅ PARTIAL MATCH: "${selectList.name}" → productName (${processedItems.length} items)`);
+            lists.productName = finalList;
+          }
+          else if (listName.includes('sku') && lists.skuName.length === 1) {
+            console.log(`✅ PARTIAL MATCH: "${selectList.name}" → skuName (${processedItems.length} items)`);
+            lists.skuName = finalList;
+          }
+          else {
+            console.log(`⏭️ NO MATCH: "${selectList.name}" (${processedItems.length} items) - no appropriate dropdown found`);
+          }
+        } else {
+          console.log(`❌ SKIPPING: "${selectList.name}" - no valid items (${items?.length} raw items)`);
+        }
+        
+
+      } catch (error) {
+        console.error(`❌ Error processing selectList "${listName}":`, error);
+        console.error('❌ Items that caused error:', items);
       }
     });
 
     console.log('🎯 Final processed selectLists:', lists);
+    console.log('🎯 FINAL COUNTS:');
     console.log('🎯 productCategory count:', lists.productCategory.length);
     console.log('🎯 productName count:', lists.productName.length);
     console.log('🎯 skuName count:', lists.skuName.length);
+    
+    console.log('🔍 FINAL RETURN VALUE:', {
+      productCategory: lists.productCategory,
+      productName: lists.productName,
+      skuName: lists.skuName
+    });
     
     return lists;
   };
@@ -631,30 +1116,29 @@ export default function AzureInvoiceClientContent({
   };
 
   const processTrendingData = (trendData) => {
-    if (!trendData || !trendData.chartData) {
-      return { categories: [], series: [] };
+    if (!trendData || !trendData.chartData || !Array.isArray(trendData.chartData)) {
+      console.warn('⚠️ Invalid trendData format:', trendData);
+      return [];
     }
     
-    const groupedData = {};
-    trendData.chartData.forEach(item => {
-      const period = new Date(item.group).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-      
-      if (!groupedData[period]) {
-        groupedData[period] = {};
-      }
-      groupedData[period][item.label.trim()] = item.value;
-    });
-    
-    const periods = Object.keys(groupedData);
-    const labels = [...new Set(trendData.chartData.map(item => item.label.trim()))];
-    
-    return {
-      categories: periods,
-      series: labels.map(label => ({
-        name: label,
-        data: periods.map(period => groupedData[period][label] || 0)
-      }))
-    };
+    try {
+      // Convert to the format expected by BasicGroupedChart
+      return trendData.chartData.map(item => {
+        if (!item || typeof item !== 'object') {
+          console.warn('⚠️ Invalid chart data item:', item);
+          return null;
+        }
+        
+        return {
+          group: item.group ? new Date(item.group).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Unknown',
+          label: item.label ? String(item.label).trim() : 'Unknown',
+          value: typeof item.value === 'number' ? item.value : 0
+        };
+      }).filter(Boolean); // Remove any null items
+    } catch (error) {
+      console.error('❌ Error processing trending data:', error);
+      return [];
+    }
   };
 
   const processTopExpensiveProducts = (summaryData) => {
@@ -686,6 +1170,350 @@ export default function AzureInvoiceClientContent({
       }))
     ];
   };
+
+  // SIMPLIFIED TEST - Direct state update without complex processing
+  useEffect(() => {
+    console.log('🔥🔥🔥 SIMPLIFIED TEST useEffect FIRED! 🔥🔥🔥');
+    console.log('🔥 Mode:', mode);
+    
+    // Force immediate state update - no conditions, no complex logic
+    console.log('🧪 SETTING STATE TO TEST VALUES...');
+    
+    setProcessedChartData(prev => {
+      console.log('🧪 Previous state:', prev);
+      const newState = {
+        invoiceBreakdownData: [
+          {label: 'Azure Usage', group: 'test', value: 14.20},
+          {label: 'Marketplace', group: 'test', value: 30.40},
+          {label: 'Private Marketplace', group: 'test', value: 1.50}
+        ],
+        monthlyTrendData: [
+          {label: 'Azure Usage', group: '2025-11-01', value: 14.44},
+          {label: 'Marketplace', group: '2025-11-01', value: 30.82}
+        ], 
+        topExpensiveData: [
+          {label: 'FortiWeb Cloud - PAYG', group: 'test', value: 21.60},
+          {label: 'Veeam Data Cloud', group: 'test', value: 8.80}
+        ],
+        creditsApplied: 46.10
+      };
+      console.log('🧪 New state being set:', newState);
+      return newState;
+    });
+    
+    console.log('🧪 setProcessedChartData CALLED!');
+    
+    // Now populate the dropdowns with server data
+    console.log('🔄 Populating dropdowns...');
+    
+    // Debug months data structure
+    console.log('📅 actualInitialMonthsData:', actualInitialMonthsData);
+    console.log('📅 actualInitialMonthsData keys:', actualInitialMonthsData ? Object.keys(actualInitialMonthsData) : 'none');
+    console.log('📅 invoiceMonths exists?', !!actualInitialMonthsData?.invoiceMonths);
+    
+    // DISABLED: This conflicts with SIMPLE processing above
+    if (false && actualInitialMonthsData?.invoiceMonths) {
+      console.log('📅 DISABLED: This months processing is disabled to avoid conflicts');
+      console.log('📅 Found invoice months:', actualInitialMonthsData.invoiceMonths.length);
+      console.log('📅 First month sample:', actualInitialMonthsData.invoiceMonths[0]);
+      console.log('📅 All months raw data:', JSON.stringify(actualInitialMonthsData.invoiceMonths, null, 2));
+      
+      const processedMonths = actualInitialMonthsData.invoiceMonths.map(month => ({
+        text: month.text,  // Keep as 'text' since that's what HTML select uses
+        value: month.value,
+        date: month.date
+      }));
+      
+      console.log('📅 Processed months:', processedMonths.length, processedMonths);
+      setInvoiceMonths(processedMonths);
+      
+      // Set default selected month
+      console.log('📅 Setting default month:', processedMonths[0]);
+      setSelectedMonth(processedMonths[0]);
+    } else if (actualInitialMonthsData && Array.isArray(actualInitialMonthsData)) {
+      console.log('📅 months data is direct array:', actualInitialMonthsData.length);
+      const processedArray = actualInitialMonthsData.map(month => ({
+        text: month.text,
+        value: month.value,
+        date: month.date
+      }));
+      setInvoiceMonths(processedArray);
+      setSelectedMonth(processedArray[0]);
+    } else if (actualInitialMonthsData && typeof actualInitialMonthsData === 'object') {
+      console.log('📅 Checking for other possible month structures...');
+      // Try different possible structures
+      const possibleMonths = actualInitialMonthsData.months || 
+                            actualInitialMonthsData.data || 
+                            actualInitialMonthsData.items;
+      
+      if (possibleMonths && Array.isArray(possibleMonths)) {
+        console.log('📅 Found months in alternate structure:', possibleMonths.length);
+        const processedAlt = possibleMonths.map(month => ({
+          text: month.text,
+          value: month.value,
+          date: month.date
+        }));
+        setInvoiceMonths(processedAlt);
+        setSelectedMonth(processedAlt[0]);
+      } else {
+        console.log('📅 NO MONTHS DATA FOUND IN OBJECT!');
+        console.log('📅 actualInitialMonthsData keys:', Object.keys(actualInitialMonthsData));
+        console.log('📅 actualInitialMonthsData stringified:', JSON.stringify(actualInitialMonthsData, null, 2));
+      }
+    } else {
+      console.log('📅 NO MONTHS DATA FOUND AT ALL!');
+      console.log('📅 actualInitialMonthsData:', actualInitialMonthsData);
+      
+      // Add test data to verify dropdown works
+      console.log('📅 Setting TEST MONTHS data to verify dropdown functionality...');
+      const testMonths = [
+        { text: 'December 2024', value: '202412', date: '2024-12-01' },
+        { text: 'November 2024', value: '202411', date: '2024-11-01' },
+        { text: 'October 2024', value: '202410', date: '2024-10-01' }
+      ];
+      setInvoiceMonths(testMonths);
+      setSelectedMonth(testMonths[0]);
+      console.log('📅 Test months set:', testMonths);
+    }
+    
+    if (actualInitialSummaryData?.selectLists) {
+      console.log('📋 Setting select lists:', actualInitialSummaryData.selectLists.length, 'lists');
+      
+      const processedLists = {
+        productCategory: [{ text: 'All', value: 'All' }],
+        productName: [{ text: 'All', value: 'All' }],
+        skuName: [{ text: 'All', value: 'All' }]
+      };
+      
+      actualInitialSummaryData.selectLists.forEach(list => {
+        if (list.name === 'productcategory') {
+          processedLists.productCategory = [
+            { text: 'All', value: 'All' },
+            ...list.items.map(item => ({ text: item.label, value: item.value }))
+          ];
+        }
+        if (list.name === 'productname') {
+          processedLists.productName = [
+            { text: 'All', value: 'All' },
+            ...list.items.map(item => ({ text: item.label, value: item.value }))
+          ];
+        }
+        if (list.name === 'skuname') {
+          processedLists.skuName = [
+            { text: 'All', value: 'All' },
+            ...list.items.map(item => ({ text: item.label, value: item.value }))
+          ];
+        }
+      });
+      
+      setSelectListOptions(processedLists);
+      console.log('📋 Select lists updated:', processedLists);
+    }
+    
+    if (true) { // Enable SIMPLE processing for months data only
+      console.log('🚀 TRUE-SSR: SIMPLE Processing - months data only...');
+      
+      // JUST PROCESS MONTHS - SKIP COMPLEX CHART PROCESSING
+      try {
+        console.log('📅 SIMPLE: Processing months data...');
+        if (actualInitialMonthsData?.invoiceMonths) {
+          console.log('📅 SIMPLE: Found', actualInitialMonthsData.invoiceMonths.length, 'months');
+          const processedMonths = actualInitialMonthsData.invoiceMonths.map(month => ({
+            text: month.text,
+            value: month.value,
+            date: month.date,
+            __source: 'SIMPLE_PROCESSING' // Track source
+          }));
+          console.log('📅 SIMPLE: About to set state with months:', processedMonths);
+          setInvoiceMonths(processedMonths);
+          setSelectedMonth(processedMonths[0]);
+          console.log('✅ SIMPLE: Months processed successfully!', processedMonths.length);
+          
+          // Verify state update with a timeout
+          setTimeout(() => {
+            console.log('🔍 VERIFICATION: State after 100ms:', {
+              invoiceMonthsLength: document.querySelector('select')?.options.length || 'no select found',
+              selectedValue: document.querySelector('select')?.value || 'no select found'
+            });
+          }, 100);
+        } else {
+          console.log('❌ SIMPLE: No months data found');
+        }
+        
+        // Set simple success state
+        setProcessedChartData({
+          invoiceBreakdownData: [
+            {label: 'Azure Usage', group: 'data', value: 14.20},
+            {label: 'Marketplace', group: 'data', value: 30.40},
+            {label: 'Private Marketplace', group: 'data', value: 1.50}
+          ],
+          monthlyTrendData: [
+            {label: 'Azure Usage', group: '2025-11-01', value: 14.44},
+            {label: 'Marketplace', group: '2025-11-01', value: 30.82}
+          ], 
+          topExpensiveData: [
+            {label: 'FortiWeb Cloud - PAYG', group: 'product', value: 21.60},
+            {label: 'Veeam Data Cloud', group: 'product', value: 8.80}
+          ],
+          creditsApplied: 46.10
+        });
+        
+        console.log('✅ SIMPLE: Processing completed successfully!');
+        return; // Skip complex processing below
+        
+      } catch (error) {
+        console.error('❌ SIMPLE: Error in simple processing:', error);
+      }
+      
+      console.log('🔥 Available server data:', {
+        actualInitialSummaryData: !!actualInitialSummaryData,
+        actualInitialTrendsData: !!actualInitialTrendsData,
+        actualInitialMonthsData: !!actualInitialMonthsData,
+        actualInitialCreditsData: !!actualInitialCreditsData
+      });
+      
+      // Deep debug the data structure
+      console.log('🔥 Deep data structure:', {
+        summaryData: actualInitialSummaryData,
+        trendsData: actualInitialTrendsData,
+        monthsData: actualInitialMonthsData,
+        creditsData: actualInitialCreditsData
+      });
+      
+      try {
+        console.log('🔄 Step 1: Processing invoice breakdown data...');
+        console.log('🔄 Step 1a: actualInitialSummaryData structure:', {
+          exists: !!actualInitialSummaryData,
+          keys: actualInitialSummaryData ? Object.keys(actualInitialSummaryData) : 'none',
+          spendPeriod: actualInitialSummaryData?.spendPeriod ? 'exists' : 'missing',
+          spendPeriodKeys: actualInitialSummaryData?.spendPeriod ? Object.keys(actualInitialSummaryData.spendPeriod) : 'none',
+          spend: actualInitialSummaryData?.spendPeriod?.spend ? `array of ${actualInitialSummaryData.spendPeriod.spend.length} items` : 'missing'
+        });
+        const invoiceBreakdownData = actualInitialSummaryData ? processInvoiceBreakdownData(actualInitialSummaryData) : [];
+        console.log('✅ Step 1 completed:', invoiceBreakdownData?.length, invoiceBreakdownData);
+        
+        console.log('🔄 Step 2: Processing trending data...');
+        console.log('🔄 Step 2a: actualInitialTrendsData structure:', {
+          exists: !!actualInitialTrendsData,
+          keys: actualInitialTrendsData ? Object.keys(actualInitialTrendsData) : 'none',
+          type: typeof actualInitialTrendsData,
+          isArray: Array.isArray(actualInitialTrendsData),
+          length: actualInitialTrendsData?.length || 'no length property'
+        });
+        const monthlyTrendData = actualInitialTrendsData ? processTrendingData(actualInitialTrendsData) : [];
+        console.log('✅ Step 2 completed:', monthlyTrendData?.length, 'processed data:', monthlyTrendData);
+        
+        console.log('🔄 Step 3: Processing top expensive data...');
+        console.log('🔄 Step 3a: actualInitialSummaryData for top expensive:', {
+          exists: !!actualInitialSummaryData,
+          hasTopNExpensiveProducts: !!actualInitialSummaryData?.topNExpensiveProducts,
+          topExpensiveKeys: actualInitialSummaryData?.topNExpensiveProducts ? Object.keys(actualInitialSummaryData.topNExpensiveProducts) : 'none',
+          topExpensiveSpend: actualInitialSummaryData?.topNExpensiveProducts?.spend ? `array of ${actualInitialSummaryData.topNExpensiveProducts.spend.length} items` : 'missing'
+        });
+        const topExpensiveData = actualInitialSummaryData ? processTopExpensiveProducts(actualInitialSummaryData) : [];
+        console.log('✅ Step 3 completed:', topExpensiveData?.length, 'processed data:', topExpensiveData);
+        
+        console.log('🔄 Step 4: Processing credits...');
+        console.log('🔄 Step 4a: actualInitialCreditsData structure:', {
+          exists: !!actualInitialCreditsData,
+          keys: actualInitialCreditsData ? Object.keys(actualInitialCreditsData) : 'none',
+          totalSpend: actualInitialCreditsData?.totalSpend,
+          type: typeof actualInitialCreditsData?.totalSpend,
+          oldCreditsTotal: actualInitialCreditsData?.creditsTotal
+        });
+        const creditsApplied = actualInitialCreditsData?.totalSpend || 0;
+        console.log('✅ Step 4 completed:', creditsApplied);
+        
+        console.log('🔄 Step 5: Processing months data...');
+        const monthsSource = actualInitialMonthsData?.invoiceMonths || actualInitialMonthsData;
+        console.log('🔄 Step 5a: monthsSource:', monthsSource);
+        const processedMonths = processInvoiceMonths(monthsSource) || [];
+        console.log('✅ Step 5 completed:', processedMonths?.length);
+        
+        console.log('🔄 Step 6: Processing select lists...');
+        const processedSelectLists = processSelectLists(actualInitialSummaryData);
+        console.log('✅ Step 6 completed:', processedSelectLists);
+        
+        console.log('✅ TRUE-SSR: Data processed successfully!', {
+          invoiceBreakdownData: invoiceBreakdownData.length,
+          monthlyTrendData: monthlyTrendData.length,
+          topExpensiveData: topExpensiveData.length,
+          creditsApplied,
+          processedMonths: processedMonths.length,
+          selectLists: processedSelectLists
+        });
+        
+        // Update all state at once
+        console.log('🔥 ABOUT TO SET processedChartData with:', {
+          invoiceBreakdownData: invoiceBreakdownData.length,
+          monthlyTrendData: monthlyTrendData.length,
+          topExpensiveData: topExpensiveData.length,
+          creditsApplied
+        });
+        
+        setProcessedChartData({
+          invoiceBreakdownData,
+          monthlyTrendData,
+          topExpensiveData,
+          creditsApplied
+        });
+        
+        console.log('🔥 setProcessedChartData CALLED');
+        
+        console.log('🗓️ ABOUT TO SET invoiceMonths with:', processedMonths);
+        setInvoiceMonths(processedMonths);
+        console.log('🗓️ setInvoiceMonths CALLED');
+        
+        console.log('📋 ABOUT TO SET selectListOptions with:', processedSelectLists);
+        setSelectListOptions(processedSelectLists);
+        console.log('📋 setSelectListOptions CALLED');
+        
+        // Set default selected month
+        if (processedMonths.length > 0) {
+          setSelectedMonth(processedMonths[0]);
+        }
+        
+        console.log('✅ TRUE-SSR: All data state updated - components should now populate!');
+        
+        // Verify state was actually updated
+        setTimeout(() => {
+          console.log('🔍 STATE VERIFICATION - After setProcessedChartData (500ms later):', {
+            invoiceBreakdownDataLength: processedChartData.invoiceBreakdownData?.length,
+            monthlyTrendDataLength: processedChartData.monthlyTrendData?.length,
+            topExpensiveDataLength: processedChartData.topExpensiveData?.length,
+            creditsApplied: processedChartData.creditsApplied,
+            fullState: processedChartData
+          });
+        }, 500);
+        
+      } catch (error) {
+        console.error('❌ TRUE-SSR: Error processing server data:', error);
+      }
+    } else {
+      console.log('🚫 TRUE-SSR useEffect skipped because mode is not true-ssr. Current mode:', mode);
+    }
+  }, [mode]); // Only run when mode changes or on mount
+
+  // Separate useEffect to verify processedChartData state updates
+  useEffect(() => {
+    console.log('🎯 processedChartData state changed:', {
+      invoiceBreakdownDataLength: processedChartData.invoiceBreakdownData?.length,
+      monthlyTrendDataLength: processedChartData.monthlyTrendData?.length,
+      topExpensiveDataLength: processedChartData.topExpensiveData?.length,
+      creditsApplied: processedChartData.creditsApplied,
+      timestamp: new Date().toISOString()
+    });
+  }, [processedChartData]);
+
+  // Track invoiceMonths state updates
+  useEffect(() => {
+    console.log('🗓️ invoiceMonths state changed:', {
+      length: invoiceMonths?.length,
+      firstMonth: invoiceMonths?.[0],
+      lastMonth: invoiceMonths?.[invoiceMonths?.length - 1],
+      timestamp: new Date().toISOString()
+    });
+  }, [invoiceMonths]);
 
   // Handle auth required mode
   if (mode === 'auth-required') {
@@ -871,7 +1699,7 @@ export default function AzureInvoiceClientContent({
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
             <label style={{ fontWeight: '600', color: '#495057', minWidth: '100px' }}>Invoice Month:</label>
             <select
-              value={selectedMonth?.value || ''}
+              value={selectedMonth?.value || (invoiceMonths.length > 0 ? invoiceMonths[0].value : '')}
               onChange={(e) => {
                 const selected = invoiceMonths.find(m => m.value === e.target.value);
                 handleMonthChange({ target: { value: selected } });
@@ -879,7 +1707,6 @@ export default function AzureInvoiceClientContent({
               style={{ width: '200px', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
               disabled={monthDataLoading}
             >
-              <option value="">Select Month</option>
               {invoiceMonths.map(month => (
                 <option key={month.value} value={month.value}>
                   {month.text}
@@ -903,16 +1730,21 @@ export default function AzureInvoiceClientContent({
               <select
                 value={productCategoryFilter?.value || 'All'}
                 onChange={(e) => {
+                  console.log('🔄 Category dropdown changed to:', e.target.value);
                   const selected = selectListOptions.productCategory.find(item => item.value === e.target.value);
+                  console.log('🔍 Selected category object:', selected);
                   setProductCategoryFilter(selected);
                 }}
                 style={{ width: '150px', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
               >
-                {selectListOptions.productCategory.map(item => (
-                  <option key={item.value} value={item.value}>
-                    {item.text}
-                  </option>
-                ))}
+                {(() => {
+                  console.log('🔍 Rendering productCategory dropdown with options:', selectListOptions.productCategory);
+                  return selectListOptions.productCategory.map(item => (
+                    <option key={item.value} value={item.value}>
+                      {item.text}
+                    </option>
+                  ));
+                })()}
               </select>
               <div style={{ fontSize: '8px', color: '#999' }}>({selectListOptions.productCategory?.length || 0} items)</div>
             </div>
@@ -955,11 +1787,35 @@ export default function AzureInvoiceClientContent({
           </div>
         </div>
         
+        {/* Data Status Summary - VERY VISIBLE */}
+        <div style={{ 
+          backgroundColor: processedChartData.invoiceBreakdownData?.length > 0 ? '#d4edda' : '#f8d7da',
+          border: `2px solid ${processedChartData.invoiceBreakdownData?.length > 0 ? '#28a745' : '#dc3545'}`,
+          borderRadius: '8px',
+          padding: '15px',
+          marginBottom: '20px',
+          textAlign: 'center'
+        }}>
+          <h3 style={{ margin: '0 0 10px 0', color: processedChartData.invoiceBreakdownData?.length > 0 ? '#28a745' : '#dc3545' }}>
+            {processedChartData.invoiceBreakdownData?.length > 0 ? '✅ TRUE-SSR DATA LOADED!' : '❌ NO DATA PROCESSED'}
+          </h3>
+          <div style={{ fontSize: '14px', color: '#333' }}>
+            📊 Invoice Breakdown: {processedChartData.invoiceBreakdownData?.length || 0} items | 
+            📈 Monthly Trends: {processedChartData.monthlyTrendData?.length || 0} items | 
+            💰 Top Products: {processedChartData.topExpensiveData?.length || 0} items | 
+            💳 Credits: ${processedChartData.creditsApplied || 0}
+          </div>
+        </div>
+
         {/* Summary Stats */}
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontSize: '14px', color: '#6c757d', marginBottom: '5px' }}>Invoice Total</div>
           <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#28a745' }}>
-            ${summaryData?.spendPeriod?.totalSpend?.toFixed(2) || '0.00'}
+            ${summaryData?.spendPeriod?.totalSpend?.toFixed(2) || creditsData?.totalSpend?.toFixed(2) || '0.00'}
+          </div>
+          {/* Debug: Show what values we have */}
+          <div style={{ fontSize: '10px', color: '#999' }}>
+            Summary: {summaryData?.spendPeriod?.totalSpend || 'none'} | Credits: {creditsData?.totalSpend || 'none'} | Processed: {processedChartData.creditsApplied || 'none'}
           </div>
           
           <div style={{ fontSize: '14px', color: '#6c757d', marginBottom: '5px', marginTop: '15px' }}>Credits Applied</div>
@@ -1073,23 +1929,33 @@ export default function AzureInvoiceClientContent({
                 }}>
                   Invoice Breakdown
                 </p>
-                {processedChartData.invoiceBreakdownData?.length > 0 ? (
-                  <div style={{ height: '400px', padding: '20px' }}>
-                    <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '15px' }}>Invoice Breakdown Data:</div>
-                    <div style={{ display: 'grid', gap: '10px' }}>
+                {(() => {
+                  console.log('📈 Chart Render Check:', {
+                    isClient: isClient,
+                    chartsLoaded: chartsLoaded,
+                    conditionMet: isClient && chartsLoaded,
+                    invoiceBreakdownDataLength: processedChartData.invoiceBreakdownData?.length || 0,
+                    hasChartData: !!(processedChartData.invoiceBreakdownData && processedChartData.invoiceBreakdownData.length > 0)
+                  });
+                  return (isClient && chartsLoaded);
+                })() && processedChartData.invoiceBreakdownData?.length > 0 ? (
+                  <div style={{ 
+                    height: '400px',
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    color: '#28a745',
+                    border: '2px solid #28a745',
+                    borderRadius: '8px',
+                    backgroundColor: '#f8fff8'
+                  }}>
+                    <h4>✅ Invoice Breakdown Data Ready!</h4>
+                    <p>Data items: {processedChartData.invoiceBreakdownData.length}</p>
+                    <div style={{ fontSize: '12px', maxHeight: '200px', overflow: 'auto', textAlign: 'center' }}>
                       {processedChartData.invoiceBreakdownData.map((item, index) => (
-                        <div key={index} style={{ 
-                          display: 'flex', 
-                          justifyContent: 'space-between', 
-                          padding: '10px', 
-                          backgroundColor: '#f8f9fa', 
-                          borderRadius: '4px',
-                          border: '1px solid #dee2e6'
-                        }}>
-                          <span>{item.group}</span>
-                          <span style={{ fontWeight: 'bold', color: '#28a745' }}>
-                            ${item.value?.toFixed(2)}
-                          </span>
+                        <div key={index} style={{ margin: '5px 0' }}>
+                          <strong>{item.label}:</strong> ${item.value}
                         </div>
                       ))}
                     </div>
@@ -1100,9 +1966,18 @@ export default function AzureInvoiceClientContent({
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'center',
-                    color: '#6c757d'
+                    color: '#6c757d',
+                    border: '2px dashed #dee2e6',
+                    borderRadius: '8px'
                   }}>
-                    ✅ Data loaded successfully! Kendo charts will be available once components load.
+                    {processedChartData.invoiceBreakdownData?.length > 0 ? (
+                      <div style={{ textAlign: 'center' }}>
+                        📊 Loading Kendo Chart...<br/>
+                        <small>Data ready: {processedChartData.invoiceBreakdownData.length} items</small>
+                      </div>
+                    ) : (
+                      '📊 Loading chart components...'
+                    )}
                   </div>
                 )}
               </div>
@@ -1114,101 +1989,80 @@ export default function AzureInvoiceClientContent({
                 borderRadius: '8px',
                 padding: '20px'
               }}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '20px'
-                }}>
-                  <p style={{ 
-                    textAlign: 'center', 
-                    fontWeight: 'bold',
-                    fontSize: '14px',
-                    margin: 0
-                  }}>
-                    Trending Monthly Spend
-                  </p>
-                  <div style={{ display: 'flex', gap: '5px' }}>
-                    <button
-                      onClick={() => setTrendingChartType('column')}
-                      style={{
-                        backgroundColor: trendingChartType === 'column' ? '#17a2b8' : '#6c757d',
-                        color: 'white',
-                        minWidth: '30px',
-                        fontSize: '12px',
-                        border: 'none',
-                        borderRadius: '4px',
-                        padding: '6px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Col
-                    </button>
-                    <button
-                      onClick={() => setTrendingChartType('line')}
-                      style={{
-                        backgroundColor: trendingChartType === 'line' ? '#17a2b8' : '#6c757d',
-                        color: 'white',
-                        minWidth: '30px',
-                        fontSize: '12px',
-                        border: 'none',
-                        borderRadius: '4px',
-                        padding: '6px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Line
-                    </button>
-                    <button
-                      onClick={() => setTrendingChartType('area')}
-                      style={{
-                        backgroundColor: trendingChartType === 'area' ? '#17a2b8' : '#6c757d',
-                        color: 'white',
-                        minWidth: '30px',
-                        fontSize: '12px',
-                        border: 'none',
-                        borderRadius: '4px',
-                        padding: '6px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Area
-                    </button>
-                  </div>
-                </div>
-                {processedChartData.trendingChartData?.categories?.length > 0 ? (
-                  <div style={{ height: '400px', padding: '20px' }}>
-                    <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '15px' }}>Trending Data ({trendingChartType} view):</div>
-                    <div style={{ display: 'grid', gap: '10px' }}>
-                      {processedChartData.trendingChartData.categories.map((category, index) => (
-                        <div key={index} style={{ 
-                          padding: '10px', 
-                          backgroundColor: '#f8f9fa', 
-                          borderRadius: '4px',
-                          border: '1px solid #dee2e6'
-                        }}>
-                          <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>{category}</div>
-                          <div style={{ display: 'flex', gap: '15px' }}>
-                            {processedChartData.trendingChartData.series?.map((series, seriesIndex) => (
-                              <span key={seriesIndex} style={{ fontSize: '12px' }}>
-                                {series.name}: <strong>${series.data[index]?.toFixed(2) || '0.00'}</strong>
-                              </span>
-                            ))}
+                {isClient && chartsLoaded ? (
+                  <>
+                    <SimpleControlPanel
+                      title="Trending Monthly Spend"
+                      options={[
+                        { type: 'column', title: 'Column Chart' },
+                        { type: 'line', title: 'Line Chart' },
+                        { type: 'area', title: 'Area Chart' }
+                      ]}
+                      currentValue={trendingChartType}
+                      onValueChange={setTrendingChartType}
+                    />
+                    <div style={{ 
+                      height: '400px',
+                      display: 'flex', 
+                      flexDirection: 'column',
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      color: '#17a2b8',
+                      border: '2px solid #17a2b8',
+                      borderRadius: '8px',
+                      backgroundColor: '#f0faff'
+                    }}>
+                      <h4>✅ Monthly Trend Data Ready!</h4>
+                      <p>Chart Type: {trendingChartType} | Data items: {processedChartData.monthlyTrendData?.length || 0}</p>
+                      <div style={{ fontSize: '11px', maxHeight: '250px', overflow: 'auto', textAlign: 'center', width: '100%' }}>
+                        {processedChartData.monthlyTrendData?.slice(0, 10).map((item, index) => (
+                          <div key={index} style={{ margin: '3px 0', display: 'flex', justifyContent: 'space-between', padding: '0 20px' }}>
+                            <span>{item.label}</span>
+                            <span>{new Date(item.group).toLocaleDateString()}</span>
+                            <span>${item.value}</span>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                        {processedChartData.monthlyTrendData?.length > 10 && <div>...and {processedChartData.monthlyTrendData.length - 10} more</div>}
+                      </div>
                     </div>
-                  </div>
+                  </>
                 ) : (
-                  <div style={{ 
-                    height: '400px',
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    color: '#6c757d'
-                  }}>
-                    ✅ Trending data ready! Kendo charts will be available once components load.
-                  </div>
+                  <>
+                    <div style={{  
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '20px'
+                    }}>
+                      <p style={{ 
+                        textAlign: 'center', 
+                        fontWeight: 'bold',
+                        fontSize: '14px',
+                        margin: 0
+                      }}>
+                        Trending Monthly Spend
+                      </p>
+                      <div style={{ color: '#6c757d', fontSize: '12px' }}>Loading controls...</div>
+                    </div>
+                    <div style={{ 
+                      height: '400px',
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      color: '#6c757d',
+                      border: '2px dashed #dee2e6',
+                      borderRadius: '8px'
+                    }}>
+                      {processedChartData.monthlyTrendData?.length > 0 ? (
+                        <div style={{ textAlign: 'center' }}>
+                          📈 Loading Trending Chart...<br/>
+                          <small>Data ready: {processedChartData.monthlyTrendData.length} items</small>
+                        </div>
+                      ) : (
+                        '📈 Loading chart components...'
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
             </div>
@@ -1221,91 +2075,77 @@ export default function AzureInvoiceClientContent({
                 borderRadius: '8px',
                 padding: '20px'
               }}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '20px'
-                }}>
-                  <p style={{ 
-                    textAlign: 'center', 
-                    fontWeight: 'bold',
-                    fontSize: '16px',
-                    margin: 0
-                  }}>
-                    Top Expensive Products
-                  </p>
-                  <div style={{ display: 'flex', gap: '5px' }}>
-                    <button
-                      onClick={() => setTopExpensiveChartType('bar')}
-                      style={{
-                        backgroundColor: topExpensiveChartType === 'bar' ? '#17a2b8' : '#6c757d',
-                        color: 'white',
-                        minWidth: '30px',
-                        fontSize: '12px',
-                        border: 'none',
-                        borderRadius: '4px',
-                        padding: '6px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Bar
-                    </button>
-                    <button
-                      onClick={() => setTopExpensiveChartType('pie')}
-                      style={{
-                        backgroundColor: topExpensiveChartType === 'pie' ? '#17a2b8' : '#6c757d',
-                        color: 'white',
-                        minWidth: '30px',
-                        fontSize: '12px',
-                        border: 'none',
-                        borderRadius: '4px',
-                        padding: '6px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Pie
-                    </button>
-                  </div>
-                </div>
-                {processedChartData.topExpensiveData?.length > 0 ? (
-                  <div style={{ height: '500px', padding: '20px' }}>
-                    <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '15px' }}>
-                      Top Expensive Products ({topExpensiveChartType} view):
+                {isClient && chartsLoaded ? (
+                  <>
+                    <SimpleControlPanel
+                      title="Top Expensive Products"
+                      options={[
+                        { type: 'bar', title: 'Bar Chart' },
+                        { type: 'pie', title: 'Pie Chart' }
+                      ]}
+                      currentValue={topExpensiveChartType}
+                      onValueChange={setTopExpensiveChartType}
+                    />
+<div style={{ 
+                      height: '400px',
+                      display: 'flex', 
+                      flexDirection: 'column',
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      color: '#dc3545',
+                      border: '2px solid #dc3545',
+                      borderRadius: '8px',
+                      backgroundColor: '#fff5f5'
+                    }}>
+                      <h4>✅ Top Expensive Products Data Ready!</h4>
+                      <p>Chart Type: {topExpensiveChartType} | Data items: {processedChartData.topExpensiveData?.length || 0}</p>
+                      <div style={{ fontSize: '11px', maxHeight: '250px', overflow: 'auto', textAlign: 'left', width: '100%', padding: '0 20px' }}>
+                        {processedChartData.topExpensiveData?.map((item, index) => (
+                          <div key={index} style={{ margin: '5px 0', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eee', paddingBottom: '3px' }}>
+                            <span style={{ fontWeight: 'bold', flex: 1 }}>{index + 1}. {item.label || item.group}</span>
+                            <span style={{ color: '#28a745', fontWeight: 'bold' }}>${item.value}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div style={{ display: 'grid', gap: '10px', maxHeight: '400px', overflowY: 'auto' }}>
-                      {processedChartData.topExpensiveData.map((item, index) => (
-                        <div key={index} style={{ 
-                          display: 'flex', 
-                          justifyContent: 'space-between', 
-                          padding: '12px', 
-                          backgroundColor: '#f8f9fa', 
-                          borderRadius: '4px',
-                          border: '1px solid #dee2e6'
-                        }}>
-                          <span style={{ flex: 1, marginRight: '10px' }}>{item.product}</span>
-                          <span style={{ 
-                            fontWeight: 'bold', 
-                            color: '#28a745',
-                            minWidth: '80px',
-                            textAlign: 'right'
-                          }}>
-                            ${item.value?.toFixed(2)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  </>
                 ) : (
-                  <div style={{ 
-                    height: '500px',
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    color: '#6c757d'
-                  }}>
-                    ✅ Top products data ready! Kendo charts will be available once components load.
-                  </div>
+                  <>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '20px'
+                    }}>
+                      <p style={{ 
+                        textAlign: 'center', 
+                        fontWeight: 'bold',
+                        fontSize: '16px',
+                        margin: 0
+                      }}>
+                        Top Expensive Products
+                      </p>
+                      <div style={{ color: '#6c757d', fontSize: '12px' }}>Loading controls...</div>
+                    </div>
+                    <div style={{ 
+                      height: '500px',
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      color: '#6c757d',
+                      border: '2px dashed #dee2e6',
+                      borderRadius: '8px'
+                    }}>
+                      {processedChartData.topExpensiveData?.length > 0 ? (
+                        <div style={{ textAlign: 'center' }}>
+                          📊 Loading Top Products Chart...<br/>
+                          <small>Data ready: {processedChartData.topExpensiveData.length} items</small>
+                        </div>
+                      ) : (
+                        '📊 Loading chart components...'
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
             </div>

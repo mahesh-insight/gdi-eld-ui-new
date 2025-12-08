@@ -26,24 +26,37 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
   
   // Check if Redux store has been rehydrated
   const isRehydrated = _persist?.rehydrated !== false;
-
-  // Debug localStorage on every render
-  console.log('🔍 DEBUG - Current Redux state:', { isAuthenticated, user: !!user, accessToken: !!accessToken });
-  if (typeof window !== 'undefined') {
-    console.log('🔍 DEBUG - localStorage persist data:', localStorage.getItem('persist:ccr-auth'));
-  }
+  
+  // Initialize state variables before using them in logging
   const reduxSoldTo = authState?.soldTo;
   const reduxSalesOrg = authState?.salesOrg;
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
+  
+  // Only log detailed debug info when there's an issue
+  const shouldDebugLog = !isAuthenticated && (authCode || isProcessing);
+  
+  if (shouldDebugLog) {
+    console.log('🔍 DEBUG - Current component state:', {
+      authCode: !!authCode,
+      isAuthenticated,
+      isRehydrated,
+      isProcessing,
+      user: !!user,
+      accessToken: !!accessToken
+    });
+  }
 
-  console.log('🔍 DEBUG - Redux auth state:', { 
-    isAuthenticated, 
-    user: !!user, 
-    accessToken: !!accessToken, 
-    reduxSoldTo, 
-    reduxSalesOrg 
-  });
+  // Only log Redux state when debugging
+  if (shouldDebugLog) {
+    console.log('🔍 DEBUG - Redux auth state:', { 
+      isAuthenticated, 
+      user: !!user, 
+      accessToken: !!accessToken, 
+      reduxSoldTo, 
+      reduxSalesOrg 
+    });
+  }
 
   const processAuthCode = async (code, soldToParam, salesOrgParam) => {
     const hasProcessedKey = `processed_${code}`;
@@ -54,9 +67,18 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
       return;
     }
     
+    // Clear any existing processing flags for different codes
+    Object.keys(sessionStorage).forEach(key => {
+      if (key.startsWith('processed_') && key !== hasProcessedKey) {
+        sessionStorage.removeItem(key);
+      }
+    });
+    
     sessionStorage.setItem(hasProcessedKey, Date.now().toString());
     setIsProcessing(true);
     setProcessingMessage('Processing authentication...');
+    
+    console.log('🚀 Starting auth code processing:', { code, soldToParam, salesOrgParam });
 
     console.log('🔍 DEBUG - processAuthCode called with:', { 
       code, 
@@ -81,6 +103,12 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
       // Real authentication only - no mock data
       let response;
       try {
+        console.log('🔑 Making authentication API call with:', {
+          service: 'loginAuthCode',
+          data: code,
+          params: { soldto: finalSoldTo, salesorg: finalSalesOrg }
+        });
+        
         response = await request.post('loginAuthCode', {
           data: code,
           params: { 
@@ -88,15 +116,48 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
             salesorg: finalSalesOrg 
           }
         });
+        
+        console.log('✅ Authentication API response received:', {
+          hasResponse: !!response,
+          hasUserProfile: !!response?.userProfile,
+          hasTokens: !!response?.tokens,
+          hasBearerToken: !!response?.tokens?.bearerToken,
+          responseKeys: response ? Object.keys(response) : 'no response'
+        });
+        
       } catch (authError) {
-        console.error('❌ Authentication API failed:', authError);
+        console.error('❌ Authentication API failed:', {
+          error: authError.message,
+          status: authError?.response?.status,
+          statusText: authError?.response?.statusText,
+          data: authError?.response?.data,
+          config: {
+            url: authError?.config?.baseURL,
+            method: authError?.config?.method,
+            headers: authError?.config?.headers
+          }
+        });
         setProcessingMessage(`Authentication failed: ${authError?.response?.status === 403 ? 'Invalid credentials or missing parameters' : authError.message || 'Unknown error'}`);
         sessionStorage.removeItem(hasProcessedKey);
         setIsProcessing(false);
         return;
       }
       
+      console.log('🔍 Validating auth response structure:', {
+        hasResponse: !!response,
+        hasUserProfile: !!response?.userProfile,
+        hasDefaultContext: !!response?.userProfile?.defaultContext?.[0],
+        hasTokens: !!response?.tokens,
+        hasBearerToken: !!response?.tokens?.bearerToken,
+        fullResponseStructure: response ? {
+          userProfile: !!response.userProfile,
+          tokens: !!response.tokens,
+          otherKeys: Object.keys(response).filter(k => k !== 'userProfile' && k !== 'tokens')
+        } : 'no response'
+      });
+
       if (response?.userProfile?.defaultContext?.[0] && response?.tokens?.bearerToken) {
+        console.log('✅ Auth response validation passed, processing tokens...');
         // Clear the processed flag since auth was successful
         sessionStorage.removeItem(hasProcessedKey);
         
@@ -157,24 +218,32 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
         // Set HTTP cookies for server-side access (so SSR can detect authentication)
         console.log('🍪 Setting authentication cookies for server-side access...');
         
-        // Set access token cookie
-        document.cookie = `access_token=${bearerToken}; path=/; max-age=${24 * 60 * 60}; SameSite=Strict`;
-        
-        // Set user context cookie for server-side soldToId extraction
-        const userContextData = {
-          soldToId: soldToId,
-          persona: response.persona,
-          firstName: response.firstName,
-          isAuthenticated: true
-        };
-        document.cookie = `user_context=${encodeURIComponent(JSON.stringify(userContextData))}; path=/; max-age=${24 * 60 * 60}; SameSite=Strict`;
-        
-        console.log('✅ Authentication cookies set for server-side access');
+        try {
+          // Set access token cookie
+          document.cookie = `access_token=${bearerToken}; path=/; max-age=${24 * 60 * 60}; SameSite=Strict`;
+          console.log('✅ Access token cookie set');
+          
+          // Set user context cookie for server-side soldToId extraction
+          const userContextData = {
+            soldToId: soldToId,
+            persona: response.persona,
+            firstName: response.firstName,
+            isAuthenticated: true
+          };
+          document.cookie = `user_context=${encodeURIComponent(JSON.stringify(userContextData))}; path=/; max-age=${24 * 60 * 60}; SameSite=Strict`;
+          
+          console.log('✅ Authentication cookies set successfully:', {
+            accessTokenLength: bearerToken?.length,
+            userContextData
+          });
+        } catch (cookieError) {
+          console.error('❌ Failed to set cookies:', cookieError);
+        }
 
         // Final dispatch to Redux store with complete auth data including context
         // Use safe property access to prevent undefined errors
         const safeResponse = response || {};
-        dispatch(initializeAuth({
+        const authPayload = {
           isAuthenticated: true,
           user: {
             soldToId: soldToId || null,
@@ -186,14 +255,44 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
           contextData: contextResponse || null,
           soldTo: finalSoldTo || null,
           salesOrg: finalSalesOrg || null
-        }));
+        };
+        
+        console.log('🔄 Dispatching auth data to Redux store:', {
+          isAuthenticated: authPayload.isAuthenticated,
+          hasUser: !!authPayload.user,
+          userSoldToId: authPayload.user?.soldToId,
+          hasAccessToken: !!authPayload.accessToken,
+          accessTokenLength: authPayload.accessToken?.length,
+          hasLoginResponse: !!authPayload.loginResponse,
+          hasContextData: !!authPayload.contextData
+        });
+        
+        try {
+          dispatch(initializeAuth(authPayload));
+          console.log('✅ Redux auth state updated successfully');
+        } catch (dispatchError) {
+          console.error('❌ Failed to dispatch auth data:', dispatchError);
+        }
         
         setProcessingMessage('Authentication successful! Redirecting to dashboard...');
+        console.log('🚀 Scheduling redirect to dashboard in 1 second...');
         setTimeout(() => {
+          console.log('🔄 Executing redirect to dashboard...');
           router.replace('/dashboard');
         }, 1000);
       } else {
-        setProcessingMessage('Authentication failed. Please try again.');
+        console.error('❌ Auth response validation failed:', {
+          hasResponse: !!response,
+          responseStructure: response ? {
+            hasUserProfile: !!response.userProfile,
+            hasDefaultContext: !!response?.userProfile?.defaultContext?.[0],
+            hasTokens: !!response.tokens,
+            hasBearerToken: !!response?.tokens?.bearerToken,
+            userProfileKeys: response.userProfile ? Object.keys(response.userProfile) : 'no userProfile',
+            tokensKeys: response.tokens ? Object.keys(response.tokens) : 'no tokens'
+          } : 'no response'
+        });
+        setProcessingMessage('Authentication failed: Invalid response structure. Please try again.');
         sessionStorage.removeItem(hasProcessedKey);
         setIsProcessing(false);
       }
@@ -202,16 +301,23 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
       setProcessingMessage(`Authentication failed: ${error?.response?.status === 403 ? 'Invalid credentials or missing parameters' : error.message || 'Unknown error'}`);
       sessionStorage.removeItem(hasProcessedKey);
       setIsProcessing(false);
+      
+      // Add a retry button after 3 seconds for failed authentication
+      setTimeout(() => {
+        setProcessingMessage('Authentication failed. Click Login to retry.');
+      }, 3000);
     }
   };
 
   // Handle redirect when already authenticated (STRICT validation)
   useEffect(() => {
     // Only redirect if we have complete, valid authentication AND an auth code is not being processed
-    if (isRehydrated && !authCode) {
+    // Also don't interfere if we're currently processing an auth code
+    if (isRehydrated && !authCode && !isProcessing) {
       // Strict validation: ALL criteria must be met for valid authentication
       const hasSoldToId = user?.soldToId || authState?.loginResponse?.userProfile?.defaultContext?.[0]?.soldToId;
       const hasValidToken = accessToken && 
+                           typeof accessToken === 'string' &&
                            accessToken !== 'dev-bearer-token-12345' && 
                            accessToken !== 'null' && 
                            accessToken !== 'undefined' &&
@@ -229,30 +335,46 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
         hasValidUser,
         hasRealAuth,
         authCode: !!authCode,
+        isProcessing,
         userSoldToId: user?.soldToId,
-        accessTokenLength: accessToken?.length
+        accessTokenLength: typeof accessToken === 'string' ? accessToken.length : 0,
+        accessTokenPreview: accessToken && typeof accessToken === 'string' ? accessToken.substring(0, 10) + '...' : null,
+        strictValidationCanRun: isRehydrated && !authCode && !isProcessing
       });
       
       if (hasRealAuth) {
         console.log('✅ Valid authentication confirmed, redirecting to dashboard');
         router.replace('/dashboard');
       } else if (isAuthenticated || user || accessToken) {
-        // We have some auth data but it's incomplete/invalid - clear it
-        console.log('⚠️ Incomplete/invalid authentication state detected - clearing all auth data');
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('persist:ccr-auth');
-          document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-          document.cookie = 'user_context=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        // Only clear if we're sure it's invalid data (be more conservative)
+        const shouldClear = (
+          // Clear if token is clearly invalid
+          (accessToken && (accessToken === 'dev-bearer-token-12345' || accessToken === 'null' || accessToken === 'undefined')) ||
+          // Clear if user has test data
+          (user && user.soldToId === 'test-soldto') ||
+          // Clear if authenticated but no token at all
+          (isAuthenticated && !accessToken)
+        );
+        
+        if (shouldClear) {
+          console.log('⚠️ Invalid authentication state detected - clearing auth data');
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('persist:ccr-auth');
+            document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+            document.cookie = 'user_context=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+          }
+          dispatch(initializeAuth({
+            isAuthenticated: false,
+            user: null,
+            loginResponse: null,
+            accessToken: null,
+            contextData: null,
+            soldTo: null,
+            salesOrg: null
+          }));
+        } else {
+          console.log('🔄 Partial auth data found but keeping it (might be mid-authentication)');
         }
-        dispatch(initializeAuth({
-          isAuthenticated: false,
-          user: null,
-          loginResponse: null,
-          accessToken: null,
-          contextData: null,
-          soldTo: null,
-          salesOrg: null
-        }));
       }
     }
   }, [isRehydrated, isAuthenticated, user, accessToken, authCode, router, authState, dispatch]);
@@ -266,31 +388,65 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
       salesOrg,
       isAuthenticated,
       isRehydrated,
+      isProcessing,
       windowDefined: typeof window !== 'undefined'
     });
 
-    if (authCode && !isAuthenticated && isRehydrated && typeof window !== 'undefined') {
+    // Try processing with more lenient conditions for debugging
+    // Allow processing if we have auth code but aren't properly authenticated (could be invalid/incomplete auth state)
+    const hasValidAuth = isAuthenticated && user?.soldToId && accessToken && typeof accessToken === 'string' && accessToken.length > 10;
+    const shouldProcess = authCode && !hasValidAuth && typeof window !== 'undefined' && !isProcessing;
+    
+    if (authCode) {
+      console.log('🔍 Auth processing check:', {
+        shouldProcess,
+        isRehydrated,
+        hasValidAuth,
+        conditions: {
+          hasAuthCode: !!authCode,
+          isAuthenticated,
+          hasUser: !!user,
+          userSoldToId: user?.soldToId,
+          hasAccessToken: !!accessToken,
+          accessTokenType: typeof accessToken,
+          accessTokenLength: typeof accessToken === 'string' ? accessToken.length : 0,
+          hasWindow: typeof window !== 'undefined',
+          notProcessing: !isProcessing
+        }
+      });
+    }
+    
+    if (shouldProcess && (isRehydrated || !_persist)) { // Allow processing if no persist or rehydrated
       const hasProcessedKey = `processed_${authCode}`;
       
       console.log('🔍 Checking processed key:', hasProcessedKey, 'exists:', !!sessionStorage.getItem(hasProcessedKey));
       
       if (sessionStorage.getItem(hasProcessedKey)) {
         console.log('⚠️ Auth code already processed, skipping');
+        // Check if processing failed - if so, allow retry
+        const processedTime = sessionStorage.getItem(hasProcessedKey);
+        const timeDiff = Date.now() - parseInt(processedTime);
+        if (timeDiff > 30000) { // 30 seconds timeout
+          console.log('🔄 Processing timeout detected, clearing processed flag for retry');
+          sessionStorage.removeItem(hasProcessedKey);
+        }
         return;
       }
       
-      console.log('🚀 Starting auth code processing');
+      console.log('✅ All conditions met - starting auth code processing');
       processAuthCode(authCode, soldTo, salesOrg);
       return;
     } else {
-      console.log('⏸️ No conditions met for processing. Reasons:', {
-        noAuthCode: !authCode,
-        alreadyAuthenticated: isAuthenticated,
-        notRehydrated: !isRehydrated,
-        noWindow: typeof window === 'undefined'
+      console.log('⏸️ Auth processing conditions not met:', {
+        hasAuthCode: !!authCode,
+        notAuthenticated: !isAuthenticated,
+        isRehydrated: isRehydrated,
+        hasWindow: typeof window !== 'undefined',
+        notProcessing: !isProcessing,
+        allConditions: !!(authCode && !isAuthenticated && isRehydrated && typeof window !== 'undefined' && !isProcessing)
       });
     }
-  }, [authCode, soldTo, salesOrg, isRehydrated, router]); // Added isRehydrated dependency
+  }, [authCode, soldTo, salesOrg, isRehydrated, isProcessing]); // Added isProcessing to dependencies
 
   // Fetch UI properties when authenticated (once per session)
   useEffect(() => {
@@ -349,6 +505,43 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
   const showLoader = isProcessing || (authCode && !isAuthenticated);
   const loaderMessage = isProcessing ? processingMessage : 'Initializing Authentication...';
 
+  // Manual clear function for debugging
+  const clearAuthState = () => {
+    console.log('🔧 Manually clearing all auth state...');
+    if (typeof window !== 'undefined') {
+      // Clear sessionStorage
+      Object.keys(sessionStorage).forEach(key => {
+        if (key.startsWith('processed_')) {
+          sessionStorage.removeItem(key);
+        }
+      });
+      
+      // Clear localStorage
+      localStorage.removeItem('persist:ccr-auth');
+      
+      // Clear cookies
+      document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      document.cookie = 'user_context=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    }
+    
+    // Clear Redux state
+    dispatch(initializeAuth({
+      isAuthenticated: false,
+      user: null,
+      loginResponse: null,
+      accessToken: null,
+      contextData: null,
+      soldTo: null,
+      salesOrg: null
+    }));
+    
+    setIsProcessing(false);
+    setProcessingMessage('');
+    
+    // Reload the page to start fresh
+    window.location.reload();
+  };
+
   // Always show the login screen with conditional overlay
   return (
     <div style={{ position: 'relative', minHeight: '100vh' }}>
@@ -366,21 +559,75 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
         transition: 'filter 0.3s ease'
       }}>
         <h1 style={{ marginBottom: '30px', color: '#333' }}>Welcome to CCR</h1>
-        <a 
-          href={buildAuthURL()}
-          style={{
-            padding: '12px 24px',
-            backgroundColor: '#007bff',
-            color: 'white',
-            textDecoration: 'none',
-            borderRadius: '4px',
-            fontSize: '16px',
-            marginRight: '10px',
-            opacity: showLoader ? 0.5 : 1
-          }}
-        >
-          Login
-        </a>
+        <div style={{ display: 'flex', gap: '10px', flexDirection: 'column', alignItems: 'center' }}>
+          <a 
+            href={buildAuthURL()}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: '#007bff',
+              color: 'white',
+              textDecoration: 'none',
+              borderRadius: '4px',
+              fontSize: '16px',
+              opacity: showLoader ? 0.5 : 1
+            }}
+          >
+            Login
+          </a>
+          
+          {/* Debug controls - show if there's an actual problem that needs debugging */}
+          {(processingMessage.includes('failed') || 
+            (authCode && !isProcessing && 
+             typeof window !== 'undefined' && 
+             sessionStorage.getItem(`processed_${authCode}`) && 
+             (Date.now() - parseInt(sessionStorage.getItem(`processed_${authCode}`))) > 10000) ||
+            (isAuthenticated && user && accessToken && authCode && !isProcessing)) && (
+            <div style={{ marginTop: '20px', textAlign: 'center' }}>
+              <p style={{ fontSize: '12px', color: '#666', marginBottom: '10px' }}>
+                Debug: Authentication issue detected
+                <br />
+                Auth Code: {authCode ? authCode.substring(0, 8) + '...' : 'None'}
+              </p>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button
+                  onClick={clearAuthState}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#dc3545',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Clear Auth State & Retry
+                </button>
+                {authCode && !isProcessing && (
+                  <button
+                    onClick={() => {
+                      console.log('🚀 Force processing auth code manually...');
+                      // Clear the processed flag first
+                      sessionStorage.removeItem(`processed_${authCode}`);
+                      processAuthCode(authCode, soldTo, salesOrg);
+                    }}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#28a745',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Force Process Auth Code
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Loading Overlay */}

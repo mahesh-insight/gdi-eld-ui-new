@@ -16,13 +16,13 @@ const pageSlice = createSlice({
       state.intlLocalProvider = action?.payload ?? 'en-US';
     },
     setCurrentPage: (state, action) => {
-      state.currentPage = action.payload;
+      state.currentPage = action?.payload ?? null;
     },
     setBreadcrumbs: (state, action) => {
-      state.breadcrumbs = action.payload;
+      state.breadcrumbs = action?.payload ?? [];
     },
     setPageTitle: (state, action) => {
-      state.pageTitle = action.payload;
+      state.pageTitle = action?.payload ?? '';
     },
   },
 });
