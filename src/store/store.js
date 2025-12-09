@@ -36,18 +36,35 @@ const authPersistConfig = {
   transforms: [
     {
       in: (inboundState, key) => {
-        // Ensure state is valid before persisting
-        if (!inboundState || typeof inboundState !== 'object') {
+        try {
+          // Ensure state is valid before persisting
+          if (!inboundState || typeof inboundState !== 'object') {
+            return {};
+          }
+          // Remove undefined values
+          const cleanState = {};
+          Object.keys(inboundState).forEach(k => {
+            if (inboundState[k] !== undefined) {
+              cleanState[k] = inboundState[k];
+            }
+          });
+          return cleanState;
+        } catch (error) {
+          console.error('🚨 Auth transform in error:', error);
           return {};
         }
-        return inboundState;
       },
       out: (outboundState, key) => {
-        // Ensure rehydrated state is valid
-        if (!outboundState || typeof outboundState !== 'object') {
+        try {
+          // Ensure rehydrated state is valid
+          if (!outboundState || typeof outboundState !== 'object') {
+            return {};
+          }
+          return outboundState;
+        } catch (error) {
+          console.error('🚨 Auth transform out error:', error);
           return {};
         }
-        return outboundState;
       }
     }
   ]
@@ -72,33 +89,51 @@ const azureInvoicePersistConfig = {
   transforms: [
     {
       in: (inboundState, key) => {
-        // Validate and clean cache data before persisting
-        if (!inboundState || typeof inboundState !== 'object') {
-          return {};
-        }
-        
-        // Clean old cache entries (older than 1 hour)
-        if (inboundState.monthDataCache) {
-          const oneHourAgo = Date.now() - (60 * 60 * 1000);
-          const cleanedCache = {};
+        try {
+          // Validate and clean cache data before persisting
+          if (!inboundState || typeof inboundState !== 'object') {
+            return {};
+          }
           
-          Object.entries(inboundState.monthDataCache).forEach(([month, data]) => {
-            if (data.timestamp && data.timestamp > oneHourAgo) {
-              cleanedCache[month] = data;
+          // Remove undefined values
+          const cleanState = {};
+          Object.keys(inboundState).forEach(k => {
+            if (inboundState[k] !== undefined) {
+              cleanState[k] = inboundState[k];
             }
           });
           
-          inboundState.monthDataCache = cleanedCache;
-        }
-        
-        return inboundState;
-      },
-      out: (outboundState, key) => {
-        // Ensure rehydrated state is valid
-        if (!outboundState || typeof outboundState !== 'object') {
+          // Clean old cache entries (older than 1 hour)
+          if (cleanState.monthDataCache && typeof cleanState.monthDataCache === 'object') {
+            const oneHourAgo = Date.now() - (60 * 60 * 1000);
+            const cleanedCache = {};
+            
+            Object.entries(cleanState.monthDataCache).forEach(([month, data]) => {
+              if (data && data.timestamp && data.timestamp > oneHourAgo) {
+                cleanedCache[month] = data;
+              }
+            });
+            
+            cleanState.monthDataCache = cleanedCache;
+          }
+          
+          return cleanState;
+        } catch (error) {
+          console.error('🚨 Azure Invoice transform in error:', error);
           return {};
         }
-        return outboundState;
+      },
+      out: (outboundState, key) => {
+        try {
+          // Ensure rehydrated state is valid
+          if (!outboundState || typeof outboundState !== 'object') {
+            return {};
+          }
+          return outboundState;
+        } catch (error) {
+          console.error('🚨 Azure Invoice transform out error:', error);
+          return {};
+        }
       }
     }
   ]
@@ -135,22 +170,57 @@ export const store = configureStore({
         ignoredPaths: ['auth.loginResponse.userProfile.properties'],
       },
     }).concat((store) => (next) => (action) => {
-      // Intercept actions to ensure payload is defined
-      if (action && typeof action === 'object' && action.type) {
-        // If action has payload property but it's undefined, set it to null
-        if (action.hasOwnProperty('payload') && action.payload === undefined) {
-          console.warn('🔧 Fixed undefined payload for action:', action.type);
-          action.payload = null;
+      // CRITICAL: Wrap everything in try-catch to prevent errors from bubbling
+      try {
+        // Validate action structure
+        if (!action || typeof action !== 'object') {
+          console.error('🚨 Invalid action received:', action);
+          return next({ type: 'INVALID_ACTION', payload: null });
         }
+        
+        // Ensure type exists
+        if (!action.type) {
+          console.error('🚨 Action without type:', action);
+          return next({ type: 'NO_TYPE_ACTION', payload: null });
+        }
+        
+        // Fix undefined payload for persist actions
+        if (action.type && action.type.startsWith('persist/')) {
+          if ('payload' in action && action.payload === undefined) {
+            console.warn('🔧 Fixed undefined payload for persist action:', action.type);
+            return next({ ...action, payload: null });
+          }
+        }
+        
+        // Fix undefined payload for any action
+        if ('payload' in action && action.payload === undefined) {
+          console.warn('🔧 Fixed undefined payload for action:', action.type);
+          return next({ ...action, payload: null });
+        }
+        
+        return next(action);
+      } catch (error) {
+        console.error('🚨 Middleware error:', error, 'Action:', action);
+        // Return a safe action instead of crashing
+        return next({ type: 'MIDDLEWARE_ERROR', payload: { error: error.message } });
       }
-      return next(action);
     }),
   devTools: process.env.NODE_ENV !== 'production',
 });
 
 // Create persistor for the store with error handling
-export const persistor = persistStore(store, null, () => {
-  console.log('✅ Redux Persist: Store rehydration complete');
+export const persistor = persistStore(store, null, (err) => {
+  if (err) {
+    console.error('🚨 Redux Persist: Rehydration error:', err);
+    // Clear corrupted data and reload
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('persist:ccr-auth');
+      localStorage.removeItem('persist:ccr-azure-invoice');
+      console.log('🧹 Cleared corrupted persist data, please refresh');
+    }
+  } else {
+    console.log('✅ Redux Persist: Store rehydration complete');
+  }
 });
 
 // Add error handling for corrupted persist data
@@ -159,7 +229,11 @@ if (typeof window !== 'undefined') {
   try {
     const authPersistData = localStorage.getItem('persist:ccr-auth');
     if (authPersistData) {
-      JSON.parse(authPersistData);
+      const parsed = JSON.parse(authPersistData);
+      // Validate structure
+      if (!parsed || typeof parsed !== 'object') {
+        throw new Error('Invalid auth persist structure');
+      }
     }
   } catch (error) {
     console.warn('🔧 Corrupted auth persist data detected, clearing...', error);
@@ -171,11 +245,25 @@ if (typeof window !== 'undefined') {
     const azurePersistData = localStorage.getItem('persist:ccr-azure-invoice');
     if (azurePersistData) {
       const parsed = JSON.parse(azurePersistData);
+      // Validate structure
+      if (!parsed || typeof parsed !== 'object') {
+        throw new Error('Invalid Azure Invoice persist structure');
+      }
       // Check cache age and clear if too old (1 day)
-      const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
-      if (parsed.cacheMetadata && parsed.cacheMetadata.lastUpdated < oneDayAgo) {
-        console.log('🧹 Azure Invoice cache expired (>24h), clearing...');
-        localStorage.removeItem('persist:ccr-azure-invoice');
+      if (parsed.cacheMetadata) {
+        try {
+          const metadata = typeof parsed.cacheMetadata === 'string' 
+            ? JSON.parse(parsed.cacheMetadata) 
+            : parsed.cacheMetadata;
+          const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+          if (metadata && metadata.lastUpdated && metadata.lastUpdated < oneDayAgo) {
+            console.log('🧹 Azure Invoice cache expired (>24h), clearing...');
+            localStorage.removeItem('persist:ccr-azure-invoice');
+          }
+        } catch (metaError) {
+          console.warn('🔧 Error parsing cache metadata, clearing...', metaError);
+          localStorage.removeItem('persist:ccr-azure-invoice');
+        }
       }
     }
   } catch (error) {

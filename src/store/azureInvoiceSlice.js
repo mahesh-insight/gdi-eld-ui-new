@@ -69,7 +69,14 @@ const azureInvoiceSlice = createSlice({
         return;
       }
       
-      const { monthsData, summaryData, creditsData, trendsData, userContext } = action.payload;
+      // Safely destructure with defaults to prevent undefined errors
+      const { 
+        monthsData = null, 
+        summaryData = null, 
+        creditsData = null, 
+        trendsData = null, 
+        userContext = null 
+      } = action.payload || {};
       
       console.log('🏪 REDUX: Setting initial SSR data:', {
         hasPayload: !!action.payload,
@@ -132,7 +139,17 @@ const azureInvoiceSlice = createSlice({
     
     // Month-specific data caching
     setMonthData: (state, action) => {
-      const { monthValue, summaryData, creditsData, trendsData } = action.payload || {};
+      if (!action?.payload) {
+        console.warn('🏪 REDUX: setMonthData called without payload');
+        return;
+      }
+      // Safely destructure with defaults to prevent undefined errors
+      const { 
+        monthValue = null, 
+        summaryData = null, 
+        creditsData = null, 
+        trendsData = null 
+      } = action.payload || {};
       
       if (!monthValue) {
         console.warn('🏪 REDUX: No monthValue provided for caching');
@@ -149,10 +166,11 @@ const azureInvoiceSlice = createSlice({
         timestamp: Date.now()
       };
       
-      // Update current data
+      // Update current data and track which month is currently displayed
       state.summaryData = summaryData;
       state.creditsData = creditsData;
       state.trendsData = trendsData;
+      state.cacheMetadata.currentMonth = monthValue;
     },
     
     // Processed data actions
@@ -173,8 +191,17 @@ const azureInvoiceSlice = createSlice({
     },
     
     setSelectedMonth: (state, action) => {
-      console.log('🏪 REDUX: Setting selected month:', action.payload);
+      console.log('🏪 REDUX: Setting selected month:', {
+        text: action.payload?.text,
+        value: action.payload?.value,
+        date: action.payload?.date,
+        fullPayload: action.payload
+      });
       state.selectedMonth = action?.payload ?? null;
+      // Track which month is currently selected for data sync on page load
+      if (action.payload?.value) {
+        state.cacheMetadata.currentMonth = action.payload.value;
+      }
     },
     
     setFilters: (state, action) => {
@@ -187,7 +214,11 @@ const azureInvoiceSlice = createSlice({
     
     // Cache management actions
     getCachedMonthData: (state, action) => {
-      const monthValue = action.payload;
+      const monthValue = action?.payload;
+      if (!monthValue) {
+        console.warn('🏪 REDUX: getCachedMonthData called without monthValue');
+        return;
+      }
       const cached = state.monthDataCache[monthValue];
       
       if (cached) {
@@ -215,6 +246,10 @@ const azureInvoiceSlice = createSlice({
     
     // Session validation
     validateSession: (state, action) => {
+      if (!action?.payload) {
+        console.warn('🏪 REDUX: validateSession called without payload');
+        return;
+      }
       const { soldToId } = action.payload || {};
       
       if (state.cacheMetadata.soldToId !== soldToId) {

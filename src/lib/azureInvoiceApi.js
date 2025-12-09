@@ -55,19 +55,22 @@ export async function callAzureInvoiceAPI(serviceName, payload, serverAccessToke
     let soldToArray;
     let urlParams = '';
     
+    // Add null/undefined check first
+    if (!payload) {
+      console.error('❌ No payload provided (null or undefined)');
+      return { error: 'No payload provided' };
+    }
+    
     if (Array.isArray(payload)) {
       // Direct array payload (for invoiceMonths)
       soldToArray = payload;
-    } else if (payload && typeof payload === 'object' && payload.hasOwnProperty('payload')) {
+    } else if (typeof payload === 'object' && payload.hasOwnProperty('payload')) {
       // Object with payload array and other config (for other APIs with urlParam)
       soldToArray = payload.payload;
       urlParams = payload.urlParam || '';
-    } else if (payload) {
+    } else {
       console.error('❌ Invalid payload format:', payload);
       return { error: 'Invalid payload format' };
-    } else {
-      console.error('❌ No payload provided');
-      return { error: 'No payload provided' };
     }
     
     // Build the complete URL
@@ -81,7 +84,8 @@ export async function callAzureInvoiceAPI(serviceName, payload, serverAccessToke
         fullUrl += `/${urlParams}`;
       }
     }
-    console.log('🔍 Final URL:', fullUrl);
+    console.log('🌐🌐🌐 FULL API REQUEST URL:', fullUrl);
+    console.log('📦 Request Payload:', JSON.stringify(soldToArray, null, 2));
     
     // Get access token for authorization - prioritize server-provided token
     let accessToken = serverAccessToken;
@@ -320,6 +324,13 @@ export async function fetchInvoiceTrend({ soldToId, months, filter, accessToken 
  */
 export async function getInitialAzureInvoiceData({ soldToId, locationState, accessToken }) {
   try {
+    console.log('🎯🎯🎯 getInitialAzureInvoiceData called with:', {
+      soldToId: soldToId?.substring(0, 20) + '...',
+      locationState: locationState,
+      currentMonthObject: locationState?.currentMonthObject,
+      hasAccessToken: !!accessToken
+    });
+    
     const invoiceMonths = await fetchInvoiceMonths({ soldToId, accessToken });
 
     if (!invoiceMonths?.length) {
@@ -331,6 +342,12 @@ export async function getInitialAzureInvoiceData({ soldToId, locationState, acce
 
     const currentMonthObject = locationState?.currentMonthObject || invoiceMonths[0];
     const currentMonthValue = currentMonthObject.value;
+    
+    console.log('📅📅📅 MONTH VALUE BEING USED FOR API CALLS:', {
+      currentMonthObject: currentMonthObject,
+      currentMonthValue: currentMonthValue,
+      source: locationState?.currentMonthObject ? 'FROM_LOCATION_STATE' : 'FROM_FIRST_MONTH'
+    });
 
     // Build 2-month string for monthly difference
     const moment = (await import("moment")).default;

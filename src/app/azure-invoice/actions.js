@@ -15,59 +15,45 @@ import { CacheKeys, CacheTTL } from '@/lib/cache/cacheKeys';
  * Fetch only invoice months data
  */
 export async function fetchInvoiceMonthsServer(clientSoldToId = null) {
-  // Similar auth logic but return only months
   try {
     console.log('🚀 Server Action: Fetching Invoice Months');
     const cookieStore = await cookies();
     
-    // Debug all available cookies
-    const allCookies = cookieStore.getAll();
-    console.log('🔍 All available cookies:', allCookies.map(c => ({ name: c.name, hasValue: !!c.value })));
-    
     const accessTokenCookie = cookieStore.get('access_token');
     const userContextCookie = cookieStore.get('user_context');
-    
-    console.log('🔍 Server-side cookie debug:', {
-      accessTokenCookie: accessTokenCookie ? 'found' : 'not found',
-      userContextCookie: userContextCookie ? 'found' : 'not found',
-      clientSoldToId
-    });
     
     let soldToId = clientSoldToId;
     let accessToken = null;
     
-    // Try to get from cookies first, then fall back to client params
     if (accessTokenCookie) {
       accessToken = accessTokenCookie.value;
-      console.log('✅ Access token found in cookies');
     }
     
     if (userContextCookie) {
       try {
         const userContext = JSON.parse(userContextCookie.value);
         soldToId = userContext.soldToId || clientSoldToId;
-        console.log('✅ User context found in cookies, soldToId:', soldToId);
       } catch (parseError) {
         console.error('❌ Failed to parse user context cookie:', parseError);
       }
     }
     
-    // Final validation
-    if (!soldToId) {
-      console.error('❌ No soldToId available from cookies or client');
-      return { error: 'Authentication required for months data - no soldToId', data: null };
+    if (!soldToId || !accessToken) {
+      return { error: 'Authentication required for months data', data: null };
     }
     
-    if (!accessToken) {
-      console.error('❌ No access token available from cookies');
-      return { error: 'Authentication required for months data - no access token', data: null };
-    }
+    // Use cache with 10-minute TTL
+    const cacheKey = `azure-invoice-months:${soldToId}`;
+    const data = await getOrSetCached(
+      cacheKey,
+      async () => {
+        console.log('📥 Cache MISS - fetching months from API');
+        return await getInitialAzureInvoiceData({ soldToId, accessToken });
+      },
+      10 * 60 * 1000 // 10 minutes
+    );
     
-    console.log('🔍 Using auth data:', { soldToId, hasAccessToken: !!accessToken });
-    
-    const data = await getInitialAzureInvoiceData({ soldToId, accessToken });
-    console.log('🔍 getInitialAzureInvoiceData returned:', JSON.stringify(data, null, 2));
-    console.log('🔍 invoiceMonths extracted:', data?.invoiceMonths);
+    console.log('✅ Months data served from cache:', data._fromCache ? 'HIT' : 'MISS');
     return { 
       error: null, 
       data: { 
@@ -88,7 +74,7 @@ export async function fetchInvoiceMonthsServer(clientSoldToId = null) {
  */
 export async function fetchSummaryDataServer(clientSoldToId = null, selectedMonth = null) {
   try {
-    console.log('🚀 Server Action: Fetching Summary Data for month:', selectedMonth);
+    console.log('🚀 Server Action: Fetching Summary Data for month:', selectedMonth?.value);
     const cookieStore = await cookies();
     const accessTokenCookie = cookieStore.get('access_token');
     const userContextCookie = cookieStore.get('user_context');
@@ -96,12 +82,10 @@ export async function fetchSummaryDataServer(clientSoldToId = null, selectedMont
     let soldToId = clientSoldToId;
     let accessToken = null;
     
-    // Get access token from cookies
     if (accessTokenCookie) {
       accessToken = accessTokenCookie.value;
     }
     
-    // Get soldToId from cookies if not provided by client
     if (!soldToId && userContextCookie) {
       try {
         const userContext = JSON.parse(userContextCookie.value);
@@ -115,7 +99,19 @@ export async function fetchSummaryDataServer(clientSoldToId = null, selectedMont
       return { error: 'Authentication required for summary data', data: null };
     }
     
-    const data = await getInitialAzureInvoiceData({ soldToId, accessToken, locationState: { currentMonthObject: selectedMonth } });
+    // Use cache with month-specific key and 10-minute TTL
+    const monthKey = selectedMonth?.value || 'default';
+    const cacheKey = `azure-summary:${soldToId}:${monthKey}`;
+    const data = await getOrSetCached(
+      cacheKey,
+      async () => {
+        console.log('📥 Cache MISS - fetching summary from API');
+        return await getInitialAzureInvoiceData({ soldToId, accessToken, locationState: { currentMonthObject: selectedMonth } });
+      },
+      10 * 60 * 1000 // 10 minutes
+    );
+    
+    console.log('✅ Summary data served from cache:', data._fromCache ? 'HIT' : 'MISS');
     return { 
       error: null, 
       data: data?.summary || null
@@ -134,7 +130,7 @@ export async function fetchSummaryDataServer(clientSoldToId = null, selectedMont
  */
 export async function fetchCreditsDataServer(clientSoldToId = null, selectedMonth = null) {
   try {
-    console.log('🚀 Server Action: Fetching Credits Data for month:', selectedMonth);
+    console.log('🚀 Server Action: Fetching Credits Data for month:', selectedMonth?.value);
     const cookieStore = await cookies();
     const accessTokenCookie = cookieStore.get('access_token');
     const userContextCookie = cookieStore.get('user_context');
@@ -142,12 +138,10 @@ export async function fetchCreditsDataServer(clientSoldToId = null, selectedMont
     let soldToId = clientSoldToId;
     let accessToken = null;
     
-    // Get access token from cookies
     if (accessTokenCookie) {
       accessToken = accessTokenCookie.value;
     }
     
-    // Get soldToId from cookies if not provided by client
     if (!soldToId && userContextCookie) {
       try {
         const userContext = JSON.parse(userContextCookie.value);
@@ -161,7 +155,19 @@ export async function fetchCreditsDataServer(clientSoldToId = null, selectedMont
       return { error: 'Authentication required for credits data', data: null };
     }
     
-    const data = await getInitialAzureInvoiceData({ soldToId, accessToken, locationState: { currentMonthObject: selectedMonth } });
+    // Use cache with month-specific key and 10-minute TTL
+    const monthKey = selectedMonth?.value || 'default';
+    const cacheKey = `azure-credits:${soldToId}:${monthKey}`;
+    const data = await getOrSetCached(
+      cacheKey,
+      async () => {
+        console.log('📥 Cache MISS - fetching credits from API');
+        return await getInitialAzureInvoiceData({ soldToId, accessToken, locationState: { currentMonthObject: selectedMonth } });
+      },
+      10 * 60 * 1000 // 10 minutes
+    );
+    
+    console.log('✅ Credits data served from cache:', data._fromCache ? 'HIT' : 'MISS');
     return { 
       error: null, 
       data: data?.credits || null
@@ -180,7 +186,7 @@ export async function fetchCreditsDataServer(clientSoldToId = null, selectedMont
  */
 export async function fetchTrendsDataServer(clientSoldToId = null, selectedMonth = null) {
   try {
-    console.log('🚀 Server Action: Fetching Trends Data for month:', selectedMonth);
+    console.log('🚀 Server Action: Fetching Trends Data for month:', selectedMonth?.value);
     const cookieStore = await cookies();
     const accessTokenCookie = cookieStore.get('access_token');
     const userContextCookie = cookieStore.get('user_context');
@@ -188,12 +194,10 @@ export async function fetchTrendsDataServer(clientSoldToId = null, selectedMonth
     let soldToId = clientSoldToId;
     let accessToken = null;
     
-    // Get access token from cookies
     if (accessTokenCookie) {
       accessToken = accessTokenCookie.value;
     }
     
-    // Get soldToId from cookies if not provided by client
     if (!soldToId && userContextCookie) {
       try {
         const userContext = JSON.parse(userContextCookie.value);
@@ -207,7 +211,19 @@ export async function fetchTrendsDataServer(clientSoldToId = null, selectedMonth
       return { error: 'Authentication required for trends data', data: null };
     }
     
-    const data = await getInitialAzureInvoiceData({ soldToId, accessToken, locationState: { currentMonthObject: selectedMonth } });
+    // Use cache with month-specific key and 10-minute TTL
+    const monthKey = selectedMonth?.value || 'default';
+    const cacheKey = `azure-trends:${soldToId}:${monthKey}`;
+    const data = await getOrSetCached(
+      cacheKey,
+      async () => {
+        console.log('📥 Cache MISS - fetching trends from API');
+        return await getInitialAzureInvoiceData({ soldToId, accessToken, locationState: { currentMonthObject: selectedMonth } });
+      },
+      10 * 60 * 1000 // 10 minutes
+    );
+    
+    console.log('✅ Trends data served from cache:', data._fromCache ? 'HIT' : 'MISS');
     return { 
       error: null, 
       data: data?.trend || null

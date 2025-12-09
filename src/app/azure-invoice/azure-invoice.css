@@ -1,0 +1,280 @@
+/* Azure Invoice Component Styles */
+
+.azure-invoice-component {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.main_content_container {
+  padding: 20px;
+}
+
+.c-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Grid System */
+.o-grid {
+  display: flex;
+  flex-wrap: wrap;
+  margin-left: -10px;
+  margin-right: -10px;
+}
+
+.o-grid--gutters-tiny {
+  margin-left: -5px;
+  margin-right: -5px;
+}
+
+.o-grid--gutters-tiny > .o-grid__item {
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+.o-grid--gutters > .o-grid__item {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.o-grid__item {
+  padding-left: 10px;
+  padding-right: 10px;
+  box-sizing: border-box;
+}
+
+.u-1\/1 {
+  width: 100%;
+}
+
+.u-1\/2 {
+  width: 50%;
+}
+
+.u-1\/4 {
+  width: 25%;
+}
+
+@media (min-width: 1024px) {
+  .u-1\/4\@desktop {
+    width: 25%;
+  }
+  
+  .u-1\/2\@desktop {
+    width: 50%;
+  }
+}
+
+/* Panel Styles */
+.panel {
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.panel-body {
+  padding: 20px;
+}
+
+/* Header Styles */
+.header-text-large {
+  font-size: 24px;
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 10px;
+}
+
+/* Invoice Metrics */
+.grid-container {
+  display: flex;
+  gap: 15px;
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+
+.unbillableTotal,
+.billableAzureTotal {
+  flex: 0 0 auto;
+}
+
+.invoice-total {
+  background-color: #ffffff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.vertical-pink,
+.vertical-blue,
+.vertical-gray {
+  padding: 15px 20px;
+  min-width: 180px;
+}
+
+.vertical-pink {
+  border-left: 4px solid #e91e63;
+}
+
+.vertical-blue {
+  border-left: 4px solid #2196f3;
+}
+
+.vertical-gray {
+  border-left: 4px solid #9e9e9e;
+}
+
+.count-labels-text {
+  font-size: 12px;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.count-display-text {
+  font-size: 24px;
+  font-weight: 700;
+  color: #28a745;
+}
+
+.difference {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.difference:hover {
+  transform: translateY(-2px);
+}
+
+/* Form Controls */
+.label-text-bold {
+  font-weight: 600;
+  color: #495057;
+  font-size: 14px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.view-billed-usage-container {
+  margin-bottom: 20px;
+}
+
+.usage-link {
+  display: flex;
+  align-items: flex-end;
+}
+
+.usage-link-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.redirect {
+  color: #007bff;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.redirect:hover {
+  text-decoration: underline;
+}
+
+/* Apply Button */
+.apply-button {
+  display: flex;
+  align-items: flex-end;
+}
+
+.apply-button button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.apply-button button:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+.apply-button button:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.apply-button-text {
+  color: #856404;
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  padding: 10px 15px;
+  border-radius: 5px;
+  font-size: 14px;
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.apply-button-text.hide {
+  display: none;
+}
+
+/* Charts */
+.invoiceBreakdown,
+.trending6MonthSpend {
+  margin-bottom: 20px;
+}
+
+.u-text-center {
+  text-align: center;
+}
+
+.u-text-bold {
+  font-weight: bold;
+}
+
+.-tiny {
+  font-size: 14px;
+}
+
+/* Carousel */
+.clickableChart {
+  cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 1023px) {
+  .grid-container {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .u-1\/4\@desktop {
+    width: 100%;
+    margin-bottom: 15px;
+  }
+  
+  .u-1\/2\@desktop {
+    width: 100%;
+  }
+}
+
+/* Kendo Overrides */
+.k-dropdown,
+.k-multiselect {
+  width: 100% !important;
+}
+
+.k-dropdown .k-input,
+.k-multiselect .k-input {
+  border-radius: 4px;
+}

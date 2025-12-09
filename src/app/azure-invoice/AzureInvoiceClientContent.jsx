@@ -5,7 +5,13 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import CachePerformanceIndicator from '@/components/CachePerformanceIndicator';
-import { fetchAzureInvoiceDataForMonth } from './actions';
+import { 
+  fetchAzureInvoiceDataForMonth,
+  fetchInvoiceMonthsServer,
+  fetchSummaryDataServer,
+  fetchCreditsDataServer,
+  fetchTrendsDataServer
+} from './actions';
 // import { BasicGroupedChart } from '@/common/Charts/BasicGroupedChart';
 // import { BasicPieDoughnutChart } from '@/common/Charts/BasicPieDoughnutChart';
 
@@ -162,6 +168,7 @@ import {
 } from '../../store/azureInvoiceSlice';
 import { useHasRehydrated } from '@/hooks/useHasRehydrated';
 import { DropDownList, MultiSelect } from '@progress/kendo-react-dropdowns';
+import './azure-invoice.css';
 
 export default function AzureInvoiceClientContent({
   mode = 'with-data',
@@ -190,21 +197,12 @@ export default function AzureInvoiceClientContent({
   const monthDataCache = useSelector(selectMonthDataCache);
   
   
-  // 🚨 CRITICAL DEBUG: Check if Redux persist is working
-  
-  // Handle new true-ssr mode with initialData structure
-  // Server actions return { error, data } - extract .data property
+  // Handle different modes: 'true-ssr' = fresh server data, 'use-cache' = use Redux cache
   const actualInitialMonthsData = mode === 'true-ssr' ? initialData?.monthsResponse?.data : initialMonthsData;
   const actualInitialSummaryData = mode === 'true-ssr' ? initialData?.summaryResponse?.data : initialSummaryData;
   const actualInitialCreditsData = mode === 'true-ssr' ? initialData?.creditsResponse?.data : initialCreditsData;
   const actualInitialTrendsData = mode === 'true-ssr' ? initialData?.trendsResponse?.data : initialTrendsData;
 
-  
-  // CRITICAL DEBUG: See what server actually sent
-  
-  if (initialData?.monthsResponse) {
-  }
-  
   if (mode === 'true-ssr') {
     console.log('✅ Server-side data received - NO client API calls needed!', {
       hasMonthsData: !!actualInitialMonthsData,
@@ -216,33 +214,22 @@ export default function AzureInvoiceClientContent({
     });
   }
   
-  // Check if we have valid cached data for current session
+  // SIMPLIFIED cache validation - prioritize using cache for fast navigation
   const sessionValid = !userContext?.soldToId || cacheMetadata?.soldToId === userContext?.soldToId;
-  const hasCachedRawData = reduxAzureData?.monthsData && cacheMetadata?.lastUpdated;
-  const hasCachedProcessedData = reduxProcessedChartData?.invoiceBreakdownData?.length > 0;
-  const hasCachedSelectLists = reduxSelectListOptions?.productCategory?.length > 1;
-  const hasCachedInvoiceMonths = reduxInvoiceMonths?.length > 0;
-  
-  // 🔥 EXTREMELY AGGRESSIVE CACHE VALIDATION - Check for ANY cached data
-  const hasAnyReduxData = !!(
+  const hasCachedData = !!(
     reduxAzureData?.monthsData ||
     reduxAzureData?.summaryData ||
-    reduxAzureData?.creditsData ||
-    reduxAzureData?.trendsData ||
-    reduxProcessedChartData?.invoiceBreakdownData?.length ||
-    reduxSelectListOptions?.productCategory?.length ||
-    reduxInvoiceMonths?.length
+    reduxInvoiceMonths?.length > 0
   );
   
-  
-  // 🚀 ULTRA-AGGRESSIVE CACHE STRATEGY - Use cached data immediately if available
+  // Cache validation - use cache if session matches and we have any data
   const cacheAge = cacheMetadata?.lastUpdated ? Date.now() - cacheMetadata.lastUpdated : null;
+  const CACHE_MAX_AGE = 30 * 60 * 1000; // 30 minutes (increased from 10)
   
-  // FORCE cache usage if we have ANY cached data at all (ignore age for now)
-  const forceCacheUsage = hasAnyReduxData && sessionValid; // Only use cache if session is valid
-  
-  // Override cache decision - use cache aggressively
-  const isCacheValid = forceCacheUsage;
+  // SIMPLIFIED: Use cache if session is valid and we have data (not stale)
+  const isCacheValid = sessionValid && 
+    hasCachedData && 
+    (cacheAge === null || cacheAge < CACHE_MAX_AGE);
   
 
   // 🔍 DEEP REDUX STORE INSPECTION
@@ -265,66 +252,125 @@ export default function AzureInvoiceClientContent({
     }
   }
   
-  // 🚀 FORCE CACHE USAGE - Use cached data aggressively, BUT ONLY IF REHYDRATED
-  const useReduxData = isRehydrated && (isCacheValid || hasLocalStorageCache || hasAnyReduxData);
-  const dataSource = useReduxData ? 
-    (isCacheValid ? '⚡ REDUX_INSTANT_CACHE' : (hasLocalStorageCache ? '📱 LOCALSTORAGE_FALLBACK' : '🔥 EMERGENCY_REDUX_OVERRIDE')) : 
-    (isRehydrated ? '🐌 SSR_SLOW_FRESH' : '⏳ AWAITING_REHYDRATION');
+  // Use cached data if cache is valid and rehydrated - PRIORITIZE CACHE for navigation
+  const useReduxData = isRehydrated && isCacheValid;
+  const dataSource = useReduxData ? '⚡ REDUX_CACHE' : (isRehydrated ? '🚀 SSR_FRESH' : '⏳ REHYDRATING');
+  
+  console.log('🔍 Cache Decision:', {
+    useReduxData,
+    isRehydrated,
+    isCacheValid,
+    hasCachedData,
+    cacheAge: cacheAge ? `${Math.round(cacheAge / 1000)}s` : 'N/A',
+    dataSource
+  });
+  
+  // Skip processing only if we're using valid cached data
+  const shouldSkipAllProcessing = useReduxData && isCacheValid;
   
   
-  // 🛑 IMMEDIATE EARLY TERMINATION FLAG - Skip if we have ANY cached data
-  const shouldSkipAllProcessing = useReduxData && hasAnyReduxData;
+  // State initialization - PRIORITIZE CACHE for fast navigation, use SSR as fallback
+  const [invoiceMonthsData, setInvoiceMonthsData] = useState(
+    (useReduxData ? reduxAzureData.monthsData : null) || actualInitialMonthsData
+  );
+  const [summaryData, setSummaryData] = useState(
+    (useReduxData ? reduxAzureData.summaryData : null) || actualInitialSummaryData
+  );
+  const [creditsData, setCreditsData] = useState(
+    (useReduxData ? reduxAzureData.creditsData : null) || actualInitialCreditsData
+  );
+  const [trendsData, setTrendsData] = useState(
+    (useReduxData ? reduxAzureData.trendsData : null) || actualInitialTrendsData
+  );
   
+  // Update state when new SSR data arrives - but ONLY if not using cache
+  useEffect(() => {
+    if (!useReduxData) {
+      if (actualInitialMonthsData) {
+        console.log('📥📥📥 UPDATING MONTHS FROM SSR:', actualInitialMonthsData?.invoiceMonths?.length || 0, 'months');
+        console.log('First month:', actualInitialMonthsData?.invoiceMonths?.[0]);
+        setInvoiceMonthsData(actualInitialMonthsData);
+      }
+      if (actualInitialSummaryData) {
+        console.log('📥📥📥 UPDATING SUMMARY FROM SSR - Total Spend:', actualInitialSummaryData?.totalSpend || 'N/A');
+        setSummaryData(actualInitialSummaryData);
+      }
+      if (actualInitialCreditsData) {
+        console.log('📥📥📥 UPDATING CREDITS FROM SSR - Credits:', actualInitialCreditsData?.totalSpend || 'N/A');
+        setCreditsData(actualInitialCreditsData);
+      }
+      if (actualInitialTrendsData) {
+        console.log('📥📥📥 UPDATING TRENDS FROM SSR - Has Data:', !!actualInitialTrendsData);
+        setTrendsData(actualInitialTrendsData);
+      }
+    } else {
+      console.log('⚡ Using cached data - skipping SSR data update');
+    }
+  }, [useReduxData, actualInitialMonthsData, actualInitialSummaryData, actualInitialCreditsData, actualInitialTrendsData]);
   
-  // ⚡ ULTRA-AGGRESSIVE STATE INITIALIZATION - Use cached data immediately, ignore SSR
-  const [invoiceMonthsData] = useState(useReduxData ? reduxAzureData.monthsData : actualInitialMonthsData);
-  const [summaryData, setSummaryData] = useState(useReduxData ? reduxAzureData.summaryData : actualInitialSummaryData);
-  const [creditsData, setCreditsData] = useState(useReduxData ? reduxAzureData.creditsData : actualInitialCreditsData);
-  const [trendsData, setTrendsData] = useState(useReduxData ? reduxAzureData.trendsData : actualInitialTrendsData);
-  
-  // 🚀 NEW: Dispatch initial data to Redux store to ensure cache is populated
+  // 🚀 NEW: Dispatch initial data to Redux store and sync to cookie
   useEffect(() => {
     // Only run this on initial load when we have SSR data and no cache
     if (!useReduxData && mode === 'true-ssr' && initialData) {
-      console.log('📦 Preparing to dispatch to Redux:', {
-        hasInitialData: !!initialData,
-        monthsResponse: !!initialData.monthsResponse,
-        summaryResponse: !!initialData.summaryResponse,
-        monthsData: !!initialData.monthsResponse?.data,
-        summaryData: !!initialData.summaryResponse?.data,
-      });
-      
       const dataToDispatch = {
-        monthsData: initialData.monthsResponse?.data,
-        summaryData: initialData.summaryResponse?.data,
-        creditsData: initialData.creditsResponse?.data,
-        trendsData: initialData.trendsResponse?.data,
-        userContext: userContext
+        monthsData: initialData.monthsResponse?.data || null,
+        summaryData: initialData.summaryResponse?.data || null,
+        creditsData: initialData.creditsResponse?.data || null,
+        trendsData: initialData.trendsResponse?.data || null,
+        userContext: userContext || null
       };
       
-      console.log('📦 Data to dispatch:', {
-        hasMonthsData: !!dataToDispatch.monthsData,
-        hasSummaryData: !!dataToDispatch.summaryData,
-        hasCreditsData: !!dataToDispatch.creditsData,
-        hasTrendsData: !!dataToDispatch.trendsData,
-        hasUserContext: !!dataToDispatch.userContext
-      });
-      
-      dispatch(setInitialSSRData(dataToDispatch));
+      // Only dispatch if we have at least some data
+      if (dataToDispatch?.monthsData || dataToDispatch?.summaryData) {
+        dispatch(setInitialSSRData(dataToDispatch));
+      }
     }
   }, [useReduxData, mode, initialData, dispatch, userContext]);
 
   const [error] = useState(monthsError || summaryError || creditsError || trendsError);
   const [selectedMonth, setSelectedMonthLocal] = useState(() => {
+    // ALWAYS prioritize fresh SSR data over cached data for selected month
+    const firstMonth = actualInitialMonthsData?.invoiceMonths?.[0] || actualInitialMonthsData?.[0];
+    if (firstMonth) {
+      console.log('🎯🎯🎯 INITIALIZING SELECTED MONTH FROM SSR DATA:', {
+        text: firstMonth.text || firstMonth.label,
+        value: firstMonth.value,
+        date: firstMonth.date,
+        fullObject: firstMonth
+      });
+      console.log('🌐 This month value will be used for API calls');
+      return {
+        text: firstMonth.text || firstMonth.label,
+        value: firstMonth.value,
+        date: firstMonth.date
+      };
+    }
+    
+    // Fallback to cached selected month
     if (useReduxData && reduxSelectedMonth) {
+      console.log('🎯🎯🎯 INITIALIZING SELECTED MONTH FROM CACHE:', {
+        text: reduxSelectedMonth.text,
+        value: reduxSelectedMonth.value,
+        date: reduxSelectedMonth.date,
+        fullObject: reduxSelectedMonth
+      });
+      console.log('📦 Using cached month, no API calls needed');
       return reduxSelectedMonth;
     }
-    const firstMonth = actualInitialMonthsData?.invoiceMonths?.[0] || actualInitialMonthsData?.[0];
-    return firstMonth ? {
-      label: firstMonth.text || firstMonth.label,
-      value: firstMonth.value,
-      date: firstMonth.date
-    } : null;
+    
+    // Fallback to first month in cached invoice months
+    if (useReduxData && reduxInvoiceMonths?.length > 0) {
+      const cachedFirstMonth = reduxInvoiceMonths[0];
+      console.log('🎯🎯🎯 INITIALIZING SELECTED MONTH FROM CACHED MONTHS:', cachedFirstMonth);
+      return {
+        text: cachedFirstMonth.text || cachedFirstMonth.label,
+        value: cachedFirstMonth.value,
+        date: cachedFirstMonth.date
+      };
+    }
+    
+    console.log('⚠️ No selected month available - will wait for data to load');
+    return null;
   });
   const [monthDataLoading, setMonthDataLoading] = useState(false);
   const [isClient, setIsClient] = useState(false);
@@ -599,6 +645,68 @@ export default function AzureInvoiceClientContent({
     } else {
     }
   }, [mode, actualInitialMonthsData]); // Run when mode or monthsData changes
+
+  // Ensure data matches the selected month on page load - OPTIMIZED to use SSR/cached data first
+  useEffect(() => {
+    // Only run after component is mounted
+    if (!isClient || !selectedMonth || !userContext?.soldToId) {
+      return;
+    }
+    
+    // CRITICAL FIX: If we already have data from SSR or cache, don't trigger API calls
+    const hasExistingData = summaryData && creditsData && trendsData;
+    if (hasExistingData) {
+      console.log('✅ Already have valid data from SSR/cache, skipping API call');
+      return;
+    }
+    
+    const selectedMonthValue = selectedMonth?.value;
+    
+    // Check if current displayed data matches the selected (default) month
+    const cachedMonth = cacheMetadata?.currentMonth;
+    const monthCacheData = selectedMonthValue ? monthDataCache[selectedMonthValue] : null;
+    
+    console.log('🔍 PAGE LOAD DATA SYNC CHECK:', {
+      selectedMonth: selectedMonthValue,
+      cachedMonth: cachedMonth,
+      hasMonthCache: !!monthCacheData,
+      hasExistingData,
+      useReduxData
+    });
+    
+    // If we have month-specific cache for the selected month, use it
+    if (monthCacheData) {
+      const monthCacheAge = Date.now() - monthCacheData.timestamp;
+      const isMonthCacheValid = monthCacheAge < (15 * 60 * 1000); // 15 minutes
+      
+      if (isMonthCacheValid) {
+        console.log('⚡ Using cached data for selected month from monthDataCache');
+        setSummaryData(monthCacheData.summaryData);
+        setCreditsData(monthCacheData.creditsData);
+        setTrendsData(monthCacheData.trendsData);
+        
+        // Process and update UI
+        const invoiceBreakdownData = processInvoiceBreakdownData(monthCacheData.summaryData);
+        const monthlyTrendData = processTrendingData(monthCacheData.trendsData);
+        const topExpensiveData = processTopExpensiveProducts(monthCacheData.summaryData);
+        const creditsApplied = monthCacheData.creditsData?.totalSpend || 0;
+        
+        setProcessedChartData({
+          invoiceBreakdownData,
+          monthlyTrendData,
+          topExpensiveData,
+          creditsApplied
+        });
+        
+        // Update select lists if available
+        if (monthCacheData.summaryData?.selectLists) {
+          const newSelectListOptions = processSelectLists(monthCacheData.summaryData);
+          setSelectListOptions(newSelectListOptions);
+        }
+        return;
+      }
+    }
+  }, [isClient]); // Only run once when client mounts, don't re-run on month changes
 
   // Ensure we're on the client side before rendering charts
   useEffect(() => {
@@ -1040,14 +1148,51 @@ export default function AzureInvoiceClientContent({
   
   const handleMonthChange = async (event) => {
     const newMonth = event.target.value;
+    console.log('📅 Month selection triggered:', {
+      newMonth,
+      type: typeof newMonth,
+      isObject: typeof newMonth === 'object' && newMonth !== null
+    });
+    
+    // Extract month value - handle both object and string formats
+    let monthValue;
+    if (typeof newMonth === 'object' && newMonth !== null) {
+      monthValue = newMonth.value;
+    } else {
+      monthValue = newMonth;
+    }
+    
+    console.log('📅 Extracted monthValue:', monthValue);
+    
+    if (!monthValue) {
+      console.warn('📅 Invalid month value, skipping API call');
+      return;
+    }
+    
+    // Check if the selected month is the same as the current month
+    const currentMonthValue = typeof selectedMonth === 'object' && selectedMonth !== null 
+      ? selectedMonth.value 
+      : selectedMonth;
+    
+    console.log('📅 Comparison check:', {
+      newMonthValue: monthValue,
+      currentMonthValue: currentMonthValue,
+      areEqual: monthValue === currentMonthValue,
+      willSkip: monthValue === currentMonthValue
+    });
+    
+    if (monthValue === currentMonthValue) {
+      console.log('📅 Same month selected, skipping API call');
+      return;
+    }
+    
+    console.log('📅 Different month detected, proceeding with API call');
     
     setSelectedMonth(newMonth);
     setMonthDataLoading(true);
     
     try {
       
-      // Check Redux cache first for this specific month
-      const monthValue = newMonth?.value || newMonth;
       const cachedMonthData = monthDataCache[monthValue];
       const monthCacheAge = cachedMonthData ? Date.now() - cachedMonthData.timestamp : null;
       const isMonthCacheValid = cachedMonthData && monthCacheAge < (15 * 60 * 1000); // 15 minutes
@@ -1055,6 +1200,7 @@ export default function AzureInvoiceClientContent({
       let summary, credits, trend;
       
       if (isMonthCacheValid) {
+        console.log('⚡ Using cached month data');
         summary = cachedMonthData.summaryData;
         credits = cachedMonthData.creditsData;
         trend = cachedMonthData.trendsData;
@@ -1064,11 +1210,12 @@ export default function AzureInvoiceClientContent({
         setCreditsData(credits);
         setTrendsData(trend);
       } else {
+        console.log('🚀 Fetching fresh month data');
         
-        // Use server action to fetch fresh data
+        // Use server action to fetch fresh data - pass the full month object
         const result = await fetchAzureInvoiceDataForMonth(userContext?.soldToId, newMonth);
         
-        console.log('🔍 Client: Server action result:', result);
+        console.log('🔍 Server action result:', result);
         
         if (result.error) {
           console.error('❌ Server action returned error:', result.error);
@@ -1085,14 +1232,15 @@ export default function AzureInvoiceClientContent({
         setCreditsData(credits);
         setTrendsData(trend);
         
-        // Cache the new month data in Redux
-        dispatch(setMonthData({
-          monthValue,
-          summaryData: summary,
-          creditsData: credits,
-          trendsData: trend
-        }));
-        
+        // Cache the new month data in Redux (only if we have valid data)
+        if (monthValue && (summary || credits || trend)) {
+          dispatch(setMonthData({
+            monthValue,
+            summaryData: summary || null,
+            creditsData: credits || null,
+            trendsData: trend || null
+          }));
+        }
       }
       
 
@@ -1369,14 +1517,18 @@ export default function AzureInvoiceClientContent({
       // Validate session and cache data
       dispatch(validateSession({ soldToId: userContext.soldToId }));
       
-      // Cache the initial SSR data
-      dispatch(setInitialSSRData({
-        monthsData: actualInitialMonthsData,
-        summaryData: actualInitialSummaryData,
-        creditsData: actualInitialCreditsData,
-        trendsData: actualInitialTrendsData,
-        userContext
-      }));
+      // Cache the initial SSR data (only if we have data)
+      const ssrDataToCache = {
+        monthsData: actualInitialMonthsData || null,
+        summaryData: actualInitialSummaryData || null,
+        creditsData: actualInitialCreditsData || null,
+        trendsData: actualInitialTrendsData || null,
+        userContext: userContext || null
+      };
+      
+      if (ssrDataToCache.monthsData || ssrDataToCache.summaryData) {
+        dispatch(setInitialSSRData(ssrDataToCache));
+      }
       
       
       // Also cache processed data to avoid reprocessing on refresh
@@ -1408,48 +1560,64 @@ export default function AzureInvoiceClientContent({
     }
   }, [mode, useReduxData, userContext?.soldToId, processedChartData, selectListOptions, invoiceMonths, selectedMonth]);
   
-  // Process server data on mount or mode change
+  // Process server data on mount or when data changes
   useEffect(() => {
-    if (mode === 'true-ssr' || !useReduxData) {
-      // Skip if cache is available
-      if (shouldSkipAllProcessing) {
-        return;
-      }
-      
-      try {
-        // Process all data from server
-        const invoiceBreakdownData = actualInitialSummaryData ? processInvoiceBreakdownData(actualInitialSummaryData) : [];
-        const monthlyTrendData = actualInitialTrendsData ? processTrendingData(actualInitialTrendsData) : [];
-        const topExpensiveData = actualInitialSummaryData ? processTopExpensiveProducts(actualInitialSummaryData) : [];
-        const creditsApplied = actualInitialCreditsData?.totalSpend || 0;
-        
-        const monthsSource = actualInitialMonthsData?.invoiceMonths || actualInitialMonthsData;
-        const processedMonths = processInvoiceMonths(monthsSource) || [];
-        
-        const processedSelectLists = processSelectLists(actualInitialSummaryData);
-        
-        // Update all state at once
-        setProcessedChartData({
-          invoiceBreakdownData,
-          monthlyTrendData,
-          topExpensiveData,
-          creditsApplied
-        });
-        
-        setInvoiceMonths(processedMonths);
-        
-        setSelectListOptions(processedSelectLists);
-        
-        // Set default selected month
-        if (processedMonths.length > 0) {
-          setSelectedMonth(processedMonths[0]);
-        }
-        
-      } catch (error) {
-        console.error('❌ Error processing server data:', error);
-      }
+    // Skip if cache is available
+    if (shouldSkipAllProcessing) {
+      console.log('⏭️ Skipping data processing - using valid cache');
+      return;
     }
-  }, [mode, shouldSkipAllProcessing, useReduxData, actualInitialSummaryData, actualInitialTrendsData, actualInitialCreditsData, actualInitialMonthsData, dispatch]);
+    
+    // Skip if no data to process yet
+    if (!summaryData && !creditsData && !trendsData && !invoiceMonthsData) {
+      console.log('⏭️ Skipping data processing - no data available yet');
+      return;
+    }
+    
+    try {
+      console.log('🔄 Processing data for UI...');
+      
+      // Process all data from server
+      const invoiceBreakdownData = summaryData ? processInvoiceBreakdownData(summaryData) : [];
+      const monthlyTrendData = trendsData ? processTrendingData(trendsData) : [];
+      const topExpensiveData = summaryData ? processTopExpensiveProducts(summaryData) : [];
+      const creditsApplied = creditsData?.totalSpend || 0;
+      
+      const monthsSource = invoiceMonthsData?.invoiceMonths || invoiceMonthsData;
+      const processedMonths = processInvoiceMonths(monthsSource) || [];
+      
+      const processedSelectLists = processSelectLists(summaryData);
+      
+      console.log('📊 Processed data:', {
+        invoiceBreakdown: invoiceBreakdownData.length,
+        monthlyTrend: monthlyTrendData.length,
+        topExpensive: topExpensiveData.length,
+        months: processedMonths.length,
+        selectLists: Object.keys(processedSelectLists).length
+      });
+      
+      // Update all state at once
+      setProcessedChartData({
+        invoiceBreakdownData,
+        monthlyTrendData,
+        topExpensiveData,
+        creditsApplied
+      });
+      
+      setInvoiceMonths(processedMonths);
+      
+      setSelectListOptions(processedSelectLists);
+      
+      // Set default selected month
+      if (processedMonths.length > 0 && !selectedMonth) {
+        setSelectedMonth(processedMonths[0]);
+      }
+        
+      console.log('✅ Data processing complete');
+    } catch (error) {
+      console.error('❌ Error processing server data:', error);
+    }
+  }, [shouldSkipAllProcessing, summaryData, creditsData, trendsData, invoiceMonthsData, selectedMonth]);
 
   // Separate useEffect to verify processedChartData state updates
   useEffect(() => {
@@ -1535,8 +1703,6 @@ export default function AzureInvoiceClientContent({
     );
   }
 
-
-
   // Chart cycling logic for 2 slides
   const totalSlides = 2;
 
@@ -1549,229 +1715,171 @@ export default function AzureInvoiceClientContent({
   };
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif' }}>
-      {/* Enhanced Cache Performance Indicator */}
-      <CachePerformanceIndicator 
-        dataSource={dataSource}
-        cacheAge={cacheAge}
-        loadTime={dataPerformance?.dataFetchTime}
-        isCacheValid={isCacheValid}
-        cacheMetadata={cacheMetadata}
-      />
-      
-      {/* Legacy Caching Performance Indicator (keeping for reference) */}
-      <div style={{ 
-        marginBottom: '20px',
-        padding: '15px',
-        backgroundColor: 
-          dataPerformance?.cacheStatus === 'STATIC_CACHED' ? '#e7f3ff' :
-          dataPerformance?.cacheStatus === 'CLIENT_CACHED' ? '#d1ecf1' : '#d4edda',
-        border: `1px solid ${
-          dataPerformance?.cacheStatus === 'STATIC_CACHED' ? '#b3d7ff' :
-          dataPerformance?.cacheStatus === 'CLIENT_CACHED' ? '#bee5eb' : '#c3e6cb'
-        }`,
-        borderRadius: '8px',
-        color: 
-          dataPerformance?.cacheStatus === 'STATIC_CACHED' ? '#004085' :
-          dataPerformance?.cacheStatus === 'CLIENT_CACHED' ? '#0c5460' : '#155724'
-      }}>
-        
-        {dataPerformance && (
-          <div style={{ 
-            fontSize: '12px', 
-            backgroundColor: 'rgba(0,0,0,0.1)', 
-            padding: '8px', 
-            borderRadius: '4px',
-            fontFamily: 'monospace'
-          }}>
-            <strong>Performance:</strong><br/>
-            Data Fetch: {dataPerformance.dataFetchTime}ms | 
-            Total Time: {dataPerformance.totalSSRTime}ms
+    <div className="main_content_container azure-invoice-component">
+      <div className="c-container">
+        <div className="o-grid o-grid--gutters-tiny">
+          <div className="o-grid__item u-1/1 dashboard-items">
+            <div className="panel">
+              <div className="panel-body">
+                {/* Header Section */}
+                <div className="o-grid o-grid--gutters-tiny">
+                  <div className="o-grid__item u-1/2">
+                    <div className="o-grid o-grid--gutters">
+                      <div className="o-grid__item u-1/1">
+                        <div className="header-text-large">
+                          Azure Invoice
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Invoice Metrics Section */}
+                  <div className="o-grid o-grid__item u-1/2 grid-container">
+                    {/* Invoice Total */}
+                    <div className="unbillableTotal">
+                      <div className="invoice-total">
+                        <div className="vertical-pink">
+                          <span className="count-labels-text">
+                            Invoice Total
+                          </span>
+                          <div className="count-display-text">
+                            ${(() => {
+                              const summaryValue = summaryData?.spendPeriod?.totalSpend?.toFixed(2);
+                              const creditsValue = creditsData?.totalSpend?.toFixed(2);
+                              return summaryValue || creditsValue || '0.00';
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
-          </div>
-        )}
-      </div>
+                    {/* Monthly Difference */}
+                    <div className="billableAzureTotal">
+                      <div className="invoice-total difference">
+                        <div className="vertical-blue">
+                          <div className="invoice-text">
+                            <span className="count-labels-text">
+                              Monthly Difference
+                              {summaryData?.spendPeriod?.differenceTotalSpend > 0 ? ' ↑' : 
+                               summaryData?.spendPeriod?.differenceTotalSpend < 0 ? ' ↓' : ''}
+                            </span>
+                          </div>
+                          <div className="count-display-text">
+                            ${summaryData?.spendPeriod?.differenceTotalSpend?.toFixed(2) || '0.00'}
+                            {summaryData?.spendPeriod?.haveDifferencePercentSpend && (
+                              <span> ({summaryData?.spendPeriod?.differencePercentSpend}%)</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
-      {/* Controls Section */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'flex-start', 
-        marginBottom: '30px',
-        backgroundColor: '#f8f9fa',
-        padding: '20px',
-        borderRadius: '8px',
-        border: '1px solid #dee2e6'
-      }}>
-        <div>         
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
-            <label style={{ fontWeight: '600', color: '#495057', minWidth: '100px' }}>Invoice Month:</label>
-            <DropDownList
-              data={invoiceMonths}
-              textField="text"
-              dataItemKey="value"
-              value={selectedMonth || (invoiceMonths.length > 0 ? invoiceMonths[0] : null)}
-              onChange={(e) => {
-                handleMonthChange({ target: { value: e.target.value } });
-              }}
-              style={{ width: '200px' }}
-              disabled={monthDataLoading}
-            />
+                    {/* Invoice Credits */}
+                    <div className="billableAzureTotal">
+                      <div className="invoice-total">
+                        <div className="vertical-gray">
+                          <div className="invoice-text">
+                            <span className="count-labels-text">
+                              Invoice Credits
+                            </span>
+                          </div>
+                          <div className="count-display-text">
+                            ${creditsData?.totalSpend?.toFixed(2) || '0.00'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-            {monthDataLoading && (
-              <span style={{ color: '#6c757d', fontSize: '14px' }}>
-                Loading month data...
-              </span>
-            )}
-          </div>
+                {/* Invoice Month Selection */}
+                <div className="o-grid o-grid--gutters view-billed-usage-container">
+                  <div className="o-grid__item u-1/1 u-1/4@desktop">
+                    <span className="label-text-bold">
+                      Invoice Month
+                    </span>
+                    <DropDownList
+                      data={invoiceMonths}
+                      textField="text"
+                      dataItemKey="value"
+                      value={selectedMonth || (invoiceMonths.length > 0 ? invoiceMonths[0] : null)}
+                      onChange={(e) => {
+                        handleMonthChange({ target: { value: e.target.value } });
+                      }}
+                      style={{ width: '100%' }}
+                      disabled={monthDataLoading}
+                    />
+                    {monthDataLoading && (
+                      <span style={{ color: '#6c757d', fontSize: '14px', marginTop: '5px', display: 'block' }}>
+                        Loading month data...
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <br />
 
-          {/* Filters Row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <label style={{ fontWeight: '500', color: '#495057', fontSize: '14px' }}>Category:</label>
-              <MultiSelect
-                data={selectListOptions.productCategory.filter(item => item.value !== 'All')}
-                textField="text"
-                dataItemKey="value"
-                value={productCategoryFilter}
-                placeholder="All"
-                onChange={(e) => {
-                  setProductCategoryFilter(e.target.value);
-                }}
-                style={{ width: '200px' }}
-              />
-            </div>
+                {/* Charts Section */}
+                <div className="o-grid o-grid--gutters">
+                  <div className="o-grid__item u-1/1">
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center', 
+                      marginBottom: '20px'
+                    }}>
+                      <h3 style={{ margin: '0', color: '#495057', fontSize: '18px' }}>
+                        Azure Invoice Analytics
+                      </h3>
+                      
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <button
+                          onClick={handlePrevChart}
+                          style={{ 
+                            backgroundColor: '#6c757d', 
+                            border: '1px solid #6c757d',
+                            color: 'white',
+                            minWidth: '40px',
+                            padding: '8px',
+                            borderRadius: '4px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          ←
+                        </button>
+                        <span style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          fontSize: '14px', 
+                          color: '#6c757d',
+                          minWidth: '80px',
+                          justifyContent: 'center'
+                        }}>
+                          {currentChartIndex + 1} of 2
+                        </span>
+                        <button
+                          onClick={handleNextChart}
+                          style={{ 
+                            backgroundColor: '#6c757d', 
+                            border: '1px solid #6c757d',
+                            color: 'white',
+                            minWidth: '40px',
+                            padding: '8px',
+                            borderRadius: '4px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          →
+                        </button>
+                      </div>
+                    </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <label style={{ fontWeight: '500', color: '#495057', fontSize: '14px' }}>Product:</label>
-              <MultiSelect
-                data={selectListOptions.productName.filter(item => item.value !== 'All')}
-                textField="text"
-                dataItemKey="value"
-                value={productNameFilter}
-                placeholder="All"
-                onChange={(e) => {
-                  setProductNameFilter(e.target.value);
-                }}
-                style={{ width: '200px' }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <label style={{ fontWeight: '500', color: '#495057', fontSize: '14px' }}>SKU:</label>
-              <MultiSelect
-                data={selectListOptions.skuName.filter(item => item.value !== 'All')}
-                textField="text"
-                dataItemKey="value"
-                value={skuNameFilter}
-                placeholder="All"
-                onChange={(e) => {
-                  setSkuNameFilter(e.target.value);
-                }}
-                style={{ width: '200px' }}
-              />
-            </div>
-          </div>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '14px', color: '#6c757d', marginBottom: '5px' }}>Invoice Total</div>
-          <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#28a745' }}>
-            ${(() => {
-              const summaryValue = summaryData?.spendPeriod?.totalSpend?.toFixed(2);
-              const creditsValue = creditsData?.totalSpend?.toFixed(2);
-              console.log('💰 INVOICE TOTAL DEBUG:', {
-                summaryData_spendPeriod_totalSpend: summaryData?.spendPeriod?.totalSpend,
-                summaryValue,
-                creditsValue,
-                result: summaryValue || creditsValue || '0.00'
-              });
-              return summaryValue || creditsValue || '0.00';
-            })()}
-          </div>
-          
-          {summaryData?.spendPeriod?.haveDifferencePercentSpend && (
-            <div style={{ 
-              fontSize: '14px', 
-              color: summaryData.spendPeriod.differencePercentSpend > 0 ? '#dc3545' : '#28a745',
-              marginTop: '5px'
-            }}>
-              {summaryData.spendPeriod.differencePercentSpend > 0 ? '+' : ''}
-              {summaryData.spendPeriod.differencePercentSpend?.toFixed(2)}% from last month
-            </div>
-          )}
-          
-          {creditsData && (
-            <div style={{ marginTop: '15px' }}>
-              <div style={{ fontSize: '14px', color: '#6c757d' }}>Credits Applied</div>
-              <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#17a2b8' }}>
-                ${creditsData?.totalSpend?.toFixed(2) || '0.00'}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Charts Section - Simple Charts Placeholder */}
-      <div style={{ marginBottom: '30px' }}>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          marginBottom: '20px'
-        }}>
-          <h3 style={{ margin: '0', color: '#495057', fontSize: '18px' }}>
-            Azure Invoice Analytics
-          </h3>
-          
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              onClick={handlePrevChart}
-              style={{ 
-                backgroundColor: '#6c757d', 
-                border: '1px solid #6c757d',
-                color: 'white',
-                minWidth: '40px',
-                padding: '8px',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            >
-              ←
-            </button>
-            <span style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              fontSize: '14px', 
-              color: '#6c757d',
-              minWidth: '80px',
-              justifyContent: 'center'
-            }}>
-              {currentChartIndex + 1} of 2
-            </span>
-            <button
-              onClick={handleNextChart}
-              style={{ 
-                backgroundColor: '#6c757d', 
-                border: '1px solid #6c757d',
-                color: 'white',
-                minWidth: '40px',
-                padding: '8px',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            >
-              →
-            </button>
-          </div>
-        </div>
-
-        {/* Carousel Implementation */}
-        <div style={{ overflow: 'hidden' }}>
-          <div style={{ 
-            display: 'flex',
-            transform: `translateX(-${currentChartIndex * 100}%)`,
-            transition: 'transform 0.3s ease'
-          }}>
+                    {/* Carousel Implementation */}
+                    <div style={{ overflow: 'hidden' }}>
+                      <div style={{ 
+                        display: 'flex',
+                        transform: `translateX(-${currentChartIndex * 100}%)`,
+                        transition: 'transform 0.3s ease'
+                      }}>
             
             {/* Slide 1: Two side-by-side charts */}
             <div style={{ 
@@ -2010,10 +2118,98 @@ export default function AzureInvoiceClientContent({
             </div>
           </div>
         </div>
-      </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-      {/* Raw Data Debug (for development) */}
-      <div style={{ marginTop: '30px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        {/* Filters and Grid Section */}
+        <div className="o-grid o-grid--gutters-tiny">
+          <div className="o-grid__item u-1/1 dashboard-items">
+            <div className="panel">
+              <div className="panel-body">
+                <div className="o-grid o-grid--gutters">
+                  <div className="o-grid__item u-1/1 u-1/4@desktop">
+                    <span className="label-text-bold">
+                      Product Category
+                    </span>
+                    <MultiSelect
+                      data={selectListOptions.productCategory.filter(item => item.value !== 'All')}
+                      textField="text"
+                      dataItemKey="value"
+                      value={productCategoryFilter}
+                      placeholder="All"
+                      onChange={(e) => {
+                        setProductCategoryFilter(e.target.value);
+                      }}
+                    />
+                  </div>
+
+                  <div className="o-grid__item u-1/1 u-1/4@desktop">
+                    <span className="label-text-bold">
+                      Product Name
+                    </span>
+                    <MultiSelect
+                      data={selectListOptions.productName.filter(item => item.value !== 'All')}
+                      textField="text"
+                      dataItemKey="value"
+                      value={productNameFilter}
+                      placeholder="All"
+                      onChange={(e) => {
+                        setProductNameFilter(e.target.value);
+                      }}
+                    />
+                  </div>
+
+                  <div className="o-grid__item u-1/1 u-1/4@desktop">
+                    <span className="label-text-bold">
+                      SKU Name
+                    </span>
+                    <MultiSelect
+                      data={selectListOptions.skuName.filter(item => item.value !== 'All')}
+                      textField="text"
+                      dataItemKey="value"
+                      value={skuNameFilter}
+                      placeholder="All"
+                      onChange={(e) => {
+                        setSkuNameFilter(e.target.value);
+                      }}
+                    />
+                  </div>
+
+                  <div className="o-grid__item u-1/1 u-1/4@desktop apply-button">
+                    <button
+                      style={{
+                        backgroundColor: '#007bff',
+                        color: 'white',
+                        border: 'none',
+                        padding: '8px 16px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        marginTop: '24px'
+                      }}
+                      onClick={() => {
+                        // Apply filters logic here
+                        console.log('Filters applied:', {
+                          productCategoryFilter,
+                          productNameFilter,
+                          skuNameFilter
+                        });
+                      }}
+                    >
+                      Apply Filters
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Raw Data Debug (for development) */}
+        <div style={{ marginTop: '30px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
         {/* Invoice Months Data */}
         <details open>
           <summary style={{ 
@@ -2129,6 +2325,7 @@ export default function AzureInvoiceClientContent({
             {JSON.stringify(trendsData, null, 2)}
           </div>
         </details>
+        </div>
       </div>
     </div>
   );
