@@ -17,18 +17,8 @@ import {
 
 // Completely avoid Kendo imports during SSR by using simple placeholders
 const ChartPlaceholder = ({ height = '400px', title = 'Chart' }) => (
-  <div style={{
-    height,
-    border: '2px dashed #dee2e6',
-    borderRadius: '8px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: '#6c757d',
-    backgroundColor: '#f8f9fa'
-  }}>
-    <div style={{ fontSize: '24px', marginBottom: '8px' }}>📊</div>
+  <div className="chart-placeholder" style={{ height }}>
+    <div className="chart-placeholder-icon">📊</div>
     <div>{title}</div>
     <small>Component loading...</small>
   </div>
@@ -43,9 +33,9 @@ const SimpleChart = ({ data, title, type = 'bar' }) => {
   const maxValue = Math.max(...data.map(item => item.value || 0));
   
   return (
-    <div style={{ padding: '20px', border: '1px solid #dee2e6', borderRadius: '8px', backgroundColor: 'white' }}>
-      {title && <h4 style={{ marginBottom: '20px', textAlign: 'center' }}>{title}</h4>}
-      <div style={{ display: 'flex', alignItems: 'end', gap: '8px', height: '300px' }}>
+    <div className="simple-chart-container">
+      {title && <h4 className="simple-chart-title">{title}</h4>}
+      <div className="simple-chart-bars">
         {data.slice(0, 10).map((item, index) => {
           const height = ((item.value || 0) / maxValue) * 250;
           const label = item.label || item.group || item.category || `Item ${index + 1}`;
@@ -55,34 +45,18 @@ const SimpleChart = ({ data, title, type = 'bar' }) => {
           }) : item.value;
           
           return (
-            <div key={index} style={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center',
-              flex: 1,
-              minWidth: '60px'
-            }}>
-              <div style={{ 
-                fontSize: '10px', 
-                marginBottom: '4px',
-                fontWeight: 'bold'
-              }}>
+            <div key={index} className="simple-chart-bar-wrapper">
+              <div className="simple-chart-bar-value">
                 {value}
               </div>
-              <div style={{
-                width: '100%',
-                height: height || 20,
-                backgroundColor: `hsl(${(index * 137.5) % 360}, 70%, 50%)`,
-                borderRadius: '4px 4px 0 0',
-                transition: 'all 0.3s ease'
-              }} />
-              <div style={{ 
-                fontSize: '9px', 
-                marginTop: '4px',
-                textAlign: 'center',
-                wordBreak: 'break-word',
-                lineHeight: '1.2'
-              }}>
+              <div 
+                className="simple-chart-bar"
+                style={{
+                  height: height || 20,
+                  backgroundColor: `hsl(${(index * 137.5) % 360}, 70%, 50%)`
+                }} 
+              />
+              <div className="simple-chart-bar-label">
                 {label.length > 12 ? label.substring(0, 12) + '...' : label}
               </div>
             </div>
@@ -94,21 +68,13 @@ const SimpleChart = ({ data, title, type = 'bar' }) => {
 };
 
 const SimpleControlPanel = ({ title, options = [], currentValue, onValueChange }) => (
-  <div style={{ 
-    display: 'flex', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    marginBottom: '20px',
-    padding: '10px',
-    backgroundColor: '#f8f9fa',
-    borderRadius: '6px'
-  }}>
-    <h4 style={{ margin: 0 }}>{title}</h4>
+  <div className="simple-control-panel">
+    <h4 className="simple-control-title">{title}</h4>
     {options.length > 0 && (
       <select 
+        className="simple-control-select"
         value={currentValue || options[0]?.type} 
         onChange={(e) => onValueChange && onValueChange(e.target.value)}
-        style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #ccc' }}
       >
         {options.map(option => (
           <option key={option.type} value={option.type}>
@@ -145,6 +111,119 @@ function clearAzureInvoiceCache(soldToId = null) {
 }
 
 /**
+ * Modern Skeleton Loading Component using Kendo React
+ */
+const AzureInvoiceSkeletonLoader = () => (
+  <div className="main_content_container azure-invoice-component">
+    <div className="c-container">
+      <div className="o-grid o-grid--gutters-tiny">
+        <div className="o-grid__item u-1/1 dashboard-items">
+          <div className="panel">
+            <div className="panel-body">
+              {/* Header Section Skeleton */}
+              <div className="o-grid o-grid--gutters-tiny skeleton-header-section">
+                <div className="o-grid__item u-1/2">
+                  <Skeleton shape="text" className="skeleton-header-text" />
+                </div>
+                
+                {/* Invoice Metrics Skeleton */}
+                <div className="o-grid o-grid__item u-1/2 grid-container">
+                  <div className="unbillableTotal">
+                    <div className="invoice-total">
+                      <div className="vertical-pink">
+                        <Skeleton shape="text" className="skeleton-metric-label" />
+                        <Skeleton shape="text" className="skeleton-metric-value" />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="billableAzureTotal">
+                    <div className="invoice-total difference">
+                      <div className="vertical-blue">
+                        <Skeleton shape="text" className="skeleton-metric-label" />
+                        <Skeleton shape="text" className="skeleton-metric-value" />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="billableAzureTotal">
+                    <div className="invoice-total">
+                      <div className="vertical-gray">
+                        <Skeleton shape="text" className="skeleton-metric-label" />
+                        <Skeleton shape="text" className="skeleton-metric-value" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Month Selection Skeleton */}
+              <div className="o-grid o-grid--gutters view-billed-usage-container skeleton-month-section">
+                <div className="o-grid__item u-1/1 u-1/4@desktop">
+                  <Skeleton shape="text" className="skeleton-month-label" />
+                  <Skeleton shape="rectangle" className="skeleton-month-input" />
+                </div>
+              </div>
+
+              {/* Charts Section Skeleton */}
+              <div className="o-grid o-grid--gutters">
+                <div className="o-grid__item u-1/1">
+                  <div className="skeleton-charts-header">
+                    <Skeleton shape="text" className="skeleton-chart-header-title" />
+                    <Skeleton shape="rectangle" className="skeleton-chart-header-nav" />
+                  </div>
+                  
+                  {/* Two Chart Skeletons Side by Side */}
+                  <div className="skeleton-charts-grid">
+                    <div className="skeleton-chart-card">
+                      <div className="skeleton-chart-title">
+                        <Skeleton shape="text" className="skeleton-chart-title-text" />
+                      </div>
+                      <Skeleton shape="rectangle" className="skeleton-chart-body" />
+                    </div>
+                    
+                    <div className="skeleton-chart-card">
+                      <div className="skeleton-chart-title">
+                        <Skeleton shape="text" className="skeleton-chart-title-text" />
+                      </div>
+                      <Skeleton shape="rectangle" className="skeleton-chart-body" />
+                    </div>
+                  </div>
+                  
+                  {/* Filters Section Skeleton */}
+                  <div className="skeleton-filters-section">
+                    <Skeleton shape="text" className="skeleton-filter-title" />
+                    <div className="skeleton-filters-grid">
+                      <div className="skeleton-filter-item">
+                        <Skeleton shape="text" className="skeleton-filter-label" />
+                        <Skeleton shape="rectangle" className="skeleton-filter-input" />
+                      </div>
+                      <div className="skeleton-filter-item">
+                        <Skeleton shape="text" className="skeleton-filter-label" />
+                        <Skeleton shape="rectangle" className="skeleton-filter-input" />
+                      </div>
+                      <div className="skeleton-filter-item">
+                        <Skeleton shape="text" className="skeleton-filter-label" />
+                        <Skeleton shape="rectangle" className="skeleton-filter-input" />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Performance Indicator Skeleton */}
+                  <div className="performance-indicator-wrapper">
+                    <Skeleton shape="rectangle" className="skeleton-performance-indicator" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+/**
  * Client component that receives SSR data and handles interactivity
  * NO initial data fetching - data comes from server as props!
  */
@@ -168,6 +247,7 @@ import {
 } from '../../store/azureInvoiceSlice';
 import { useHasRehydrated } from '@/hooks/useHasRehydrated';
 import { DropDownList, MultiSelect } from '@progress/kendo-react-dropdowns';
+import { Skeleton } from '@progress/kendo-react-indicators';
 import './azure-invoice.css';
 
 export default function AzureInvoiceClientContent({
@@ -1633,32 +1713,19 @@ export default function AzureInvoiceClientContent({
     dispatch(setSelectListOptionsRedux(newOptions));
   };
 
-  // If the store is not rehydrated yet, show a loading indicator.
+  // If the store is not rehydrated yet, show skeleton loader
   // This prevents the component from rendering with incomplete data.
   if (!isRehydrated) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh', flexDirection: 'column' }}>
-        <div style={{ fontSize: '24px', marginBottom: '16px' }}>⚙️</div>
-        <div>Loading cached data...</div>
-        <small>(This should be instant on subsequent visits)</small>
-      </div>
-    );
+    return <AzureInvoiceSkeletonLoader />;
   }
 
   // Handle auth required mode
   if (mode === 'auth-required') {
     return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
-        <h2 style={{ color: '#f39c12', marginBottom: '20px' }}>🔄 Checking Authentication...</h2>
+      <div className="auth-required-container">
+        <h2 className="auth-required-title">🔄 Checking Authentication...</h2>
         <p>Redirecting to cached page with user credentials...</p>
-        <div style={{ 
-          marginTop: '20px',
-          padding: '10px',
-          backgroundColor: '#fff3cd',
-          border: '1px solid #ffeaa7',
-          borderRadius: '5px',
-          fontSize: '14px'
-        }}>
+        <div className="auth-info-box">
           <strong>Next.js Caching Optimization:</strong><br/>
           Simple redirect approach with session-based authentication.
         </div>
@@ -1668,36 +1735,14 @@ export default function AzureInvoiceClientContent({
 
   // Handle client-ssr mode loading
   if (mode === 'client-ssr' && loading) {
-    return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
-        <h2 style={{ color: '#17a2b8', marginBottom: '20px' }}>
-          {dataPerformance?.cacheStatus === 'CLIENT_CACHED' ? '🚀 Loading from Cache...' : '📡 Fetching Data...'}
-        </h2>
-        <p>
-          {dataPerformance?.cacheStatus === 'CLIENT_CACHED' 
-            ? 'Instant loading from browser cache!' 
-            : 'First load - fetching fresh data...'}
-        </p>
-        <div style={{ 
-          marginTop: '20px',
-          padding: '10px',
-          backgroundColor: '#d1ecf1',
-          border: '1px solid #bee5eb',
-          borderRadius: '5px',
-          fontSize: '14px'
-        }}>
-          <strong>Hybrid Caching Strategy:</strong><br/>
-          Page structure cached by Next.js + Data cached in localStorage
-        </div>
-      </div>
-    );
+    return <AzureInvoiceSkeletonLoader />;
   }
 
   // Handle errors
   if (error) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
-        <h2 style={{ color: '#dc3545' }}>Error Loading Data</h2>
+      <div className="error-container">
+        <h2 className="error-title">Error Loading Data</h2>
         <p>{error}</p>
       </div>
     );
@@ -1806,11 +1851,11 @@ export default function AzureInvoiceClientContent({
                       onChange={(e) => {
                         handleMonthChange({ target: { value: e.target.value } });
                       }}
-                      style={{ width: '100%' }}
+                      className="month-selection-container"
                       disabled={monthDataLoading}
                     />
                     {monthDataLoading && (
-                      <span style={{ color: '#6c757d', fontSize: '14px', marginTop: '5px', display: 'block' }}>
+                      <span className="month-loading-indicator">
                         Loading month data...
                       </span>
                     )}
@@ -1820,53 +1865,53 @@ export default function AzureInvoiceClientContent({
 
                 {/* Charts Section */}
                 <div className="o-grid o-grid--gutters">
-                  <div className="o-grid__item u-1/1">
-                    <div style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center', 
-                      marginBottom: '20px'
-                    }}>
-                      <h3 style={{ margin: '0', color: '#495057', fontSize: '18px' }}>
+                  <div className="o-grid__item u-1/1 chart-container-relative">
+                    {/* Skeleton overlay when loading month data */}
+                    {monthDataLoading && (
+                      <div className="month-loading-overlay">
+                        <div className="skeleton-charts-header">
+                          <Skeleton shape="text" className="skeleton-chart-header-title" />
+                          <Skeleton shape="rectangle" className="skeleton-chart-header-nav" />
+                        </div>
+                        <div className="skeleton-charts-grid">
+                          <div className="skeleton-chart-card">
+                            <div className="skeleton-chart-title">
+                              <Skeleton shape="text" className="skeleton-chart-title-text" />
+                            </div>
+                            <Skeleton shape="rectangle" className="skeleton-chart-body" />
+                          </div>
+                          <div className="skeleton-chart-card">
+                            <div className="skeleton-chart-title">
+                              <Skeleton shape="text" className="skeleton-chart-title-text" />
+                            </div>
+                            <Skeleton shape="rectangle" className="skeleton-chart-body" />
+                          </div>
+                        </div>
+                        <div className="month-loading-content">
+                          <div className="month-loading-icon">⚡</div>
+                          Loading month data...
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="chart-section-header">
+                      <h3 className="chart-section-title">
                         Azure Invoice Analytics
                       </h3>
                       
-                      <div style={{ display: 'flex', gap: '10px' }}>
+                      <div className="chart-navigation">
                         <button
                           onClick={handlePrevChart}
-                          style={{ 
-                            backgroundColor: '#6c757d', 
-                            border: '1px solid #6c757d',
-                            color: 'white',
-                            minWidth: '40px',
-                            padding: '8px',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                          }}
+                          className="chart-nav-button"
                         >
                           ←
                         </button>
-                        <span style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          fontSize: '14px', 
-                          color: '#6c757d',
-                          minWidth: '80px',
-                          justifyContent: 'center'
-                        }}>
+                        <span className="chart-nav-indicator">
                           {currentChartIndex + 1} of 2
                         </span>
                         <button
                           onClick={handleNextChart}
-                          style={{ 
-                            backgroundColor: '#6c757d', 
-                            border: '1px solid #6c757d',
-                            color: 'white',
-                            minWidth: '40px',
-                            padding: '8px',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                          }}
+                          className="chart-nav-button"
                         >
                           →
                         </button>
@@ -1874,71 +1919,36 @@ export default function AzureInvoiceClientContent({
                     </div>
 
                     {/* Carousel Implementation */}
-                    <div style={{ overflow: 'hidden' }}>
-                      <div style={{ 
-                        display: 'flex',
-                        transform: `translateX(-${currentChartIndex * 100}%)`,
-                        transition: 'transform 0.3s ease'
+                    <div className="carousel-container">
+                      <div className="carousel-slides" style={{ 
+                        transform: `translateX(-${currentChartIndex * 100}%)`
                       }}>
             
             {/* Slide 1: Two side-by-side charts */}
-            <div style={{ 
-              minWidth: '100%',
-              display: 'grid', 
-              gridTemplateColumns: '1fr 1fr',
-              gap: '20px'
-            }}>
+            <div className="carousel-slide charts-grid">
               {/* Invoice Breakdown Chart */}
-              <div style={{ 
-                backgroundColor: '#ffffff',
-                border: '1px solid #dee2e6',
-                borderRadius: '8px',
-                padding: '20px'
-              }}>
-                <p style={{ 
-                  textAlign: 'center', 
-                  fontWeight: 'bold',
-                  fontSize: '14px',
-                  marginBottom: '20px'
-                }}>
+              <div className="chart-card">
+                <p className="chart-title">
                   Invoice Breakdown
                 </p>
                 {(() => {
                   return (isClient && chartsLoaded);
                 })() && processedChartData.invoiceBreakdownData?.length > 0 ? (
-                  <div style={{ 
-                    height: '400px',
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    color: '#28a745',
-                    border: '2px solid #28a745',
-                    borderRadius: '8px',
-                    backgroundColor: '#f8fff8'
-                  }}>
+                  <div className="chart-content chart-ready">
                     <h4>✅ Invoice Breakdown Data Ready!</h4>
                     <p>Data items: {processedChartData.invoiceBreakdownData.length}</p>
-                    <div style={{ fontSize: '12px', maxHeight: '200px', overflow: 'auto', textAlign: 'center' }}>
+                    <div className="chart-data-items">
                       {processedChartData.invoiceBreakdownData.map((item, index) => (
-                        <div key={index} style={{ margin: '5px 0' }}>
+                        <div key={index} className="chart-data-item">
                           <strong>{item.label}:</strong> ${item.value}
                         </div>
                       ))}
                     </div>
                   </div>
                 ) : (
-                  <div style={{ 
-                    height: '400px',
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    color: '#6c757d',
-                    border: '2px dashed #dee2e6',
-                    borderRadius: '8px'
-                  }}>
+                  <div className="chart-content chart-loading">
                     {processedChartData.invoiceBreakdownData?.length > 0 ? (
-                      <div style={{ textAlign: 'center' }}>
+                      <div>
                         📊 Loading Kendo Chart...<br/>
                         <small>Data ready: {processedChartData.invoiceBreakdownData.length} items</small>
                       </div>
@@ -1950,12 +1960,7 @@ export default function AzureInvoiceClientContent({
               </div>
 
               {/* Trending Monthly Spend Chart */}
-              <div style={{ 
-                backgroundColor: '#ffffff',
-                border: '1px solid #dee2e6',
-                borderRadius: '8px',
-                padding: '20px'
-              }}>
+              <div className="chart-card-white">
                 {isClient && chartsLoaded ? (
                   <>
                     <SimpleControlPanel
@@ -1968,22 +1973,12 @@ export default function AzureInvoiceClientContent({
                       currentValue={trendingChartType}
                       onValueChange={setTrendingChartType}
                     />
-                    <div style={{ 
-                      height: '400px',
-                      display: 'flex', 
-                      flexDirection: 'column',
-                      alignItems: 'center', 
-                      justifyContent: 'center',
-                      color: '#17a2b8',
-                      border: '2px solid #17a2b8',
-                      borderRadius: '8px',
-                      backgroundColor: '#f0faff'
-                    }}>
+                    <div className="debug-data-ready">
                       <h4>✅ Monthly Trend Data Ready!</h4>
                       <p>Chart Type: {trendingChartType} | Data items: {processedChartData.monthlyTrendData?.length || 0}</p>
-                      <div style={{ fontSize: '11px', maxHeight: '250px', overflow: 'auto', textAlign: 'center', width: '100%' }}>
+                      <div className="debug-data-list">
                         {processedChartData.monthlyTrendData?.slice(0, 10).map((item, index) => (
-                          <div key={index} style={{ margin: '3px 0', display: 'flex', justifyContent: 'space-between', padding: '0 20px' }}>
+                          <div key={index} className="debug-data-item">
                             <span>{item.label}</span>
                             <span>{new Date(item.group).toLocaleDateString()}</span>
                             <span>${item.value}</span>
@@ -1995,33 +1990,15 @@ export default function AzureInvoiceClientContent({
                   </>
                 ) : (
                   <>
-                    <div style={{  
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: '20px'
-                    }}>
-                      <p style={{ 
-                        textAlign: 'center', 
-                        fontWeight: 'bold',
-                        fontSize: '14px',
-                        margin: 0
-                      }}>
+                    <div className="chart-header-controls">
+                      <p className="chart-header-title">
                         Trending Monthly Spend
                       </p>
-                      <div style={{ color: '#6c757d', fontSize: '12px' }}>Loading controls...</div>
+                      <div className="chart-loading-text">Loading controls...</div>
                     </div>
-                    <div style={{ 
-                      height: '400px',
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center',
-                      color: '#6c757d',
-                      border: '2px dashed #dee2e6',
-                      borderRadius: '8px'
-                    }}>
+                    <div className="chart-loading-placeholder">
                       {processedChartData.monthlyTrendData?.length > 0 ? (
-                        <div style={{ textAlign: 'center' }}>
+                        <div className="chart-loading-center-text">
                           📈 Loading Trending Chart...<br/>
                           <small>Data ready: {processedChartData.monthlyTrendData.length} items</small>
                         </div>
@@ -2035,13 +2012,8 @@ export default function AzureInvoiceClientContent({
             </div>
 
             {/* Slide 2: Full-width chart */}
-            <div style={{ minWidth: '100%' }}>
-              <div style={{ 
-                backgroundColor: '#ffffff',
-                border: '1px solid #dee2e6',
-                borderRadius: '8px',
-                padding: '20px'
-              }}>
+            <div className="chart-card-full">
+              <div className="chart-card-white">
                 {isClient && chartsLoaded ? (
                   <>
                     <SimpleControlPanel
@@ -2053,24 +2025,14 @@ export default function AzureInvoiceClientContent({
                       currentValue={topExpensiveChartType}
                       onValueChange={setTopExpensiveChartType}
                     />
-<div style={{ 
-                      height: '400px',
-                      display: 'flex', 
-                      flexDirection: 'column',
-                      alignItems: 'center', 
-                      justifyContent: 'center',
-                      color: '#dc3545',
-                      border: '2px solid #dc3545',
-                      borderRadius: '8px',
-                      backgroundColor: '#fff5f5'
-                    }}>
+<div className="debug-data-ready-danger">
                       <h4>✅ Top Expensive Products Data Ready!</h4>
                       <p>Chart Type: {topExpensiveChartType} | Data items: {processedChartData.topExpensiveData?.length || 0}</p>
-                      <div style={{ fontSize: '11px', maxHeight: '250px', overflow: 'auto', textAlign: 'left', width: '100%', padding: '0 20px' }}>
+                      <div className="debug-data-list-left">
                         {processedChartData.topExpensiveData?.map((item, index) => (
-                          <div key={index} style={{ margin: '5px 0', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eee', paddingBottom: '3px' }}>
-                            <span style={{ fontWeight: 'bold', flex: 1 }}>{index + 1}. {item.label || item.group}</span>
-                            <span style={{ color: '#28a745', fontWeight: 'bold' }}>${item.value}</span>
+                          <div key={index} className="debug-data-item-bordered">
+                            <span className="debug-data-item-label">{index + 1}. {item.label || item.group}</span>
+                            <span className="debug-data-item-value">${item.value}</span>
                           </div>
                         ))}
                       </div>
@@ -2078,33 +2040,15 @@ export default function AzureInvoiceClientContent({
                   </>
                 ) : (
                   <>
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: '20px'
-                    }}>
-                      <p style={{ 
-                        textAlign: 'center', 
-                        fontWeight: 'bold',
-                        fontSize: '16px',
-                        margin: 0
-                      }}>
+                    <div className="chart-header-controls">
+                      <p className="chart-header-title-large">
                         Top Expensive Products
                       </p>
-                      <div style={{ color: '#6c757d', fontSize: '12px' }}>Loading controls...</div>
+                      <div className="chart-loading-text">Loading controls...</div>
                     </div>
-                    <div style={{ 
-                      height: '500px',
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center',
-                      color: '#6c757d',
-                      border: '2px dashed #dee2e6',
-                      borderRadius: '8px'
-                    }}>
+                    <div className="chart-loading-placeholder-large">
                       {processedChartData.topExpensiveData?.length > 0 ? (
-                        <div style={{ textAlign: 'center' }}>
+                        <div className="chart-loading-center-text">
                           📊 Loading Top Products Chart...<br/>
                           <small>Data ready: {processedChartData.topExpensiveData.length} items</small>
                         </div>
@@ -2181,15 +2125,7 @@ export default function AzureInvoiceClientContent({
 
                   <div className="o-grid__item u-1/1 u-1/4@desktop apply-button">
                     <button
-                      style={{
-                        backgroundColor: '#007bff',
-                        color: 'white',
-                        border: 'none',
-                        padding: '8px 16px',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        marginTop: '24px'
-                      }}
+                      className="apply-filters-button"
                       onClick={() => {
                         // Apply filters logic here
                         console.log('Filters applied:', {
@@ -2209,119 +2145,43 @@ export default function AzureInvoiceClientContent({
         </div>
 
         {/* Raw Data Debug (for development) */}
-        <div style={{ marginTop: '30px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        <div className="debug-section-grid">
         {/* Invoice Months Data */}
         <details open>
-          <summary style={{ 
-            cursor: 'pointer', 
-            padding: '10px', 
-            backgroundColor: '#e3f2fd', 
-            border: '1px solid #90caf9',
-            borderRadius: '5px',
-            fontWeight: 'bold',
-            color: '#1976d2'
-          }}>
+          <summary className="debug-details-summary debug-details-summary-blue">
             📅 Invoice Months Data
           </summary>
-          <div style={{ 
-            padding: '15px', 
-            backgroundColor: '#f8f9fa', 
-            border: '1px solid #90caf9',
-            borderRadius: '0 0 5px 5px',
-            fontSize: '11px',
-            fontFamily: 'Consolas, Monaco, monospace',
-            maxHeight: '400px',
-            overflow: 'auto',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word'
-          }}>
+          <div className="debug-details-content debug-details-content-blue">
             {JSON.stringify(invoiceMonthsData, null, 2)}
           </div>
         </details>
 
         {/* Summary Data */}
         <details open>
-          <summary style={{ 
-            cursor: 'pointer', 
-            padding: '10px', 
-            backgroundColor: '#e8f5e9', 
-            border: '1px solid #81c784',
-            borderRadius: '5px',
-            fontWeight: 'bold',
-            color: '#388e3c'
-          }}>
+          <summary className="debug-details-summary debug-details-summary-green">
             📊 Summary Data
           </summary>
-          <div style={{ 
-            padding: '15px', 
-            backgroundColor: '#f8f9fa', 
-            border: '1px solid #81c784',
-            borderRadius: '0 0 5px 5px',
-            fontSize: '11px',
-            fontFamily: 'Consolas, Monaco, monospace',
-            maxHeight: '400px',
-            overflow: 'auto',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word'
-          }}>
+          <div className="debug-details-content debug-details-content-green">
             {JSON.stringify(summaryData, null, 2)}
           </div>
         </details>
 
         {/* Credits Data */}
         <details open>
-          <summary style={{ 
-            cursor: 'pointer', 
-            padding: '10px', 
-            backgroundColor: '#fff3e0', 
-            border: '1px solid #ffb74d',
-            borderRadius: '5px',
-            fontWeight: 'bold',
-            color: '#f57c00'
-          }}>
+          <summary className="debug-details-summary debug-details-summary-orange">
             💳 Credits Data
           </summary>
-          <div style={{ 
-            padding: '15px', 
-            backgroundColor: '#f8f9fa', 
-            border: '1px solid #ffb74d',
-            borderRadius: '0 0 5px 5px',
-            fontSize: '11px',
-            fontFamily: 'Consolas, Monaco, monospace',
-            maxHeight: '400px',
-            overflow: 'auto',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word'
-          }}>
+          <div className="debug-details-content debug-details-content-orange">
             {JSON.stringify(creditsData, null, 2)}
           </div>
         </details>
 
         {/* Trends Data */}
         <details open>
-          <summary style={{ 
-            cursor: 'pointer', 
-            padding: '10px', 
-            backgroundColor: '#f3e5f5', 
-            border: '1px solid #ba68c8',
-            borderRadius: '5px',
-            fontWeight: 'bold',
-            color: '#7b1fa2'
-          }}>
+          <summary className="debug-details-summary debug-details-summary-purple">
             📈 Trends Data
           </summary>
-          <div style={{ 
-            padding: '15px', 
-            backgroundColor: '#f8f9fa', 
-            border: '1px solid #ba68c8',
-            borderRadius: '0 0 5px 5px',
-            fontSize: '11px',
-            fontFamily: 'Consolas, Monaco, monospace',
-            maxHeight: '400px',
-            overflow: 'auto',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word'
-          }}>
+          <div className="debug-details-content debug-details-content-purple">
             {JSON.stringify(trendsData, null, 2)}
           </div>
         </details>
