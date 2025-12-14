@@ -12,8 +12,8 @@ import {
   fetchCreditsDataServer,
   fetchTrendsDataServer
 } from './actions';
-// import { BasicGroupedChart } from '@/common/Charts/BasicGroupedChart';
-// import { BasicPieDoughnutChart } from '@/common/Charts/BasicPieDoughnutChart';
+import { BasicGroupedChart } from '@/common/Charts/BasicGroupedChart';
+import { BasicPieDoughnutChart } from '@/common/Charts/BasicPieDoughnutChart';
 
 // Completely avoid Kendo imports during SSR by using simple placeholders
 const ChartPlaceholder = ({ height = '400px', title = 'Chart' }) => (
@@ -249,6 +249,7 @@ import { useHasRehydrated } from '@/hooks/useHasRehydrated';
 import { DropDownList, MultiSelect } from '@progress/kendo-react-dropdowns';
 import { Skeleton } from '@progress/kendo-react-indicators';
 import './azure-invoice.css';
+import { Chart, ChartArea, ChartSeries, ChartSeriesItem } from '@progress/kendo-react-charts';
 
 export default function AzureInvoiceClientContent({
   mode = 'with-data',
@@ -275,6 +276,7 @@ export default function AzureInvoiceClientContent({
   const reduxSelectListOptions = useSelector(selectSelectListOptions);
   const cacheMetadata = useSelector(selectCacheMetadata);
   const monthDataCache = useSelector(selectMonthDataCache);
+  const [refreshChart, setRefreshChart] = useState(true);
   
   
   // Handle different modes: 'true-ssr' = fresh server data, 'use-cache' = use Redux cache
@@ -392,12 +394,13 @@ export default function AzureInvoiceClientContent({
   useEffect(() => {
     // Only run this on initial load when we have SSR data and no cache
     if (!useReduxData && mode === 'true-ssr' && initialData) {
+      // Create deep clones to avoid read-only property issues
       const dataToDispatch = {
-        monthsData: initialData.monthsResponse?.data || null,
-        summaryData: initialData.summaryResponse?.data || null,
-        creditsData: initialData.creditsResponse?.data || null,
-        trendsData: initialData.trendsResponse?.data || null,
-        userContext: userContext || null
+        monthsData: initialData.monthsResponse?.data ? JSON.parse(JSON.stringify(initialData.monthsResponse.data)) : null,
+        summaryData: initialData.summaryResponse?.data ? JSON.parse(JSON.stringify(initialData.summaryResponse.data)) : null,
+        creditsData: initialData.creditsResponse?.data ? JSON.parse(JSON.stringify(initialData.creditsResponse.data)) : null,
+        trendsData: initialData.trendsResponse?.data ? JSON.parse(JSON.stringify(initialData.trendsResponse.data)) : null,
+        userContext: userContext ? JSON.parse(JSON.stringify(userContext)) : null
       };
       
       // Only dispatch if we have at least some data
@@ -561,20 +564,20 @@ export default function AzureInvoiceClientContent({
     };
   });
   
-  // Helper function to update both local and Redux state
+  // Helper function to update both local and Redux state - create deep clones for Redux
   const setProcessedChartData = (newData) => {
     setProcessedChartDataLocal(newData);
-    dispatch(setProcessedChartDataRedux(newData));
+    dispatch(setProcessedChartDataRedux(newData ? JSON.parse(JSON.stringify(newData)) : newData));
   };
   
   const setSelectedMonth = (newMonth) => {
     setSelectedMonthLocal(newMonth);
-    dispatch(setSelectedMonthRedux(newMonth));
+    dispatch(setSelectedMonthRedux(newMonth ? JSON.parse(JSON.stringify(newMonth)) : newMonth));
   };
   
   const setInvoiceMonths = (newMonths) => {
     setInvoiceMonthsLocal(newMonths);
-    dispatch(setInvoiceMonthsRedux(newMonths));
+    dispatch(setInvoiceMonthsRedux(newMonths ? JSON.parse(JSON.stringify(newMonths)) : newMonths));
   };
   
   // Client-side mounting state for dynamic components
@@ -837,7 +840,7 @@ export default function AzureInvoiceClientContent({
         if (actualInitialSummaryData) {
           const newSelectListOptions = processSelectLists(actualInitialSummaryData);
           setSelectListOptions(newSelectListOptions);
-          dispatch(setSelectListOptionsRedux(newSelectListOptions));
+          dispatch(setSelectListOptionsRedux(JSON.parse(JSON.stringify(newSelectListOptions))));
         }
       };
     }
@@ -1312,13 +1315,13 @@ export default function AzureInvoiceClientContent({
         setCreditsData(credits);
         setTrendsData(trend);
         
-        // Cache the new month data in Redux (only if we have valid data)
+        // Cache the new month data in Redux (only if we have valid data) - create deep clones
         if (monthValue && (summary || credits || trend)) {
           dispatch(setMonthData({
             monthValue,
-            summaryData: summary || null,
-            creditsData: credits || null,
-            trendsData: trend || null
+            summaryData: summary ? JSON.parse(JSON.stringify(summary)) : null,
+            creditsData: credits ? JSON.parse(JSON.stringify(credits)) : null,
+            trendsData: trend ? JSON.parse(JSON.stringify(trend)) : null
           }));
         }
       }
@@ -1400,29 +1403,31 @@ export default function AzureInvoiceClientContent({
       return [];
     }
     
+    // Create a deep clone to avoid read-only property issues
+    const clonedData = JSON.parse(JSON.stringify(summaryData));
+    
     // Handle both possible data structures:
     // 1. summaryData.spendPeriod.spend (nested)
     // 2. summaryData.spend (direct)
     let spendArray = null;
     
-    if (summaryData.spendPeriod && summaryData.spendPeriod.spend) {
-      spendArray = summaryData.spendPeriod.spend;
-    } else if (summaryData.spend && Array.isArray(summaryData.spend)) {
-      spendArray = summaryData.spend;
+    if (clonedData.spendPeriod && clonedData.spendPeriod.spend) {
+      spendArray = clonedData.spendPeriod.spend;
+    } else if (clonedData.spend && Array.isArray(clonedData.spend)) {
+      spendArray = clonedData.spend;
     } else {
     }
     
     if (!spendArray || !Array.isArray(spendArray)) {
       return [];
     }
-    
+
     const chartData = spendArray.map(item => ({
-      group: item.label || 'Unknown',
+      group: item.group || item.label || 'Unknown',
       label: item.label || 'Unknown', 
-      value: item.value || 0
+      value: typeof item.value === 'number' ? item.value : 0
     }));
-    
-    console.log('📊 Processed chart data:', chartData);
+
     return chartData;
   };
 
@@ -1540,9 +1545,12 @@ export default function AzureInvoiceClientContent({
       return [];
     }
     
+    // Create a deep clone to avoid read-only property issues
+    const clonedData = JSON.parse(JSON.stringify(trendData));
+    
     try {
       // Convert to the format expected by BasicGroupedChart
-      return trendData.chartData.map(item => {
+      return clonedData.chartData.map(item => {
         if (!item || typeof item !== 'object') {
           console.warn('⚠️ Invalid chart data item:', item);
           return null;
@@ -1565,9 +1573,12 @@ export default function AzureInvoiceClientContent({
       return [];
     }
     
-    return summaryData.topNExpensiveProducts.spend.slice(0, 8).map(item => ({
+    // Create a deep clone to avoid read-only property issues
+    const clonedData = JSON.parse(JSON.stringify(summaryData));
+    
+    return clonedData.topNExpensiveProducts.spend.slice(0, 8).map(item => ({
       product: item.label || 'Unknown Product',
-      value: item.value || 0
+      value: typeof item.value === 'number' ? item.value : 0
     }));
   };
 
@@ -1597,13 +1608,13 @@ export default function AzureInvoiceClientContent({
       // Validate session and cache data
       dispatch(validateSession({ soldToId: userContext.soldToId }));
       
-      // Cache the initial SSR data (only if we have data)
+      // Cache the initial SSR data (only if we have data) - create deep clones
       const ssrDataToCache = {
-        monthsData: actualInitialMonthsData || null,
-        summaryData: actualInitialSummaryData || null,
-        creditsData: actualInitialCreditsData || null,
-        trendsData: actualInitialTrendsData || null,
-        userContext: userContext || null
+        monthsData: actualInitialMonthsData ? JSON.parse(JSON.stringify(actualInitialMonthsData)) : null,
+        summaryData: actualInitialSummaryData ? JSON.parse(JSON.stringify(actualInitialSummaryData)) : null,
+        creditsData: actualInitialCreditsData ? JSON.parse(JSON.stringify(actualInitialCreditsData)) : null,
+        trendsData: actualInitialTrendsData ? JSON.parse(JSON.stringify(actualInitialTrendsData)) : null,
+        userContext: userContext ? JSON.parse(JSON.stringify(userContext)) : null
       };
       
       if (ssrDataToCache.monthsData || ssrDataToCache.summaryData) {
@@ -1614,24 +1625,24 @@ export default function AzureInvoiceClientContent({
       // Also cache processed data to avoid reprocessing on refresh
       setTimeout(() => {
         
-        // Cache processed chart data if available
+        // Cache processed chart data if available - create deep clones for safety
         if (processedChartData?.invoiceBreakdownData?.length > 0) {
-          dispatch(setProcessedChartDataRedux(processedChartData));
+          dispatch(setProcessedChartDataRedux(JSON.parse(JSON.stringify(processedChartData))));
         }
         
         // Cache select list options if available  
         if (selectListOptions?.productCategory?.length > 1) {
-          dispatch(setSelectListOptionsRedux(selectListOptions));
+          dispatch(setSelectListOptionsRedux(JSON.parse(JSON.stringify(selectListOptions))));
         }
         
         // Cache invoice months if available
         if (invoiceMonths?.length > 0) {
-          dispatch(setInvoiceMonthsRedux(invoiceMonths));
+          dispatch(setInvoiceMonthsRedux(JSON.parse(JSON.stringify(invoiceMonths))));
         }
         
         // Cache selected month if available
         if (selectedMonth) {
-          dispatch(setSelectedMonthRedux(selectedMonth));
+          dispatch(setSelectedMonthRedux(JSON.parse(JSON.stringify(selectedMonth))));
         }
         
       }, 100); // Small delay to ensure state is updated
@@ -1707,10 +1718,10 @@ export default function AzureInvoiceClientContent({
   useEffect(() => {
   }, [invoiceMonths]);
 
-  // Helper function to update both local and Redux state
+  // Helper function to update both local and Redux state - create deep clones for Redux
   const setSelectListOptions = (newOptions) => {
     setSelectListOptionsLocal(newOptions);
-    dispatch(setSelectListOptionsRedux(newOptions));
+    dispatch(setSelectListOptionsRedux(newOptions ? JSON.parse(JSON.stringify(newOptions)) : newOptions));
   };
 
   // If the store is not rehydrated yet, show skeleton loader
@@ -1759,6 +1770,16 @@ export default function AzureInvoiceClientContent({
     setCurrentChartIndex((prev) => (prev - 1 + totalSlides) % totalSlides);
   };
 
+  const handleChartRefresh = (chartOptions, themeOptions, chartInstance) => {
+    setRefreshChart(false);
+  };
+
+  const onChartClick = function (e) {
+
+  };
+
+  console.log('processedChartData =>', processedChartData);
+
   return (
     <div className="main_content_container azure-invoice-component">
       <div className="c-container">
@@ -1771,13 +1792,11 @@ export default function AzureInvoiceClientContent({
                   <div className="o-grid__item u-1/2">
                     <div className="o-grid o-grid--gutters">
                       <div className="o-grid__item u-1/1">
-                        <div className="header-text-large">
-                          Azure Invoice
-                        </div>
+                        <div className="header-text-large">Azure Invoice</div>
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Invoice Metrics Section */}
                   <div className="o-grid o-grid__item u-1/2 grid-container">
                     {/* Invoice Total */}
@@ -1788,10 +1807,15 @@ export default function AzureInvoiceClientContent({
                             Invoice Total
                           </span>
                           <div className="count-display-text">
-                            ${(() => {
-                              const summaryValue = summaryData?.spendPeriod?.totalSpend?.toFixed(2);
-                              const creditsValue = creditsData?.totalSpend?.toFixed(2);
-                              return summaryValue || creditsValue || '0.00';
+                            $
+                            {(() => {
+                              const summaryValue =
+                                summaryData?.spendPeriod?.totalSpend?.toFixed(
+                                  2
+                                );
+                              const creditsValue =
+                                creditsData?.totalSpend?.toFixed(2);
+                              return summaryValue || creditsValue || "0.00";
                             })()}
                           </div>
                         </div>
@@ -1805,14 +1829,31 @@ export default function AzureInvoiceClientContent({
                           <div className="invoice-text">
                             <span className="count-labels-text">
                               Monthly Difference
-                              {summaryData?.spendPeriod?.differenceTotalSpend > 0 ? ' ↑' : 
-                               summaryData?.spendPeriod?.differenceTotalSpend < 0 ? ' ↓' : ''}
+                              {summaryData?.spendPeriod?.differenceTotalSpend >
+                              0
+                                ? " ↑"
+                                : summaryData?.spendPeriod
+                                    ?.differenceTotalSpend < 0
+                                ? " ↓"
+                                : ""}
                             </span>
                           </div>
                           <div className="count-display-text">
-                            ${summaryData?.spendPeriod?.differenceTotalSpend?.toFixed(2) || '0.00'}
-                            {summaryData?.spendPeriod?.haveDifferencePercentSpend && (
-                              <span> ({summaryData?.spendPeriod?.differencePercentSpend}%)</span>
+                            $
+                            {summaryData?.spendPeriod?.differenceTotalSpend?.toFixed(
+                              2
+                            ) || "0.00"}
+                            {summaryData?.spendPeriod
+                              ?.haveDifferencePercentSpend && (
+                              <span>
+                                {" "}
+                                (
+                                {
+                                  summaryData?.spendPeriod
+                                    ?.differencePercentSpend
+                                }
+                                %)
+                              </span>
                             )}
                           </div>
                         </div>
@@ -1829,7 +1870,7 @@ export default function AzureInvoiceClientContent({
                             </span>
                           </div>
                           <div className="count-display-text">
-                            ${creditsData?.totalSpend?.toFixed(2) || '0.00'}
+                            ${creditsData?.totalSpend?.toFixed(2) || "0.00"}
                           </div>
                         </div>
                       </div>
@@ -1840,16 +1881,19 @@ export default function AzureInvoiceClientContent({
                 {/* Invoice Month Selection */}
                 <div className="o-grid o-grid--gutters view-billed-usage-container">
                   <div className="o-grid__item u-1/1 u-1/4@desktop">
-                    <span className="label-text-bold">
-                      Invoice Month
-                    </span>
+                    <span className="label-text-bold">Invoice Month</span>
                     <DropDownList
                       data={invoiceMonths}
                       textField="text"
                       dataItemKey="value"
-                      value={selectedMonth || (invoiceMonths.length > 0 ? invoiceMonths[0] : null)}
+                      value={
+                        selectedMonth ||
+                        (invoiceMonths.length > 0 ? invoiceMonths[0] : null)
+                      }
                       onChange={(e) => {
-                        handleMonthChange({ target: { value: e.target.value } });
+                        handleMonthChange({
+                          target: { value: e.target.value },
+                        });
                       }}
                       className="month-selection-container"
                       disabled={monthDataLoading}
@@ -1870,21 +1914,39 @@ export default function AzureInvoiceClientContent({
                     {monthDataLoading && (
                       <div className="month-loading-overlay">
                         <div className="skeleton-charts-header">
-                          <Skeleton shape="text" className="skeleton-chart-header-title" />
-                          <Skeleton shape="rectangle" className="skeleton-chart-header-nav" />
+                          <Skeleton
+                            shape="text"
+                            className="skeleton-chart-header-title"
+                          />
+                          <Skeleton
+                            shape="rectangle"
+                            className="skeleton-chart-header-nav"
+                          />
                         </div>
                         <div className="skeleton-charts-grid">
                           <div className="skeleton-chart-card">
                             <div className="skeleton-chart-title">
-                              <Skeleton shape="text" className="skeleton-chart-title-text" />
+                              <Skeleton
+                                shape="text"
+                                className="skeleton-chart-title-text"
+                              />
                             </div>
-                            <Skeleton shape="rectangle" className="skeleton-chart-body" />
+                            <Skeleton
+                              shape="rectangle"
+                              className="skeleton-chart-body"
+                            />
                           </div>
                           <div className="skeleton-chart-card">
                             <div className="skeleton-chart-title">
-                              <Skeleton shape="text" className="skeleton-chart-title-text" />
+                              <Skeleton
+                                shape="text"
+                                className="skeleton-chart-title-text"
+                              />
                             </div>
-                            <Skeleton shape="rectangle" className="skeleton-chart-body" />
+                            <Skeleton
+                              shape="rectangle"
+                              className="skeleton-chart-body"
+                            />
                           </div>
                         </div>
                         <div className="month-loading-content">
@@ -1893,12 +1955,12 @@ export default function AzureInvoiceClientContent({
                         </div>
                       </div>
                     )}
-                    
+
                     <div className="chart-section-header">
                       <h3 className="chart-section-title">
                         Azure Invoice Analytics
                       </h3>
-                      
+
                       <div className="chart-navigation">
                         <button
                           onClick={handlePrevChart}
@@ -1920,148 +1982,234 @@ export default function AzureInvoiceClientContent({
 
                     {/* Carousel Implementation */}
                     <div className="carousel-container">
-                      <div className="carousel-slides" style={{ 
-                        transform: `translateX(-${currentChartIndex * 100}%)`
-                      }}>
-            
-            {/* Slide 1: Two side-by-side charts */}
-            <div className="carousel-slide charts-grid">
-              {/* Invoice Breakdown Chart */}
-              <div className="chart-card">
-                <p className="chart-title">
-                  Invoice Breakdown
-                </p>
-                {(() => {
-                  return (isClient && chartsLoaded);
-                })() && processedChartData.invoiceBreakdownData?.length > 0 ? (
-                  <div className="chart-content chart-ready">
-                    <h4>✅ Invoice Breakdown Data Ready!</h4>
-                    <p>Data items: {processedChartData.invoiceBreakdownData.length}</p>
-                    <div className="chart-data-items">
-                      {processedChartData.invoiceBreakdownData.map((item, index) => (
-                        <div key={index} className="chart-data-item">
-                          <strong>{item.label}:</strong> ${item.value}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="chart-content chart-loading">
-                    {processedChartData.invoiceBreakdownData?.length > 0 ? (
-                      <div>
-                        📊 Loading Kendo Chart...<br/>
-                        <small>Data ready: {processedChartData.invoiceBreakdownData.length} items</small>
-                      </div>
-                    ) : (
-                      '📊 Loading chart components...'
-                    )}
-                  </div>
-                )}
-              </div>
+                      <div
+                        className="carousel-slides"
+                        style={{
+                          transform: `translateX(-${currentChartIndex * 100}%)`,
+                        }}
+                      >
+                        {/* Slide 1: Two side-by-side charts */}
+                        <div className="carousel-slide charts-grid">
+                          {/* Invoice Breakdown Chart */}
+                          <div className="chart-card">
+                            <p className="chart-title">Invoice Breakdown</p>
+                            {(() => {
+                              return isClient && chartsLoaded;
+                            })() &&
+                            processedChartData.invoiceBreakdownData?.length >
+                              0 ? (
 
-              {/* Trending Monthly Spend Chart */}
-              <div className="chart-card-white">
-                {isClient && chartsLoaded ? (
-                  <>
-                    <SimpleControlPanel
-                      title="Trending Monthly Spend"
-                      options={[
-                        { type: 'column', title: 'Column Chart' },
-                        { type: 'line', title: 'Line Chart' },
-                        { type: 'area', title: 'Area Chart' }
-                      ]}
-                      currentValue={trendingChartType}
-                      onValueChange={setTrendingChartType}
-                    />
-                    <div className="debug-data-ready">
-                      <h4>✅ Monthly Trend Data Ready!</h4>
-                      <p>Chart Type: {trendingChartType} | Data items: {processedChartData.monthlyTrendData?.length || 0}</p>
-                      <div className="debug-data-list">
-                        {processedChartData.monthlyTrendData?.slice(0, 10).map((item, index) => (
-                          <div key={index} className="debug-data-item">
-                            <span>{item.label}</span>
-                            <span>{new Date(item.group).toLocaleDateString()}</span>
-                            <span>${item.value}</span>
+                              <Chart
+                                onRefresh={handleChartRefresh}
+                                onSeriesClick={onChartClick}
+                                className="chart1 clickableChart"
+                              >
+                                <BasicGroupedChart
+                                  chartType="column"
+                                  title=""
+                                  subTitle=""
+                                  data={processedChartData?.invoiceBreakdownData ? JSON.parse(JSON.stringify(processedChartData.invoiceBreakdownData)) : []}
+                                  categoryField="group"
+                                  valueField="value"
+                                  groupedByField="label"
+                                  categoryTitle=""
+                                  showCategoryLabels={false}
+                                  legendPosition="bottom"
+                                  legendTitle=""
+                                  legendVisible={false}
+                                  tooltipFormat="c2"
+                                  showLabels={true}
+                                  valueFormat="c2"
+                                  labelFormat="c2"
+                                  labelIncludeGroup={true}
+                                  // locale={accountInfo?.locale}
+                                />
+                              </Chart>
+                            ) : (
+                              <div className="chart-content chart-loading">
+                                {processedChartData.invoiceBreakdownData
+                                  ?.length > 0 ? (
+                                  <div>
+                                    📊 Loading Kendo Chart...
+                                    <br />
+                                    <small>
+                                      Data ready:{" "}
+                                      {
+                                        processedChartData.invoiceBreakdownData
+                                          .length
+                                      }{" "}
+                                      items
+                                    </small>
+                                  </div>
+                                ) : (
+                                  "📊 Loading chart components..."
+                                )}
+                              </div>
+                            )}
                           </div>
-                        ))}
-                        {processedChartData.monthlyTrendData?.length > 10 && <div>...and {processedChartData.monthlyTrendData.length - 10} more</div>}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="chart-header-controls">
-                      <p className="chart-header-title">
-                        Trending Monthly Spend
-                      </p>
-                      <div className="chart-loading-text">Loading controls...</div>
-                    </div>
-                    <div className="chart-loading-placeholder">
-                      {processedChartData.monthlyTrendData?.length > 0 ? (
-                        <div className="chart-loading-center-text">
-                          📈 Loading Trending Chart...<br/>
-                          <small>Data ready: {processedChartData.monthlyTrendData.length} items</small>
-                        </div>
-                      ) : (
-                        '📈 Loading chart components...'
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
 
-            {/* Slide 2: Full-width chart */}
-            <div className="chart-card-full">
-              <div className="chart-card-white">
-                {isClient && chartsLoaded ? (
-                  <>
-                    <SimpleControlPanel
-                      title="Top Expensive Products"
-                      options={[
-                        { type: 'bar', title: 'Bar Chart' },
-                        { type: 'pie', title: 'Pie Chart' }
-                      ]}
-                      currentValue={topExpensiveChartType}
-                      onValueChange={setTopExpensiveChartType}
-                    />
-<div className="debug-data-ready-danger">
-                      <h4>✅ Top Expensive Products Data Ready!</h4>
-                      <p>Chart Type: {topExpensiveChartType} | Data items: {processedChartData.topExpensiveData?.length || 0}</p>
-                      <div className="debug-data-list-left">
-                        {processedChartData.topExpensiveData?.map((item, index) => (
-                          <div key={index} className="debug-data-item-bordered">
-                            <span className="debug-data-item-label">{index + 1}. {item.label || item.group}</span>
-                            <span className="debug-data-item-value">${item.value}</span>
+                          {/* Trending Monthly Spend Chart */}
+                          <div className="chart-card-white">
+                            {isClient && chartsLoaded ? (
+                              <>
+                                <SimpleControlPanel
+                                  title="Trending Monthly Spend"
+                                  options={[
+                                    { type: "column", title: "Column Chart" },
+                                    { type: "line", title: "Line Chart" },
+                                    { type: "area", title: "Area Chart" },
+                                  ]}
+                                  currentValue={trendingChartType}
+                                  onValueChange={setTrendingChartType}
+                                />
+                                <div className="debug-data-ready">
+                                  <h4>✅ Monthly Trend Data Ready!</h4>
+                                  <p>
+                                    Chart Type: {trendingChartType} | Data
+                                    items:{" "}
+                                    {processedChartData.monthlyTrendData
+                                      ?.length || 0}
+                                  </p>
+                                  <div className="debug-data-list">
+                                    {processedChartData.monthlyTrendData
+                                      ?.slice(0, 10)
+                                      .map((item, index) => (
+                                        <div
+                                          key={index}
+                                          className="debug-data-item"
+                                        >
+                                          <span>{item.label}</span>
+                                          <span>
+                                            {new Date(
+                                              item.group
+                                            ).toLocaleDateString()}
+                                          </span>
+                                          <span>${item.value}</span>
+                                        </div>
+                                      ))}
+                                    {processedChartData.monthlyTrendData
+                                      ?.length > 10 && (
+                                      <div>
+                                        ...and{" "}
+                                        {processedChartData.monthlyTrendData
+                                          .length - 10}{" "}
+                                        more
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="chart-header-controls">
+                                  <p className="chart-header-title">
+                                    Trending Monthly Spend
+                                  </p>
+                                  <div className="chart-loading-text">
+                                    Loading controls...
+                                  </div>
+                                </div>
+                                <div className="chart-loading-placeholder">
+                                  {processedChartData.monthlyTrendData?.length >
+                                  0 ? (
+                                    <div className="chart-loading-center-text">
+                                      📈 Loading Trending Chart...
+                                      <br />
+                                      <small>
+                                        Data ready:{" "}
+                                        {
+                                          processedChartData.monthlyTrendData
+                                            .length
+                                        }{" "}
+                                        items
+                                      </small>
+                                    </div>
+                                  ) : (
+                                    "📈 Loading chart components..."
+                                  )}
+                                </div>
+                              </>
+                            )}
                           </div>
-                        ))}
+                        </div>
+
+                        {/* Slide 2: Full-width chart */}
+                        <div className="chart-card-full">
+                          <div className="chart-card-white">
+                            {isClient && chartsLoaded ? (
+                              <>
+                                <SimpleControlPanel
+                                  title="Top Expensive Products"
+                                  options={[
+                                    { type: "bar", title: "Bar Chart" },
+                                    { type: "pie", title: "Pie Chart" },
+                                  ]}
+                                  currentValue={topExpensiveChartType}
+                                  onValueChange={setTopExpensiveChartType}
+                                />
+                                <div className="debug-data-ready-danger">
+                                  <h4>✅ Top Expensive Products Data Ready!</h4>
+                                  <p>
+                                    Chart Type: {topExpensiveChartType} | Data
+                                    items:{" "}
+                                    {processedChartData.topExpensiveData
+                                      ?.length || 0}
+                                  </p>
+                                  <div className="debug-data-list-left">
+                                    {processedChartData.topExpensiveData?.map(
+                                      (item, index) => (
+                                        <div
+                                          key={index}
+                                          className="debug-data-item-bordered"
+                                        >
+                                          <span className="debug-data-item-label">
+                                            {index + 1}.{" "}
+                                            {item.label || item.group}
+                                          </span>
+                                          <span className="debug-data-item-value">
+                                            ${item.value}
+                                          </span>
+                                        </div>
+                                      )
+                                    )}
+                                  </div>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="chart-header-controls">
+                                  <p className="chart-header-title-large">
+                                    Top Expensive Products
+                                  </p>
+                                  <div className="chart-loading-text">
+                                    Loading controls...
+                                  </div>
+                                </div>
+                                <div className="chart-loading-placeholder-large">
+                                  {processedChartData.topExpensiveData?.length >
+                                  0 ? (
+                                    <div className="chart-loading-center-text">
+                                      📊 Loading Top Products Chart...
+                                      <br />
+                                      <small>
+                                        Data ready:{" "}
+                                        {
+                                          processedChartData.topExpensiveData
+                                            .length
+                                        }{" "}
+                                        items
+                                      </small>
+                                    </div>
+                                  ) : (
+                                    "📊 Loading chart components..."
+                                  )}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="chart-header-controls">
-                      <p className="chart-header-title-large">
-                        Top Expensive Products
-                      </p>
-                      <div className="chart-loading-text">Loading controls...</div>
-                    </div>
-                    <div className="chart-loading-placeholder-large">
-                      {processedChartData.topExpensiveData?.length > 0 ? (
-                        <div className="chart-loading-center-text">
-                          📊 Loading Top Products Chart...<br/>
-                          <small>Data ready: {processedChartData.topExpensiveData.length} items</small>
-                        </div>
-                      ) : (
-                        '📊 Loading chart components...'
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
                   </div>
                 </div>
               </div>
@@ -2076,11 +2224,11 @@ export default function AzureInvoiceClientContent({
               <div className="panel-body">
                 <div className="o-grid o-grid--gutters">
                   <div className="o-grid__item u-1/1 u-1/4@desktop">
-                    <span className="label-text-bold">
-                      Product Category
-                    </span>
+                    <span className="label-text-bold">Product Category</span>
                     <MultiSelect
-                      data={selectListOptions.productCategory.filter(item => item.value !== 'All')}
+                      data={selectListOptions.productCategory.filter(
+                        (item) => item.value !== "All"
+                      )}
                       textField="text"
                       dataItemKey="value"
                       value={productCategoryFilter}
@@ -2092,11 +2240,11 @@ export default function AzureInvoiceClientContent({
                   </div>
 
                   <div className="o-grid__item u-1/1 u-1/4@desktop">
-                    <span className="label-text-bold">
-                      Product Name
-                    </span>
+                    <span className="label-text-bold">Product Name</span>
                     <MultiSelect
-                      data={selectListOptions.productName.filter(item => item.value !== 'All')}
+                      data={selectListOptions.productName.filter(
+                        (item) => item.value !== "All"
+                      )}
                       textField="text"
                       dataItemKey="value"
                       value={productNameFilter}
@@ -2108,11 +2256,11 @@ export default function AzureInvoiceClientContent({
                   </div>
 
                   <div className="o-grid__item u-1/1 u-1/4@desktop">
-                    <span className="label-text-bold">
-                      SKU Name
-                    </span>
+                    <span className="label-text-bold">SKU Name</span>
                     <MultiSelect
-                      data={selectListOptions.skuName.filter(item => item.value !== 'All')}
+                      data={selectListOptions.skuName.filter(
+                        (item) => item.value !== "All"
+                      )}
                       textField="text"
                       dataItemKey="value"
                       value={skuNameFilter}
@@ -2128,10 +2276,10 @@ export default function AzureInvoiceClientContent({
                       className="apply-filters-button"
                       onClick={() => {
                         // Apply filters logic here
-                        console.log('Filters applied:', {
+                        console.log("Filters applied:", {
                           productCategoryFilter,
                           productNameFilter,
-                          skuNameFilter
+                          skuNameFilter,
                         });
                       }}
                     >
@@ -2146,45 +2294,45 @@ export default function AzureInvoiceClientContent({
 
         {/* Raw Data Debug (for development) */}
         <div className="debug-section-grid">
-        {/* Invoice Months Data */}
-        <details open>
-          <summary className="debug-details-summary debug-details-summary-blue">
-            📅 Invoice Months Data
-          </summary>
-          <div className="debug-details-content debug-details-content-blue">
-            {JSON.stringify(invoiceMonthsData, null, 2)}
-          </div>
-        </details>
+          {/* Invoice Months Data */}
+          <details open>
+            <summary className="debug-details-summary debug-details-summary-blue">
+              📅 Invoice Months Data
+            </summary>
+            <div className="debug-details-content debug-details-content-blue">
+              {JSON.stringify(invoiceMonthsData, null, 2)}
+            </div>
+          </details>
 
-        {/* Summary Data */}
-        <details open>
-          <summary className="debug-details-summary debug-details-summary-green">
-            📊 Summary Data
-          </summary>
-          <div className="debug-details-content debug-details-content-green">
-            {JSON.stringify(summaryData, null, 2)}
-          </div>
-        </details>
+          {/* Summary Data */}
+          <details open>
+            <summary className="debug-details-summary debug-details-summary-green">
+              📊 Summary Data
+            </summary>
+            <div className="debug-details-content debug-details-content-green">
+              {JSON.stringify(summaryData, null, 2)}
+            </div>
+          </details>
 
-        {/* Credits Data */}
-        <details open>
-          <summary className="debug-details-summary debug-details-summary-orange">
-            💳 Credits Data
-          </summary>
-          <div className="debug-details-content debug-details-content-orange">
-            {JSON.stringify(creditsData, null, 2)}
-          </div>
-        </details>
+          {/* Credits Data */}
+          <details open>
+            <summary className="debug-details-summary debug-details-summary-orange">
+              💳 Credits Data
+            </summary>
+            <div className="debug-details-content debug-details-content-orange">
+              {JSON.stringify(creditsData, null, 2)}
+            </div>
+          </details>
 
-        {/* Trends Data */}
-        <details open>
-          <summary className="debug-details-summary debug-details-summary-purple">
-            📈 Trends Data
-          </summary>
-          <div className="debug-details-content debug-details-content-purple">
-            {JSON.stringify(trendsData, null, 2)}
-          </div>
-        </details>
+          {/* Trends Data */}
+          <details open>
+            <summary className="debug-details-summary debug-details-summary-purple">
+              📈 Trends Data
+            </summary>
+            <div className="debug-details-content debug-details-content-purple">
+              {JSON.stringify(trendsData, null, 2)}
+            </div>
+          </details>
         </div>
       </div>
     </div>

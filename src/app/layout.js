@@ -2,6 +2,7 @@
 import './globals.css';
 import ClientLayout from './ClientLayout';
 import "Insight-Theme/dist/scss/index.scss"; 
+import '@progress/kendo-theme-default/dist/all.css';
 import "@/i18n";
 
 export const metadata = {
