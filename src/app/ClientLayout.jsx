@@ -4,6 +4,7 @@
 import { useEffect } from 'react';
 import Header from '@/components/Header/Header';
 import ReduxProvider from '@/components/ReduxProvider';
+import AuthContextInitializer from '@/components/AuthContextInitializer';
 import { usePathname } from 'next/navigation';
 
 // Pages where header should NOT show (pre-login / error pages)
@@ -40,12 +41,14 @@ export default function ClientLayout({ children }) {
 
   return (
     <ReduxProvider>
-      <div className="App">
-        {showHeader && <Header />}
+      <AuthContextInitializer>
+        <div className="App">
+          {showHeader && <Header />}
 
-        {/* All your pages will render here */}
-        {children}
-      </div>
+          {/* All your pages will render here */}
+          {children}
+        </div>
+      </AuthContextInitializer>
     </ReduxProvider>
   );
 }

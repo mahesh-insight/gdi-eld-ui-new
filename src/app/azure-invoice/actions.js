@@ -70,11 +70,129 @@ export async function fetchInvoiceMonthsServer(clientSoldToId = null) {
 }
 
 /**
+ * Consolidated function to fetch all data for a month (summary, credits, trends)
+ */
+export async function fetchAzureInvoiceDataForMonth(clientSoldToId = null, selectedMonth = null) {
+  try {
+    const monthValue = typeof selectedMonth === 'string' ? selectedMonth : selectedMonth?.value;
+    console.log('🚀 Server Action: Fetching ALL data for month:', monthValue, 'soldToId:', clientSoldToId);
+    
+    // Handle authentication once at this level
+    const cookieStore = await cookies();
+    const accessTokenCookie = cookieStore.get('access_token');
+    const userContextCookie = cookieStore.get('user_context');
+    
+    let soldToId = clientSoldToId;
+    let accessToken = null;
+    
+    if (accessTokenCookie) {
+      accessToken = accessTokenCookie.value;
+    }
+    
+    if (!soldToId && userContextCookie) {
+      try {
+        const userContext = JSON.parse(userContextCookie.value);
+        soldToId = userContext.soldToId;
+      } catch (parseError) {
+        console.error('❌ Failed to parse user context for consolidated fetch:', parseError);
+      }
+    }
+    
+    if (!soldToId || !accessToken) {
+      console.error('❌ Consolidated fetch: Missing auth - soldToId:', !!soldToId, 'accessToken:', !!accessToken);
+      return { 
+        error: 'Authentication required for month data', 
+        data: { summary: null, credits: null, trend: null } 
+      };
+    }
+    
+    // Import the individual Azure Invoice API functions directly to bypass getInitialAzureInvoiceData
+    const { fetchInvoiceSummary, fetchInvoiceCredits, fetchInvoiceTrend } = await import('@/lib/azureInvoiceApi');
+    
+    console.log('🔄 Consolidated fetch: Calling individual APIs with soldToId:', soldToId, 'month:', selectedMonth);
+    console.log('📅 Using month value:', monthValue);
+    
+    if (!monthValue) {
+      console.error('❌ No month value available');
+      return { 
+        error: 'Month value required', 
+        data: { summary: null, credits: null, trend: null } 
+      };
+    }
+    
+    // Call the individual APIs directly with proper parameters
+    console.log('🔄 Making API calls with params:', {
+      soldToId,
+      monthValue,
+      hasAccessToken: !!accessToken
+    });
+    
+    const [summary, credits, trend] = await Promise.allSettled([
+      fetchInvoiceSummary({ soldToId, value: monthValue, filter: [], accessToken }),
+      fetchInvoiceCredits({ soldToId, value: monthValue, filter: [], accessToken }),
+      fetchInvoiceTrend({ soldToId, months: 6, filter: "", accessToken }),
+    ]);
+    
+    // Log individual results for debugging
+    console.log('🔍 Individual API results:', {
+      summary: {
+        status: summary.status,
+        hasValue: !!summary.value,
+        error: summary.status === 'rejected' ? summary.reason : null,
+        data: summary.status === 'fulfilled' ? summary.value : null
+      },
+      credits: {
+        status: credits.status,
+        hasValue: !!credits.value,
+        error: credits.status === 'rejected' ? credits.reason : null,
+        data: credits.status === 'fulfilled' ? credits.value : null
+      },
+      trend: {
+        status: trend.status,
+        hasValue: !!trend.value,
+        error: trend.status === 'rejected' ? trend.reason : null,
+        data: trend.status === 'fulfilled' ? trend.value : null
+      }
+    });
+    
+    // Process results
+    const azureData = {
+      summary: summary.status === 'fulfilled' ? summary.value : null,
+      credits: credits.status === 'fulfilled' ? credits.value : null,  
+      trend: trend.status === 'fulfilled' ? trend.value : null
+    };
+    
+    console.log('✅ Consolidated fetch: Azure API response:', {
+      hasSummary: !!azureData?.summary,
+      hasCredits: !!azureData?.credits,
+      hasTrend: !!azureData?.trend
+    });
+    
+    return {
+      error: null,
+      data: {
+        summary: azureData?.summary || null,
+        credits: azureData?.credits || null,
+        trend: azureData?.trend || null
+      }
+    };
+  } catch (error) {
+    console.error('❌ fetchAzureInvoiceDataForMonth error:', error);
+    return {
+      error: error?.message || 'Failed to fetch month data',
+      data: { summary: null, credits: null, trend: null }
+    };
+  }
+}
+
+/**
  * Fetch summary data for selected month
  */
 export async function fetchSummaryDataServer(clientSoldToId = null, selectedMonth = null) {
   try {
-    console.log('🚀 Server Action: Fetching Summary Data for month:', selectedMonth?.value);
+    // Handle month parameter - can be string or object
+    const monthValue = typeof selectedMonth === 'string' ? selectedMonth : selectedMonth?.value;
+    console.log('🚀 Server Action: Fetching Summary Data for month:', monthValue);
     const cookieStore = await cookies();
     const accessTokenCookie = cookieStore.get('access_token');
     const userContextCookie = cookieStore.get('user_context');
@@ -100,7 +218,7 @@ export async function fetchSummaryDataServer(clientSoldToId = null, selectedMont
     }
     
     // Use cache with month-specific key and 10-minute TTL
-    const monthKey = selectedMonth?.value || 'default';
+    const monthKey = monthValue || 'default';
     const cacheKey = `azure-summary:${soldToId}:${monthKey}`;
     const data = await getOrSetCached(
       cacheKey,
@@ -114,13 +232,15 @@ export async function fetchSummaryDataServer(clientSoldToId = null, selectedMont
     console.log('✅ Summary data served from cache:', data._fromCache ? 'HIT' : 'MISS');
     return { 
       error: null, 
-      data: data?.summary || null
+      data: data?.summary || null,
+      success: true
     };
   } catch (error) {
     console.error('❌ fetchSummaryDataServer error:', error);
     return { 
       error: error?.message || 'Failed to fetch summary data', 
-      data: null 
+      data: null,
+      success: false
     };
   }
 }
@@ -130,7 +250,9 @@ export async function fetchSummaryDataServer(clientSoldToId = null, selectedMont
  */
 export async function fetchCreditsDataServer(clientSoldToId = null, selectedMonth = null) {
   try {
-    console.log('🚀 Server Action: Fetching Credits Data for month:', selectedMonth?.value);
+    // Handle month parameter - can be string or object
+    const monthValue = typeof selectedMonth === 'string' ? selectedMonth : selectedMonth?.value;
+    console.log('🚀 Server Action: Fetching Credits Data for month:', monthValue);
     const cookieStore = await cookies();
     const accessTokenCookie = cookieStore.get('access_token');
     const userContextCookie = cookieStore.get('user_context');
@@ -156,13 +278,15 @@ export async function fetchCreditsDataServer(clientSoldToId = null, selectedMont
     }
     
     // Use cache with month-specific key and 10-minute TTL
-    const monthKey = selectedMonth?.value || 'default';
+    const monthKey = monthValue || 'default';
     const cacheKey = `azure-credits:${soldToId}:${monthKey}`;
     const data = await getOrSetCached(
       cacheKey,
       async () => {
         console.log('📥 Cache MISS - fetching credits from API');
-        return await getInitialAzureInvoiceData({ soldToId, accessToken, locationState: { currentMonthObject: selectedMonth } });
+        // Create month object for API call
+        const monthObject = typeof selectedMonth === 'string' ? { value: selectedMonth } : selectedMonth;
+        return await getInitialAzureInvoiceData({ soldToId, accessToken, locationState: { currentMonthObject: monthObject } });
       },
       10 * 60 * 1000 // 10 minutes
     );
@@ -170,23 +294,27 @@ export async function fetchCreditsDataServer(clientSoldToId = null, selectedMont
     console.log('✅ Credits data served from cache:', data._fromCache ? 'HIT' : 'MISS');
     return { 
       error: null, 
-      data: data?.credits || null
+      data: data?.credits || null,
+      success: true
     };
   } catch (error) {
     console.error('❌ fetchCreditsDataServer error:', error);
     return { 
       error: error?.message || 'Failed to fetch credits data', 
-      data: null 
+      data: null,
+      success: false
     };
   }
 }
 
 /**
- * Fetch trends data for selected month
+ * Fetch trends data
  */
 export async function fetchTrendsDataServer(clientSoldToId = null, selectedMonth = null) {
   try {
-    console.log('🚀 Server Action: Fetching Trends Data for month:', selectedMonth?.value);
+    // Handle month parameter - can be string or object
+    const monthValue = typeof selectedMonth === 'string' ? selectedMonth : selectedMonth?.value;
+    console.log('🚀 Server Action: Fetching Trends Data for month:', monthValue);
     const cookieStore = await cookies();
     const accessTokenCookie = cookieStore.get('access_token');
     const userContextCookie = cookieStore.get('user_context');
@@ -212,13 +340,15 @@ export async function fetchTrendsDataServer(clientSoldToId = null, selectedMonth
     }
     
     // Use cache with month-specific key and 10-minute TTL
-    const monthKey = selectedMonth?.value || 'default';
+    const monthKey = monthValue || 'default';
     const cacheKey = `azure-trends:${soldToId}:${monthKey}`;
     const data = await getOrSetCached(
       cacheKey,
       async () => {
         console.log('📥 Cache MISS - fetching trends from API');
-        return await getInitialAzureInvoiceData({ soldToId, accessToken, locationState: { currentMonthObject: selectedMonth } });
+        // Create month object for API call
+        const monthObject = typeof selectedMonth === 'string' ? { value: selectedMonth } : selectedMonth;
+        return await getInitialAzureInvoiceData({ soldToId, accessToken, locationState: { currentMonthObject: monthObject } });
       },
       10 * 60 * 1000 // 10 minutes
     );
@@ -226,13 +356,15 @@ export async function fetchTrendsDataServer(clientSoldToId = null, selectedMonth
     console.log('✅ Trends data served from cache:', data._fromCache ? 'HIT' : 'MISS');
     return { 
       error: null, 
-      data: data?.trend || null
+      data: data?.trend || null,
+      success: true
     };
   } catch (error) {
     console.error('❌ fetchTrendsDataServer error:', error);
     return { 
       error: error?.message || 'Failed to fetch trends data', 
-      data: null 
+      data: null,
+      success: false
     };
   }
 }
@@ -449,144 +581,7 @@ export async function checkAuthenticationServer() {
   }
 }
 
-/**
- * Server action to fetch Azure Invoice data for a specific selected month
- * @param {string} clientSoldToId - soldToId from client-side auth
- * @param {object} selectedMonth - The selected month object {text, value, date}
- */
-export async function fetchAzureInvoiceDataForMonth(clientSoldToId, selectedMonth) {
-  const startTime = Date.now();
-  
-  try {
-    console.log('🚀 Server Action: Fetching Azure Invoice data for selected month:', selectedMonth);
-    
-    // OPTIMIZATION: Fast auth check first
-    const cookieStore = await cookies();
-    
-    const accessTokenCookie = cookieStore.get('access_token');
-    const userContextCookie = cookieStore.get('user_context');
-    
-    let soldToId = null;
-    let accessToken = null;
-    
-    // OPTIMIZATION: Try regular cookies first (fastest path)  
-    if (accessTokenCookie && userContextCookie) {
-      try {
-        const userContext = JSON.parse(userContextCookie.value);
-        soldToId = userContext.soldToId;
-        accessToken = accessTokenCookie.value;
-        console.log('⚡ Server Action: Fast auth via regular cookies, soldToId:', soldToId);
-      } catch (error) {
-        console.log('⚠️ Server Action: Failed to parse user context cookie');
-      }
-    }
-    
-    // OPTIMIZATION: Only check Redux cookie if regular cookies failed
-    if (!soldToId) {
-      const reduxPersistCookie = cookieStore.get('persist:ccr-auth');
-      if (reduxPersistCookie) {
-        try {
-          const persistedState = JSON.parse(reduxPersistCookie.value);
-          if (persistedState.isAuthenticated && persistedState.loginResponse) {
-            soldToId = persistedState.loginResponse?.userProfile?.defaultContext?.[0]?.soldToId;
-            if (!accessToken && persistedState.accessToken) {
-              accessToken = persistedState.accessToken;
-            }
-            console.log('⚡ Server Action: Fallback auth via Redux persist, soldToId:', soldToId);
-          }
-        } catch (error) {
-          console.log('⚠️ Server Action: Failed to parse Redux persist cookie');
-        }
-      }
-    }
-    
-    // Use client-provided soldToId if available (from Redux store)
-    if (!soldToId && clientSoldToId) {
-      soldToId = clientSoldToId;
-      console.log('✅ Server Action: Using Redux store soldToId:', soldToId);
-    }
-    
-    // If still no authentication found, return error
-    if (!soldToId) {
-      console.log('❌ Server Action: No authentication found - user must be properly logged in');
-      return {
-        error: 'Authentication required - please ensure you are logged in with valid credentials',
-        data: null
-      };
-    }
-    
-    if (!selectedMonth || !selectedMonth.value) {
-      return {
-        error: 'Selected month is required',
-        data: null
-      };
-    }
-    
-    // Import the specific API functions we need
-    const { fetchInvoiceSummary, fetchInvoiceCredits, fetchInvoiceTrend } = await import('@/lib/azureInvoiceApi');
-    
-    const currentMonthValue = selectedMonth.value;
-    const filterQuery = [];
-    const trendFilter = "";
-    
-    console.log(`🔄 Server Action: Fetching data for month ${currentMonthValue} with soldToId: ${soldToId}`);
-    
-    // Parallel API calls for the selected month
-    const [summary, credits, trend] = await Promise.allSettled([
-      fetchInvoiceSummary({ soldToId, value: currentMonthValue, filter: filterQuery, accessToken }),
-      fetchInvoiceCredits({ soldToId, value: currentMonthValue, filter: filterQuery, accessToken }),
-      fetchInvoiceTrend({ soldToId, months: 6, filter: trendFilter, accessToken }),
-    ]);
-    
-    const totalTime = Date.now() - startTime;
-    console.log(`✅ Server Action: Month-specific data fetched in ${totalTime}ms`);
-    console.log('🔍 API Results:', {
-      summary: summary.status === 'fulfilled' ? 'SUCCESS' : `ERROR: ${summary.reason}`,
-      credits: credits.status === 'fulfilled' ? 'SUCCESS' : `ERROR: ${credits.reason}`,
-      trend: trend.status === 'fulfilled' ? 'SUCCESS' : `ERROR: ${trend.reason}`,
-    });
 
-    // Log actual response data
-    if (summary.status === 'fulfilled') {
-      console.log('📊 SUMMARY API RESPONSE:', JSON.stringify(summary.value, null, 2));
-    }
-    if (credits.status === 'fulfilled') {
-      console.log('💰 CREDITS API RESPONSE:', JSON.stringify(credits.value, null, 2));
-    }
-    if (trend.status === 'fulfilled') {
-      console.log('📈 TREND API RESPONSE:', JSON.stringify(trend.value, null, 2));
-    }
-
-    return {
-      error: null,
-      data: {
-        currentMonthObject: selectedMonth,
-        usageMonth: currentMonthValue,
-        summary: summary.status === 'fulfilled' ? summary.value : null,
-        credits: credits.status === 'fulfilled' ? credits.value : null,
-        trend: trend.status === 'fulfilled' ? trend.value : null,
-      },
-      debug: {
-        soldToId,
-        selectedMonth,
-        fetchTime: new Date().toISOString(),
-        totalTime: `${totalTime}ms`,
-      }
-    };
-    
-  } catch (error) {
-    console.error('❌ Server Action: Error fetching month-specific data:', error);
-    return {
-      error: error.message,
-      data: null,
-      debug: {
-        errorMessage: error.message,
-        errorStack: error.stack,
-        fetchTime: new Date().toISOString()
-      }
-    };
-  }
-}
 
 /**
  * Server action to fetch UI properties (OPTIMIZED)

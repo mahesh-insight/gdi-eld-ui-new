@@ -16,7 +16,7 @@ import {
   setInitialLoadingState
 } from '@/lib/store/slices/pageSlice';
 import {
-  setSelectedAccount
+  setSelectedAccountState
 } from '@/lib/store/slices/userSlice';
 import { Panel } from "@insight/toolkit-react";
 import { Skeleton } from "@progress/kendo-react-indicators";

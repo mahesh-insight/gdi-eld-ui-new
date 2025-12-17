@@ -33,8 +33,46 @@ export const useAuth = () => {
   };
 
   const logout = () => {
+    console.log('🔧 Auth: Logging out - clearing all data');
+    
     // Clear Redux state (this clears all sensitive data from memory)
     dispatch(clearAuth());
+    
+    // Clear Azure Invoice cache as well
+    if (typeof window !== 'undefined') {
+      try {
+        // Dynamically import Azure Invoice actions
+        import('@/store/azureInvoiceSlice').then((module) => {
+          if (module.clearData) {
+            dispatch(module.clearData());
+            console.log('✅ Auth: Cleared Azure Invoice cache');
+          }
+        }).catch(err => {
+          console.warn('⚠️ Auth: Could not clear Azure Invoice cache:', err);
+        });
+        
+        // Clear all localStorage including Redux persist
+        localStorage.removeItem('persist:ccr-auth');
+        localStorage.removeItem('persist:ccr-azure-invoice');
+        console.log('✅ Auth: Cleared localStorage persist data');
+      } catch (err) {
+        console.warn('⚠️ Auth: localStorage clear error:', err);
+      }
+    }
+    
+    // Also clear cookies if they exist (client-side)
+    if (typeof window !== 'undefined') {
+      // Use dynamic import to avoid SSR issues
+      import('js-cookie').then((Cookies) => {
+        Cookies.default.remove('user_context');
+        Cookies.default.remove('access_token');
+        console.log('✅ Auth: Cookies cleared');
+      }).catch(err => {
+        console.warn('⚠️ Auth: Could not clear cookies:', err);
+      });
+    }
+    
+    console.log('✅ Auth: Logout completed - all cache and Redux store cleared');
   };
 
   const updateUser = (userData) => {

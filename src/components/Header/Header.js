@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from '@/hooks/useAuth';
 import { useSelector, useDispatch } from 'react-redux';
 import { setProperties } from '@/store/uiSlice';
+import { useRouter } from 'next/navigation';
 import styles from "./Header.module.scss";
 import Link from "next/link";
 import {
@@ -99,6 +100,7 @@ const Header = () => {
   const [isAccountSettingsOpen, setIsAccountSettingsOpen] = useState(false);
   const [indicatorStyle, setIndicatorStyle] = useState({});
   const { user, logout, isAuthenticated, loginResponse } = useAuth();
+  const router = useRouter();
   const {username, firstName, lastName, persona, userProfile} = loginResponse || {};
   const {defaultContext} = userProfile || {};
   const soldTo = defaultContext?.[0]?.soldTo || '';
@@ -113,6 +115,10 @@ const Header = () => {
   const handleMenuClick = (index) => {
     if (navItems[index].children.length === 0) {
       console.log(`Navigating to ${navItems[index].href}`);
+      // Actually navigate to the URL for menu items without children
+      if (navItems[index].href) {
+        router.push(navItems[index].href);
+      }
       setOpenMenuIndex(null);
       setOpenSubMenuLabel(null);
       return;

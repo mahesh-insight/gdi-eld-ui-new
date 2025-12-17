@@ -8,12 +8,21 @@ import {
   fetchTrendsDataServer 
 } from './actions';
 
+/**
+ * TRUE SERVER-SIDE RENDERING (SSR):
+ * - This is a SERVER component (no 'use client')
+ * - Data is fetched on the server during page render
+ * - HTML is sent to browser with data already populated
+ * - No browser API calls on initial load
+ * - Client component receives pre-fetched data as props
+ */
+
 export default async function AzureInvoicePage() {
-  console.log('🎯 SERVER: Page rendering on server...');
+  console.log('🎯 SERVER: Rendering Azure Invoice page with SSR...');
   
+  // Get user context from server-side cookies
   const cookieStore = await cookies();
   const userContextCookie = cookieStore.get('user_context');
-  const azureCacheCookie = cookieStore.get('azure_cache_metadata');
   
   if (!userContextCookie) {
     return (
@@ -29,10 +38,12 @@ export default async function AzureInvoicePage() {
   try {
     userContext = JSON.parse(userContextCookie.value);
   } catch (error) {
+    console.error('❌ SERVER: Failed to parse user context:', error);
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
         <h2>Authentication Error</h2>
-        <p>Invalid user context.</p>
+        <p>Invalid user context. Please log in again.</p>
+        <a href="/" style={{ color: '#007bff' }}>Return to Login</a>
       </div>
     );
   }
@@ -43,80 +54,108 @@ export default async function AzureInvoicePage() {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
         <h2>Missing Data</h2>
-        <p>User context incomplete.</p>
+        <p>User context incomplete. Please log in again.</p>
+        <a href="/" style={{ color: '#007bff' }}>Return to Login</a>
       </div>
     );
   }
   
-  // Fetch data using server actions (with built-in caching)
-  console.log('🎯 SERVER: Loading data for soldToId (using server cache)');
-  const dataStartTime = Date.now();
+  // SERVER-SIDE DATA FETCHING - runs on server, not in browser
+  console.log('🚀 SERVER: Starting server-side data fetch for soldToId:', soldToId);
+  
+  let initialData = null;
+  let ssrError = null;
   
   try {
-    const monthsResponse = await fetchInvoiceMonthsServer(soldToId);
-    const firstMonth = monthsResponse?.data?.invoiceMonths?.[0];
-    
-    if (!firstMonth) {
-      return (
-        <div style={{ padding: '40px', textAlign: 'center' }}>
-          <h2>No Data Available</h2>
-        </div>
-      );
-    }
-    
-    console.log('🎯 SERVER: First month:', firstMonth.value);
-    
-    const [summaryResponse, creditsResponse, trendsResponse] = await Promise.all([
-      fetchSummaryDataServer(soldToId, firstMonth),
-      fetchCreditsDataServer(soldToId, firstMonth),
-      fetchTrendsDataServer(soldToId, firstMonth)
+    // Fetch all data in parallel on the server
+    const startTime = Date.now();
+    const [monthsResponse, summaryResponse, creditsResponse, trendsResponse] = await Promise.all([
+      fetchInvoiceMonthsServer(soldToId),
+      fetchSummaryDataServer(soldToId, null), // null = fetch for first month
+      fetchCreditsDataServer(soldToId, null),
+      fetchTrendsDataServer(soldToId, null)
     ]);
     
-    const dataTime = Date.now() - dataStartTime;
-    console.log(`✅ SERVER: Data fetched in ${dataTime}ms`);
+    const fetchTime = Date.now() - startTime;
+    console.log(`✅ SERVER: Data fetched in ${fetchTime}ms`);
     
-    const initialData = {
-      monthsResponse,
-      summaryResponse,
-      creditsResponse,
-      trendsResponse
-    };
-    
-    return (
-      <div>
-        <div style={{
-          padding: '20px 40px',
-          borderBottom: '1px solid #e1e5e9',
-          backgroundColor: '#f8f9fa'
-        }}>
-          <h1 style={{ 
-            margin: '0', 
-            color: '#2c3e50',
-            fontSize: '28px',
-            fontWeight: '600'
-          }}>
-            Azure Invoice Dashboard
-          </h1>
-        </div>
-        <AzureInvoiceClientContent 
-          mode="true-ssr"
-          initialData={initialData}
-          userContext={userContext}
-          ssrPerformance={{
-            dataFetchTime: dataTime,
-            totalSSRTime: dataTime,
-            cacheStatus: 'SERVER_RENDERED',
-            timestamp: new Date().toLocaleTimeString()
-          }}
-        />
-      </div>
-    );
+    // Check for errors
+    if (monthsResponse.error) {
+      console.error('❌ SERVER: Months error:', monthsResponse.error);
+      ssrError = monthsResponse.error;
+    } else {
+      initialData = {
+        monthsResponse,
+        summaryResponse,
+        creditsResponse,
+        trendsResponse
+      };
+      
+      console.log('✅ SERVER: Initial data prepared:', {
+        hasMonths: !!monthsResponse?.data?.invoiceMonths,
+        monthsCount: monthsResponse?.data?.invoiceMonths?.length || 0,
+        hasSummary: !!summaryResponse?.data,
+        hasCredits: !!creditsResponse?.data,
+        hasTrends: !!trendsResponse?.data
+      });
+    }
   } catch (error) {
+    console.error('❌ SERVER: Data fetch error:', error);
+    ssrError = error.message;
+  }
+  
+  // Error state
+  if (ssrError) {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
         <h2>Data Fetch Error</h2>
-        <p>{error.message}</p>
+        <p>Failed to load invoice data: {ssrError}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          style={{ 
+            padding: '10px 20px', 
+            backgroundColor: '#007bff', 
+            color: 'white', 
+            border: 'none', 
+            borderRadius: '4px',
+            cursor: 'pointer',
+            marginTop: '15px'
+          }}
+        >
+          Retry
+        </button>
       </div>
     );
   }
+  
+  return (
+    <div>
+      <div style={{
+        padding: '20px 40px',
+        borderBottom: '1px solid #e1e5e9',
+        backgroundColor: '#f8f9fa'
+      }}>
+        <h1 style={{ 
+          margin: '0', 
+          color: '#2c3e50',
+          fontSize: '28px',
+          fontWeight: '600'
+        }}>
+          Azure Invoice Dashboard
+        </h1>
+      </div>
+      <AzureInvoiceClientContent 
+        mode="ssr"
+        initialData={initialData}
+        userContext={userContext}
+        ssrPerformance={{
+          dataFetchTime: 0,
+          totalSSRTime: 0,
+          cacheStatus: 'FRESH_SSR',
+          cacheHitRatio: 0,
+          timestamp: new Date().toLocaleTimeString()
+        }}
+      />
+    </div>
+  );
 }

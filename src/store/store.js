@@ -24,7 +24,7 @@ import authSlice from './authSlice';
 import uiSlice from './uiSlice';
 import azureInvoiceSlice from './azureInvoiceSlice';
 import pageSlice from './pageSlice';
-import userSlice from './userSlice';
+import userSlice from '../lib/store/slices/userSlice';
 import gridSlice from './gridSlice';
 
 // Persist configuration for auth slice
