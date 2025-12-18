@@ -5,7 +5,8 @@ import {
   fetchInvoiceMonthsServer, 
   fetchSummaryDataServer, 
   fetchCreditsDataServer, 
-  fetchTrendsDataServer 
+  fetchTrendsDataServer,
+  fetchInvoiceDetailsServer
 } from './actions';
 
 /**
@@ -69,11 +70,18 @@ export default async function AzureInvoicePage() {
   try {
     // Fetch all data in parallel on the server
     const startTime = Date.now();
-    const [monthsResponse, summaryResponse, creditsResponse, trendsResponse] = await Promise.all([
-      fetchInvoiceMonthsServer(soldToId),
+    
+    // Get first month for invoice details (assuming monthsResponse has the data)
+    const monthsData = await fetchInvoiceMonthsServer(soldToId);
+    const firstMonth = monthsData?.data?.invoiceMonths?.[0]?.value || '202512'; // Default to current month
+    console.log('📅 SERVER: Using first month for invoice details:', firstMonth);
+    
+    const [monthsResponse, summaryResponse, creditsResponse, trendsResponse, invoiceDetailsResponse] = await Promise.all([
+      Promise.resolve(monthsData), // Already fetched above
       fetchSummaryDataServer(soldToId, null), // null = fetch for first month
       fetchCreditsDataServer(soldToId, null),
-      fetchTrendsDataServer(soldToId, null)
+      fetchTrendsDataServer(soldToId, null),
+      fetchInvoiceDetailsServer(soldToId, firstMonth)
     ]);
     
     const fetchTime = Date.now() - startTime;
@@ -88,7 +96,8 @@ export default async function AzureInvoicePage() {
         monthsResponse,
         summaryResponse,
         creditsResponse,
-        trendsResponse
+        trendsResponse,
+        invoiceDetailsResponse
       };
       
       console.log('✅ SERVER: Initial data prepared:', {
@@ -96,7 +105,9 @@ export default async function AzureInvoicePage() {
         monthsCount: monthsResponse?.data?.invoiceMonths?.length || 0,
         hasSummary: !!summaryResponse?.data,
         hasCredits: !!creditsResponse?.data,
-        hasTrends: !!trendsResponse?.data
+        hasTrends: !!trendsResponse?.data,
+        hasInvoiceDetails: !!invoiceDetailsResponse?.data,
+        invoiceDetailsCount: invoiceDetailsResponse?.data?.content?.length || invoiceDetailsResponse?.data?.length || 0
       });
     }
   } catch (error) {
@@ -130,20 +141,6 @@ export default async function AzureInvoicePage() {
   
   return (
     <div>
-      <div style={{
-        padding: '20px 40px',
-        borderBottom: '1px solid #e1e5e9',
-        backgroundColor: '#f8f9fa'
-      }}>
-        <h1 style={{ 
-          margin: '0', 
-          color: '#2c3e50',
-          fontSize: '28px',
-          fontWeight: '600'
-        }}>
-          Azure Invoice Dashboard
-        </h1>
-      </div>
       <AzureInvoiceClientContent 
         mode="ssr"
         initialData={initialData}

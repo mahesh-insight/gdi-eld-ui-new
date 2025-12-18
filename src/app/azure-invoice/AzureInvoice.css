@@ -1,0 +1,1053 @@
+/* Universal box-sizing and overflow prevention */
+* {
+  box-sizing: border-box;
+}
+
+/* Override o-grid to prevent overflow */
+.azure-invoice-charts-section.o-grid,
+.azure-invoice-charts-section .o-grid__item {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.azure-invoice-page {
+  background: #f5f5f5;
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.azure-invoice-container {
+  background: #f0eeed;
+  padding: 24px;
+  max-width: none !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+/* Ensure skeleton containers use full available space - UPDATED FOR FULL WIDTH */
+.azure-invoice-container .k-skeleton-container,
+.azure-invoice-container .k-skeleton {
+  width: 100% !important; /* Full width to match loaded content */
+  min-width: 100% !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
+}
+
+.azure-invoice-header {
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.azure-invoice-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e9ecef;
+  flex-wrap: wrap;
+  gap: 16px;
+  max-width: 100%;
+}
+
+.azure-invoice-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.azure-invoice-kpi-cards {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.azure-invoice-kpi-card {
+  text-align: right;
+  padding-right: 32px;
+  min-width: 0;
+  flex-shrink: 1;
+  white-space: nowrap;
+}
+
+.azure-invoice-kpi-card.invoice-total {
+  border-right: 2px solid #e74c3c;
+}
+
+.azure-invoice-kpi-card.monthly-difference {
+  border-right: 2px solid #27ae60;
+}
+
+.azure-invoice-kpi-card.invoice-credits {
+  border-right: 2px solid #3498db;
+}
+
+.azure-invoice-kpi-label {
+  font-size: 11px;
+  color: #7f8c8d;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.azure-invoice-kpi-value {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.azure-invoice-kpi-value.invoice-total {
+  color: #e74c3c;
+}
+
+.azure-invoice-kpi-value.invoice-total.zero {
+  color: #95a5a6;
+}
+
+.azure-invoice-kpi-value.monthly-difference {
+  color: #27ae60;
+}
+
+.azure-invoice-kpi-value.invoice-credits {
+  color: #3498db;
+}
+
+.azure-invoice-header-bottom {
+  display: flex;
+  align-items: flex-end;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.azure-invoice-month-selector {
+  min-width: 200px;
+  max-width: 100%;
+  flex-shrink: 1;
+}
+
+.azure-invoice-month-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.azure-invoice-month-dropdown {
+  min-width: 200px;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.azure-invoice-month-dropdown.disabled {
+  opacity: 0.6;
+}
+
+.azure-invoice-view-usage-link {
+  font-size: 13px;
+  color: #a11b4b;
+  text-decoration: none;
+  font-weight: 500;
+  padding-bottom: 10px;
+  white-space: nowrap;
+}
+
+.azure-invoice-charts-section {
+  margin-bottom: 32px;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.azure-invoice-chart-slide {
+  display: flex;
+  gap: 24px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.azure-invoice-chart-container {
+  flex: 1;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.azure-invoice-chart-box {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.azure-invoice-chart-title {
+  text-align: center;
+  font-weight: bold;
+  font-size: 14px;
+  color: #2c3e50;
+  margin-bottom: 20px;
+}
+
+.azure-invoice-filters-section {
+  margin-bottom: 24px;
+}
+
+.azure-invoice-filter-row {
+  display: flex;
+  gap: 20px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.azure-invoice-filter-group {
+  flex: 1;
+  min-width: 180px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.azure-invoice-filter-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.azure-invoice-apply-button {
+  padding: 10px 28px;
+  background: #0078d4;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 13px;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.azure-invoice-apply-button:hover {
+  background: #005a9e;
+}
+
+.azure-invoice-apply-button.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Filter Section */
+.azure-invoice-filter-section {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.azure-invoice-filter-dropdown {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Table Section */
+.azure-invoice-table {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.azure-invoice-table-header {
+  display: flex;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.azure-invoice-table-title {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 16px 20px;
+  flex: 1;
+  color: #2c3e50;
+}
+
+.azure-invoice-table-title:first-child {
+  border-right: 1px solid #e9ecef;
+}
+
+.azure-invoice-table-content {
+  padding: 20px;
+  overflow-x: auto;
+  box-sizing: border-box;
+}
+
+.azure-invoice-data-table {
+  width: 100%;
+  font-size: 13px;
+  border-collapse: collapse;
+  table-layout: auto;
+  max-width: 100%;
+}
+
+.azure-invoice-data-table thead {
+  background: #f8f9fa;
+}
+
+.azure-invoice-data-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #495057;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.azure-invoice-data-table td {
+  padding: 12px 16px;
+  color: #495057;
+}
+
+.azure-invoice-data-table tbody tr {
+  border-bottom: 1px solid #e9ecef;
+  transition: background 0.2s;
+}
+
+.azure-invoice-data-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.azure-invoice-table-id {
+  font-size: 12px;
+  color: #6c757d;
+  font-family: monospace;
+}
+
+.azure-invoice-table-empty {
+  padding: 40px;
+  text-align: center;
+  color: #95a5a6;
+}
+
+.azure-invoice-table-footer {
+  padding: 16px 20px;
+  font-size: 13px;
+  color: #6c757d;
+  border-top: 1px solid #e9ecef;
+  background: #f8f9fa;
+}
+
+/* Performance Info */
+.azure-invoice-performance {
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+  margin-top: 20px;
+}
+
+/* COMPREHENSIVE SKELETON WIDTH FIXES */
+/* Force all Azure Invoice skeleton elements to use full available width */
+.azure-invoice-page .k-skeleton-container,
+.azure-invoice-page .k-skeleton,
+.azure-invoice-page [class*="skeleton"] {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
+}
+
+/* Specific overrides for chart containers */
+.azure-invoice-chart-box .k-skeleton,
+.azure-invoice-chart-container .k-skeleton {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+}
+
+/* Override any restrictive width constraints from parent containers */
+.azure-invoice-charts-section,
+.azure-invoice-chart-slide,
+.azure-invoice-chart-slide-single {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+}
+
+/* Ensure o-grid doesn't constrain skeleton widths */
+.azure-invoice-charts-section.o-grid .k-skeleton,
+.azure-invoice-charts-section .o-grid__item .k-skeleton {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+}
+
+/* AGGRESSIVE SKELETON WIDTH ENFORCEMENT */
+/* Target all possible Kendo skeleton elements with maximum specificity */
+.azure-invoice-page .k-skeleton-shape-rectangle,
+.azure-invoice-page .k-skeleton-shape-text,
+.azure-invoice-page .k-skeleton-shape-circle,
+.azure-invoice-page .k-skeleton-item {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  flex: 1 1 100% !important;
+}
+
+/* Force container elements to not constrain their children */
+.azure-invoice-container,
+.azure-invoice-header,
+.azure-invoice-charts-section,
+.o-grid__item {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* Override any flex or grid constraints on skeleton parents */
+.azure-invoice-page .k-skeleton-container,
+.azure-invoice-page [class*="azure-invoice-skeleton"] {
+  flex: 1 1 100% !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+}
+
+/* Specific targeting for the main chart skeleton */
+.azure-invoice-charts-section .azure-invoice-skeleton-chart,
+.o-grid__item .azure-invoice-skeleton-chart {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  flex: 1 1 100% !important;
+  display: block !important;
+}
+
+/* Force all skeleton elements to inherit container width */
+.azure-invoice-page * .k-skeleton {
+  width: inherit !important;
+  min-width: inherit !important;
+  max-width: none !important;
+}
+
+/* CRITICAL: Ensure main chart skeleton matches exact content dimensions */
+.azure-invoice-charts-section .k-skeleton,
+.o-grid__item .k-skeleton,
+.azure-invoice-chart-slide .k-skeleton,
+.carousel-container .k-skeleton,
+.carousel-slide .k-skeleton {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* Override any restrictive container constraints on skeleton parents */
+.azure-invoice-charts-section,
+.azure-invoice-charts-section .o-grid,
+.azure-invoice-charts-section .o-grid__item,
+.azure-invoice-chart-slide,
+.carousel-container,
+.carousel-slide {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* FINAL OVERRIDE: Target the specific chart skeleton that shows as half-width */
+.azure-invoice-page .o-grid .o-grid__item .k-skeleton-shape-rectangle,
+.azure-invoice-charts-section .k-skeleton-shape-rectangle,
+.azure-invoice-page .azure-invoice-skeleton-chart {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* Ensure o-grid system doesn't apply any width constraints during skeleton loading */
+.azure-invoice-charts-section.o-grid {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+}
+
+.azure-invoice-charts-section.o-grid .o-grid__item.u-1\/1 {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  flex: none !important;
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+}
+
+/* Azure Invoice Tabs Styling */
+.azure-invoice-tabs-section {
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.azure-invoice-tabstrip {
+  width: 100%;
+}
+
+.azure-invoice-tabstrip .k-tabstrip-items {
+  border-bottom: 2px solid #e9ecef;
+  margin-bottom: 20px;
+}
+
+.azure-invoice-tabstrip .k-item {
+  padding: 12px 24px;
+  font-weight: 500;
+  color: #6c757d;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.azure-invoice-tabstrip .k-item.k-active {
+  color: #14a2b8;
+  border-bottom: 2px solid #14a2b8;
+  background: none;
+}
+
+.azure-invoice-tab-content {
+  min-height: 400px;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.azure-invoice-details-grid,
+.azure-invoice-differences-grid {
+  width: 100%;
+}
+
+.azure-invoice-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+
+.azure-invoice-data-table th,
+.azure-invoice-data-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e9ecef;
+  font-size: 14px;
+}
+
+.azure-invoice-data-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #495057;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.azure-invoice-data-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.azure-invoice-table-id {
+  font-family: monospace;
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.azure-invoice-table-empty {
+  text-align: center;
+  padding: 40px 12px;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.azure-invoice-table-footer {
+  margin-top: 16px;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #6c757d;
+  text-align: right;
+}
+
+/* Cost difference styling */
+.cost-difference.positive {
+  color: #28a745;
+  font-weight: 600;
+}
+
+.cost-difference.negative {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+/* Change type styling */
+.change-type.not-changed {
+  background-color: #6c757d;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.change-type.increased {
+  background-color: #dc3545;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.change-type.decreased {
+  background-color: #28a745;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.azure-invoice-skeleton-table {
+  width: 100%;
+  height: 300px;
+  margin-top: 16px;
+}
+
+/* Skeleton Container Constraints - ensure skeleton matches actual content width */
+.azure-invoice-charts-section .azure-invoice-skeleton-chart {
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+/* Ensure all skeleton elements inherit proper container constraints */
+.azure-invoice-page [class*="azure-invoice-skeleton"] {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Override Kendo Skeleton default constraints - ensure full width usage */
+.azure-invoice-page .k-skeleton,
+.azure-invoice-page .k-skeleton-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Force skeleton elements to fill their containers completely */
+.azure-invoice-page .k-skeleton-shape-rectangle,
+.azure-invoice-page .k-skeleton-shape-text {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+}
+
+/* Skeleton loaders should use same responsive behavior as content */
+.azure-invoice-skeleton-kpi,
+.azure-invoice-skeleton-kpi-large {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Ensure skeleton charts fill their containers completely */
+.azure-invoice-charts-section .k-skeleton,
+.azure-invoice-charts-section [class*="skeleton"] {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 100% !important;
+}
+
+/* Force carousel skeleton to use full width */
+.azure-invoice-charts-section .carousel-container .k-skeleton,
+.azure-invoice-charts-section .carousel-slide .k-skeleton {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+}
+
+.azure-invoice-skeleton-kpi {
+  text-align: right;
+  min-width: 120px;
+}
+
+.azure-invoice-skeleton-kpi-large {
+  text-align: right;
+  min-width: 140px;
+}
+
+.azure-invoice-skeleton-text-sm {
+  width: 80px;
+  height: 12px;
+  margin-bottom: 8px;
+  margin-left: auto;
+}
+
+.azure-invoice-skeleton-text-md {
+  width: 100px;
+  height: 28px;
+  margin-left: auto;
+}
+
+.azure-invoice-skeleton-text-lg {
+  width: 120px;
+  height: 12px;
+  margin-bottom: 8px;
+  margin-left: auto;
+}
+
+.azure-invoice-skeleton-text-xl {
+  width: 140px;
+  height: 28px;
+  margin-left: auto;
+}
+
+.azure-invoice-skeleton-label {
+  width: 100px;
+  height: 14px;
+  margin-bottom: 8px;
+}
+
+.azure-invoice-skeleton-dropdown {
+  width: 200px;
+  height: 38px;
+}
+
+.azure-invoice-skeleton-link {
+  width: 120px;
+  height: 14px;
+}
+
+.azure-invoice-skeleton-chart {
+  width: 100% !important;
+  height: auto;
+  min-height: 500px;
+  margin-top: 10px;
+  max-width: 100%;
+  box-sizing: border-box;
+  display: block;
+  min-width: 100% !important;
+}
+
+.azure-invoice-skeleton-chart-content {
+  width: 100% !important;
+  height: 400px;
+  margin-top: 10px;
+  max-width: 100%;
+  min-width: 100% !important;
+  box-sizing: border-box;
+}
+
+.azure-invoice-skeleton-table-chart {
+  width: 100%;
+  height: 400px;
+  margin-top: 10px;
+}
+
+.azure-invoice-skeleton-filter-label {
+  width: 120px;
+  height: 14px;
+  margin-bottom: 8px;
+}
+
+.azure-invoice-skeleton-filter-label-sm {
+  width: 100px;
+  height: 14px;
+  margin-bottom: 8px;
+}
+
+.azure-invoice-skeleton-filter-label-xs {
+  width: 80px;
+  height: 14px;
+  margin-bottom: 8px;
+}
+
+.azure-invoice-skeleton-filter-dropdown {
+  width: 100% !important;
+  min-width: 100% !important;
+  height: 38px;
+  max-width: none !important;
+}
+
+.azure-invoice-skeleton-filter-button {
+  width: 140px;
+  height: 38px;
+}
+/* Responsive Design - Media Queries */
+
+/* Large screens - reduce padding slightly */
+@media (max-width: 1400px) {
+  .azure-invoice-container {
+    padding: 20px;
+  }
+  
+  .azure-invoice-kpi-cards {
+    gap: 24px;
+  }
+  
+  .azure-invoice-kpi-card {
+    padding-right: 24px;
+  }
+}
+
+/* Tablets and smaller desktops */
+@media (max-width: 1200px) {
+  .azure-invoice-container {
+    padding: 16px;
+  }
+  
+  .azure-invoice-header {
+    padding: 16px;
+  }
+  
+  .azure-invoice-kpi-cards {
+    gap: 12px;
+  }
+  
+  .azure-invoice-kpi-card {
+    padding-right: 12px;
+    min-width: 0;
+  }
+  
+  .azure-invoice-kpi-value {
+    font-size: 20px;
+  }
+  
+  .azure-invoice-chart-slide {
+    flex-direction: column;
+  }
+}
+
+/* Tablets */
+@media (max-width: 992px) {
+  .azure-invoice-container {
+    padding: 16px;
+  }
+  
+  .azure-invoice-header {
+    padding: 16px;
+  }
+  
+  .azure-invoice-header-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .azure-invoice-title {
+    font-size: 18px;
+    width: 100%;
+  }
+  
+  .azure-invoice-kpi-cards {
+    width: 100%;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  
+  .azure-invoice-kpi-card {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 45%;
+    padding-right: 12px;
+  }
+  
+  .azure-invoice-kpi-label {
+    font-size: 10px;
+  }
+  
+  .azure-invoice-kpi-value {
+    font-size: 18px;
+  }
+  
+  .azure-invoice-filter-row {
+    gap: 12px;
+  }
+  
+  .azure-invoice-filter-group {
+    min-width: 0;
+    flex: 1 1 calc(50% - 6px);
+  }
+}
+
+/* Mobile landscape and small tablets */
+@media (max-width: 768px) {
+  .azure-invoice-container {
+    padding: 12px;
+  }
+  
+  .azure-invoice-header {
+    padding: 12px;
+  }
+  
+  .azure-invoice-header-top {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+  }
+  
+  .azure-invoice-title {
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+  
+  .azure-invoice-kpi-cards {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .azure-invoice-kpi-card {
+    border-right: none !important;
+    border-bottom: 2px solid;
+    padding-right: 0;
+    padding-bottom: 12px;
+    text-align: left;
+    min-width: 0;
+    max-width: 100%;
+  }
+  
+  .azure-invoice-kpi-card.invoice-total {
+    border-bottom-color: #e74c3c;
+  }
+  
+  .azure-invoice-kpi-card.monthly-difference {
+    border-bottom-color: #27ae60;
+  }
+  
+  .azure-invoice-kpi-card.invoice-credits {
+    border-bottom-color: #3498db;
+  }
+  
+  .azure-invoice-kpi-card:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  
+  .azure-invoice-header-bottom {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .azure-invoice-month-selector {
+    min-width: 100%;
+  }
+  
+  .azure-invoice-month-dropdown {
+    min-width: 100%;
+  }
+  
+  .azure-invoice-view-usage-link {
+    padding-bottom: 0;
+    text-align: center;
+    display: block;
+  }
+  
+  .azure-invoice-chart-slide {
+    gap: 16px;
+  }
+  
+  .azure-invoice-chart-box {
+    padding: 12px;
+  }
+  
+  .azure-invoice-filter-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .azure-invoice-filter-group {
+    min-width: 100%;
+  }
+  
+  .azure-invoice-apply-button {
+    width: 100%;
+    padding: 12px 24px;
+  }
+  
+  .azure-invoice-table {
+    overflow-x: auto;
+    display: block;
+  }
+  
+  .azure-invoice-data-table {
+    min-width: 800px;
+  }
+}
+
+/* Mobile portrait */
+@media (max-width: 576px) {
+  .azure-invoice-container {
+    padding: 8px;
+  }
+  
+  .azure-invoice-header {
+    padding: 10px;
+    margin-bottom: 12px;
+  }
+  
+  .azure-invoice-title {
+    font-size: 14px;
+  }
+  
+  .azure-invoice-kpi-label {
+    font-size: 10px;
+  }
+  
+  .azure-invoice-kpi-value {
+    font-size: 18px;
+  }
+  
+  .azure-invoice-month-label {
+    font-size: 12px;
+  }
+  
+  .azure-invoice-chart-box {
+    padding: 10px;
+  }
+  
+  .azure-invoice-charts-section {
+    margin-bottom: 16px;
+  }
+  
+  .azure-invoice-skeleton-kpi,
+  .azure-invoice-skeleton-kpi-large {
+    min-width: 100%;
+    text-align: left;
+  }
+  
+  .azure-invoice-skeleton-text-sm,
+  .azure-invoice-skeleton-text-md,
+  .azure-invoice-skeleton-text-lg,
+  .azure-invoice-skeleton-text-xl {
+    margin-left: 0;
+  }
+}

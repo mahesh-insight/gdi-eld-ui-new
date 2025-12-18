@@ -101,10 +101,43 @@ const Header = () => {
   const [indicatorStyle, setIndicatorStyle] = useState({});
   const { user, logout, isAuthenticated, loginResponse } = useAuth();
   const router = useRouter();
-  const {username, firstName, lastName, persona, userProfile} = loginResponse || {};
-  const {defaultContext} = userProfile || {};
-  const soldTo = defaultContext?.[0]?.soldTo || '';
-  const soldToName = defaultContext?.[0]?.soldToName || '';
+  
+  // Get all data from Redux loginResponse - this persists until logout
+  const displayFirstName = loginResponse?.firstName || 'User';
+  const displayLastName = loginResponse?.lastName || '';
+  const displayUsername = loginResponse?.username || '';
+  const displayPersona = loginResponse?.persona || '';
+  
+  // Extract account info from userProfile.defaultContext[0] as per login response structure
+  const defaultContext = loginResponse?.userProfile?.defaultContext?.[0];
+  const soldTo = defaultContext?.soldTo || '';
+  const companyName = defaultContext?.soldToName || displayFirstName;
+  
+  console.log('🔍 Header: Redux data check:', {
+    isAuthenticated,
+    hasLoginResponse: !!loginResponse,
+    loginResponseKeys: loginResponse ? Object.keys(loginResponse) : [],
+    hasDefaultContext: !!defaultContext,
+    defaultContextData: defaultContext,
+    displayFirstName,
+    companyName,
+    soldTo,
+    dataSource: 'Redux loginResponse.userProfile.defaultContext[0] (persists until logout)'
+  });
+  
+// Validate Redux data availability
+  if (isAuthenticated && !loginResponse) {
+    console.warn('⚠️ Header: Authenticated but no loginResponse in Redux - may need to re-login');
+  }
+  
+  if (isAuthenticated && loginResponse) {
+    console.log('✅ Header: All data from Redux loginResponse (persists until logout):', {
+      userDisplay: `${displayLastName ? displayLastName + ', ' : ''}${displayFirstName}`,
+      accountDisplay: `${companyName} - ${soldTo || 'N/A'}`,
+      dataIntegrity: 'Redux store → persists across sessions'
+    });
+  }
+  
   const headerRef = useRef(null);
   const navLinkRefs = useRef([]);
   
@@ -324,7 +357,7 @@ const Header = () => {
               >
                 <UserAcccountIcon className="svg-style" />
                 <span>
-                  &nbsp;&nbsp;{soldToName} - {soldTo}
+                  &nbsp;&nbsp;{companyName} - {soldTo || 'N/A'}
                 </span>
               </button>
               {isAccountMenuOpen &&
@@ -349,7 +382,7 @@ const Header = () => {
                 >
                   <GearIcon className="svg-style" />
                   <span>
-                    &nbsp;&nbsp;{lastName}, {firstName}
+                    &nbsp;&nbsp;{displayLastName ? `${displayLastName}, ` : ''}{displayFirstName}
                   </span>
               </button>
               {isAccountSettingsOpen &&

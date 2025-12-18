@@ -624,3 +624,206 @@ export async function fetchUiPropertiesServer() {
     };
   }
 }
+
+/**
+ * Fetch invoice details for a specific month
+ */
+export async function fetchInvoiceDetailsServer(clientSoldToId = null, monthValue = null) {
+  try {
+    console.log('🚀 Server Action: Fetching Invoice Details for month:', monthValue);
+    const cookieStore = await cookies();
+    
+    const accessTokenCookie = cookieStore.get('access_token');
+    const userContextCookie = cookieStore.get('user_context');
+    
+    let soldToId = clientSoldToId;
+    let accessToken = null;
+    
+    if (accessTokenCookie) {
+      accessToken = accessTokenCookie.value;
+    }
+    
+    if (userContextCookie) {
+      try {
+        const userContext = JSON.parse(userContextCookie.value);
+        soldToId = userContext.soldToId || clientSoldToId;
+      } catch (parseError) {
+        console.error('❌ Failed to parse user context cookie:', parseError);
+      }
+    }
+    
+    if (!soldToId || !accessToken || !monthValue) {
+      return { error: 'Missing required parameters for invoice details', data: null };
+    }
+    
+    // Call the invoice month detail API
+    const cacheKey = `azure-invoice-details:${soldToId}:${monthValue}`;
+    const data = await getOrSetCached(
+      cacheKey,
+      async () => {
+        console.log('📥 Cache MISS - fetching invoice details from API');
+        // Import azureInvoiceApi here to avoid circular dependencies
+        const { callAzureInvoiceAPI } = await import('../../lib/azureInvoiceApi');
+        
+        // Format month value for API (202512 format)
+        const formattedMonth = monthValue.replace('-', '');
+        const apiUrl = `/ccr-invoice-service/month/${formattedMonth}?page=0&size=20`;
+        
+        console.log('🌐 Calling invoice details API:', apiUrl);
+        console.log('🔍 Server parameters:', {
+          soldToId: soldToId,
+          soldToIdType: typeof soldToId,
+          soldToIdIsArray: Array.isArray(soldToId),
+          monthValue: monthValue,
+          formattedMonth: formattedMonth,
+          accessToken: !!accessToken
+        });
+        
+        // Ensure soldToId is always an array and contains valid data
+        const soldToArray = Array.isArray(soldToId) ? soldToId : [soldToId];
+        console.log('🔍 Processed soldToArray:', soldToArray);
+        
+        const apiPayload = {
+          payload: soldToArray,
+          urlParam: `${formattedMonth}?page=0&size=20`
+        };
+        
+        console.log('🔍 Final API Payload for invoiceMonthDetail:', apiPayload);
+        console.log('🔍 About to call callAzureInvoiceAPI with:', {
+          serviceName: 'invoiceMonthDetail',
+          payload: apiPayload,
+          hasAccessToken: !!accessToken
+        });
+        
+        // Call the actual API
+        const response = await callAzureInvoiceAPI('invoiceMonthDetail', apiPayload, accessToken);
+        
+        console.log('🔍 Raw API Response from callAzureInvoiceAPI:', response);
+        console.log('🔍 Response type:', typeof response);
+        console.log('🔍 Response keys:', response ? Object.keys(response) : 'no response');
+        
+        return response || {
+          content: [],
+          pageNumber: 0,
+          pageSize: 20,
+          totalElements: 0,
+          totalPages: 1
+        };
+      },
+      5 * 60 * 1000 // 5 minutes cache
+    );
+    
+    console.log('✅ Invoice details served from cache:', data._fromCache ? 'HIT' : 'MISS');
+    return { 
+      error: null, 
+      data 
+    };
+  } catch (error) {
+    console.error('❌ fetchInvoiceDetailsServer error:', error);
+    return { 
+      error: error?.message || 'Failed to fetch invoice details', 
+      data: null 
+    };
+  }
+}
+
+/**
+ * Fetch monthly difference data
+ */
+export async function fetchMonthlyDifferenceServer(clientSoldToId = null, currentMonth = null, previousMonth = null) {
+  try {
+    console.log('🚀 Server Action: Fetching Monthly Difference:', currentMonth, 'vs', previousMonth);
+    const cookieStore = await cookies();
+    
+    const accessTokenCookie = cookieStore.get('access_token');
+    const userContextCookie = cookieStore.get('user_context');
+    
+    let soldToId = clientSoldToId;
+    let accessToken = null;
+    
+    if (accessTokenCookie) {
+      accessToken = accessTokenCookie.value;
+    }
+    
+    if (userContextCookie) {
+      try {
+        const userContext = JSON.parse(userContextCookie.value);
+        soldToId = userContext.soldToId || clientSoldToId;
+      } catch (parseError) {
+        console.error('❌ Failed to parse user context cookie:', parseError);
+      }
+    }
+    
+    if (!soldToId || !accessToken || !currentMonth || !previousMonth) {
+      return { error: 'Missing required parameters for monthly difference', data: null };
+    }
+    
+    // Call the monthly difference API
+    const cacheKey = `azure-monthly-difference:${soldToId}:${currentMonth}:${previousMonth}`;
+    const data = await getOrSetCached(
+      cacheKey,
+      async () => {
+        console.log('📥 Cache MISS - fetching monthly difference from API');
+        // Import azureInvoiceApi here to avoid circular dependencies
+        const { callAzureInvoiceAPI } = await import('../../lib/azureInvoiceApi');
+        
+        const apiUrl = `/ccr-invoice-service/month/sku-difference/${previousMonth}/${currentMonth}?page=0&size=20`;
+        
+        console.log('🌐 Calling monthly difference API:', apiUrl);
+        console.log('🔍 Server parameters:', {
+          soldToId: soldToId,
+          soldToIdType: typeof soldToId,
+          soldToIdIsArray: Array.isArray(soldToId),
+          currentMonth: currentMonth,
+          previousMonth: previousMonth,
+          accessToken: !!accessToken
+        });
+        
+        // Ensure soldToId is always an array and contains valid data
+        const soldToArray = Array.isArray(soldToId) ? soldToId : [soldToId];
+        console.log('🔍 Processed soldToArray:', soldToArray);
+        
+        const apiPayload = {
+          payload: soldToArray,
+          urlParam: `${previousMonth}/${currentMonth}?page=0&size=20`
+        };
+        
+        console.log('🔍 Final API Payload for monthlyDifferenceDetail:', apiPayload);
+        console.log('🔍 Expected full URL: /ccr-invoice-service/month/sku-difference/' + previousMonth + '/' + currentMonth + '?page=0&size=20');
+        console.log('🔍 About to call callAzureInvoiceAPI with:', {
+          serviceName: 'invoiceMonthlyDifferenceDetail',
+          payload: apiPayload,
+          hasAccessToken: !!accessToken
+        });
+        
+        // Call the actual API
+        const response = await callAzureInvoiceAPI('invoiceMonthlyDifferenceDetail', apiPayload, accessToken);
+        
+        console.log('🔍 Raw API Response from callAzureInvoiceAPI:', response);
+        console.log('🔍 Response type:', typeof response);
+        console.log('🔍 Response keys:', response ? Object.keys(response) : 'no response');
+        
+        return response || {
+          content: [],
+          pageNumber: 0,
+          pageSize: 20,
+          totalElements: 0,
+          totalPages: 1
+        };
+      },
+      5 * 60 * 1000 // 5 minutes cache
+    );
+    
+    console.log('✅ Monthly difference served from cache:', data._fromCache ? 'HIT' : 'MISS');
+    return { 
+      error: null, 
+      data 
+    };
+  } catch (error) {
+    console.error('❌ fetchMonthlyDifferenceServer error:', error);
+    return { 
+      error: error?.message || 'Failed to fetch monthly difference', 
+      data: null 
+    };
+  }
+}

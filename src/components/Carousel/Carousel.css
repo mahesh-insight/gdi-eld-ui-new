@@ -1,0 +1,62 @@
+.c-carousel {
+  position: relative;
+  width: 100%;
+}
+
+.c-carousel__viewport {
+  overflow: hidden;
+  width: 100%;
+}
+
+.c-carousel__slides {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  transition: transform 0.3s ease-in-out;
+  width: 100%;
+}
+
+.c-carousel__slide {
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.c-carousel__slide.is-invisible {
+  visibility: hidden;
+}
+
+.c-carousel__indicators {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.c-carousel__indicators ol {
+  display: flex;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.c-carousel__indicators li {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #d3d3d3;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.c-carousel__indicators li.c-carousel__indicator-active {
+  background-color: #14a2b8;
+}
+
+.o-list-inline {
+  list-style: none;
+}
+
+.u-transition-none {
+  transition: none !important;
+}

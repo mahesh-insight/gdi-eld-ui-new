@@ -1,11 +1,18 @@
 // src/app/azure-invoice/AzureInvoiceClientContent.jsx
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { DropDownList } from '@progress/kendo-react-dropdowns';
-import { Chart, ChartArea, ChartSeries, ChartSeriesItem, ChartCategoryAxis, ChartCategoryAxisItem, ChartValueAxis, ChartValueAxisItem, ChartLegend } from '@progress/kendo-react-charts';
+import { Chart } from '@progress/kendo-react-charts';
 import { Skeleton } from '@progress/kendo-react-indicators';
+import { TabStrip, TabStripTab } from '@progress/kendo-react-layout';
+import Carousel from '@/components/Carousel/Carousel';
+import { BasicGroupedChart } from '@/common/Charts/BasicGroupedChart';
+import { BasicPieDoughnutChart } from '@/common/Charts/BasicPieDoughnutChart';
+import ChartTitleAndButtons from '@/components/ChartTitleAndButtons';
+import useRefreshChartType from '@/common/Charts/useRefreshChartType';
+import './AzureInvoice.css';
 // Remove server action imports since we'll use client-side API calls
 
 export default function AzureInvoiceClientContent(props) {
@@ -27,6 +34,9 @@ export default function AzureInvoiceClientContent(props) {
   const extractedTrendsData = mode === 'ssr' && initialData
     ? (initialData.trendsResponse?.data || initialData.trends)
     : null;
+  const extractedInvoiceDetailsData = mode === 'ssr' && initialData
+    ? (initialData.invoiceDetailsResponse?.data?.content || initialData.invoiceDetails?.content || initialData.invoiceDetails || [])
+    : [];
   
   console.log('📦 Extracted SSR data:', {
     mode,
@@ -34,7 +44,9 @@ export default function AzureInvoiceClientContent(props) {
     monthsCount: extractedMonthsData?.length || 0,
     hasSummary: !!extractedSummaryData,
     hasCredits: !!extractedCreditsData,
-    hasTrends: !!extractedTrendsData
+    hasTrends: !!extractedTrendsData,
+    hasInvoiceDetails: !!extractedInvoiceDetailsData?.length,
+    invoiceDetailsCount: extractedInvoiceDetailsData?.length || 0
   });
   
   // Extract data from props - use correct SSR data structure
@@ -50,6 +62,66 @@ export default function AzureInvoiceClientContent(props) {
     productName: { label: 'All', value: 'All' },
     skuName: { label: 'All', value: 'All' }
   });
+  
+  // Chart type states
+  const [trendingChartType, setTrendingChartType] = useState('column');
+  const [topNExpensiveProductsChartType, setTopNExpensiveProductsChartType] = useState('bar');
+  const [chartTypeLoading, setChartTypeLoading] = useState(false);
+  const [topNExpensiveProductsChartTypeLoading, setTopNExpensiveProductsChartTypeLoading] = useState(false);
+  
+  // Tab-related states
+  const [selectedTabIndex, setSelectedTabIndex] = useState(0);
+  const tabsRef = useRef(null);
+  const [invoiceDetailsData, setInvoiceDetailsData] = useState(extractedInvoiceDetailsData || []);
+  
+  // Debug: Log invoice details data whenever it changes
+  useEffect(() => {
+    console.log('🗜 Invoice Details Data State Changed:', {
+      length: invoiceDetailsData.length,
+      data: invoiceDetailsData,
+      isArray: Array.isArray(invoiceDetailsData)
+    });
+  }, [invoiceDetailsData]);
+  const [monthlyDifferenceData, setMonthlyDifferenceData] = useState([]);
+  
+  const handleChartRefresh = useRefreshChartType();
+  
+  // Chart options with correct format for ChartTitleAndButtons
+  const columnLineAreaOptions = [
+    {
+      type: 'column',
+      icon: 'chartColumnStackedIcon',
+      title: 'Column chart'
+    },
+    {
+      type: 'line',
+      icon: 'chartLineStackedIcon',
+      title: 'Line chart'
+    },
+    {
+      type: 'area',
+      icon: 'chartAreaStackedIcon',
+      title: 'Area chart'
+    }
+  ];
+  
+  const barPieDoughnutOptions = [
+    {
+      type: 'bar',
+      icon: 'chartBarStackedIcon',
+      title: 'Bar chart'
+    },
+    {
+      type: 'pie',
+      icon: 'chartPieIcon',
+      title: 'Pie chart'
+    },
+    {
+      type: 'donut',
+      icon: 'chartDoughnutIcon',
+      title: 'Doughnut chart'
+    }
+  ];
   
   // State for dynamic data that changes with month - use correct SSR data structure
   const [currentSummaryData, setCurrentSummaryData] = useState(extractedSummaryData);
@@ -270,6 +342,19 @@ export default function AzureInvoiceClientContent(props) {
       // Real filtering logic would go here when table is implemented
     }
   };
+  
+  // Chart type change handlers
+  const handleChartTypeChange = useCallback(async (newType) => {
+    setChartTypeLoading(true);
+    setTrendingChartType(newType);
+    setTimeout(() => setChartTypeLoading(false), 300);
+  }, []);
+  
+  const handleTopNExpensiveProductsChartTypeChange = useCallback(async (newType) => {
+    setTopNExpensiveProductsChartTypeLoading(true);
+    setTopNExpensiveProductsChartType(newType);
+    setTimeout(() => setTopNExpensiveProductsChartTypeLoading(false), 300);
+  }, []);
 
   // Calculate summary values using useMemo to ensure they update when state changes
   const invoiceTotal = useMemo(() => {
@@ -315,22 +400,28 @@ export default function AzureInvoiceClientContent(props) {
 
   // Extract spend breakdown using useMemo
   const spendBreakdown = useMemo(() => {
-    const data = currentSummaryData?.spendPeriod?.spend || [];
+    // Use direct spend array from API response
+    const data = currentSummaryData?.spend || currentSummaryData?.spendPeriod?.spend || [];
     console.log('📊 Spend Breakdown calculated:', data);
     return data;
   }, [currentSummaryData]);
   
-  // Prepare data for Kendo charts using useMemo
-  const chartData = useMemo(() => {
-    const data = spendBreakdown.map(item => ({
-      category: item.label,
+  // Prepare data for BasicGroupedChart format (Invoice Breakdown)
+  const invoiceBreakdownData = useMemo(() => {
+    // Use direct spend array from API response
+    const spendData = currentSummaryData?.spend || currentSummaryData?.spendPeriod?.spend || [];
+    const data = spendData.map(item => ({
+      group: item.label,
+      label: item.label,
       value: item.value
     }));
-    console.log('📈 Chart Data calculated:', data);
+    console.log('📈 Invoice Breakdown Data (source):', spendData);
+    console.log('📈 Invoice Breakdown Data (transformed):', data);
     return data;
-  }, [spendBreakdown]);
+  }, [currentSummaryData]);
 
-  const trendsChartData = useMemo(() => {
+  // Prepare data for Trending Monthly Spend (BasicGroupedChart format)
+  const invoiceTrendData = useMemo(() => {
     console.log('🔍 Full currentTrendsData structure:', currentTrendsData);
     
     let periodsData = [];
@@ -342,16 +433,88 @@ export default function AzureInvoiceClientContent(props) {
       periodsData = currentTrendsData;
     }
     
-    const data = periodsData?.slice(-6).map(period => ({
-      category: new Date(period.period).toLocaleDateString('en', { month: 'short', year: '2-digit' }),
-      value: period.totalSpend,
-      azure: period.totalSpend * 0.6, // Approximate breakdown
-      marketplace: period.totalSpend * 0.35,
-      private: period.totalSpend * 0.05
-    })) || [];
-    console.log('📊 Trends Chart Data calculated:', data);
+    const last6Months = periodsData?.slice(-6) || [];
+    const data = [];
+    
+    last6Months.forEach(period => {
+      const monthLabel = new Date(period.period).toLocaleDateString('en', { month: 'short', year: 'numeric' });
+      // Azure Usage
+      data.push({
+        group: monthLabel,
+        label: 'Azure Usage',
+        value: period.totalSpend * 0.6
+      });
+      // Marketplace
+      data.push({
+        group: monthLabel,
+        label: 'Marketplace',
+        value: period.totalSpend * 0.35
+      });
+      // Private Marketplace
+      data.push({
+        group: monthLabel,
+        label: 'Private Marketplace',
+        value: period.totalSpend * 0.05
+      });
+    });
+    
+    console.log('📊 Invoice Trend Data calculated:', data);
     return data;
   }, [currentTrendsData]);
+  
+  // Top N Expensive Products data
+  const topNExpensiveProducts = useMemo(() => {
+    // FIXED: Use topNExpensiveProducts.spend for product-level data
+    console.log('🔍 DEBUGGING Top N Expensive Products Data Sources:');
+    console.log('🔍 Full currentSummaryData object:', currentSummaryData);
+    console.log('🔍 currentSummaryData?.topNExpensiveProducts:', currentSummaryData?.topNExpensiveProducts);
+    console.log('🔍 currentSummaryData?.topNExpensiveProducts?.spend:', currentSummaryData?.topNExpensiveProducts?.spend);
+    
+    // Use topNExpensiveProducts.spend for product-level data (FortiWeb, Veeam, etc.)
+    const spendData = currentSummaryData?.topNExpensiveProducts?.spend || [];
+    
+    console.log('🔍 Selected spendData source (topNExpensiveProducts):', spendData);
+    console.log('🔍 Is spendData an array?', Array.isArray(spendData));
+    console.log('🔍 SpendData length:', spendData?.length || 0);
+    
+    // If no data or empty array, create debug info
+    if (!spendData || spendData.length === 0) {
+      console.log('❌ NO TOP N EXPENSIVE PRODUCTS DATA FOUND! Check API response structure.');
+      console.log('🔍 Available properties in currentSummaryData:', currentSummaryData ? Object.keys(currentSummaryData) : 'null');
+      return [];
+    }
+    
+    const products = spendData
+      .map(item => ({
+        group: item.label,
+        label: item.label,
+        value: item.value
+      }));
+      
+    console.log('💰 Top N Expensive Products (source data):', spendData);
+    console.log('💰 Top N Expensive Products (transformed):', products);
+    console.log('💰 Total products count:', products.length);
+    return products;
+  }, [currentSummaryData]);
+  
+  // Pie chart data for Top Expensive Products
+  const pieChartData = useMemo(() => {
+    // FIXED: Use topNExpensiveProducts.spend for product-level data
+    const spendData = currentSummaryData?.topNExpensiveProducts?.spend || [];
+    
+    console.log('🥧 PIE CHART DEBUGGING:');
+    console.log('🥧 spendData source (topNExpensiveProducts):', spendData);
+    console.log('🥧 spendData length:', spendData?.length || 0);
+    
+    const data = spendData
+      .map(item => ({
+        category: item.label,
+        value: item.value
+      }));
+    console.log('🥧 Pie Chart Data (final):', data);
+    console.log('🥧 Total pie chart items:', data.length);
+    return data;
+  }, [currentSummaryData]);
   
   // Extract select list options
   const selectLists = currentSummaryData?.selectLists || [];
@@ -363,377 +526,620 @@ export default function AzureInvoiceClientContent(props) {
   // Extract real invoice data from API response
   const invoiceDetails = currentSummaryData?.invoiceDetails || [];
 
+  // Handle tab selection and load data immediately
+  const handleTabSelect = (e) => {
+    const tabIndex = e.selected;
+    console.log('🎯 User clicked tab:', tabIndex);
+    setSelectedTabIndex(tabIndex);
+    
+    // Load data immediately when tab is clicked
+    if (selectedMonth?.value) {
+      if (tabIndex === 0) {
+        console.log('🔄 Loading Invoice Details data');
+        loadInvoiceDetails(selectedMonth.value);
+      } else if (tabIndex === 1) {
+        console.log('🔄 Loading Monthly Differences data');
+        loadMonthlyDifference(selectedMonth.value);
+      }
+    } else {
+      console.warn('⚠️ No selected month available for data loading');
+    }
+  };
+
+  const loadInvoiceDetails = async (monthValue) => {
+    console.log('🔍 Loading invoice details for month:', monthValue);
+    console.log('🚨 API CALL STARTING - Invoice Details');
+    try {
+      const soldToIdValue = soldToId || userContext?.soldToId;
+      console.log('🔍 SoldToId values:', { soldToId, userContextSoldToId: userContext?.soldToId, final: soldToIdValue });
+      // Format month for API (2025-12 -> 202512)
+      const formattedMonth = monthValue.replace('-', '');
+      console.log('📅 Formatted month for API:', formattedMonth);
+      console.log('🔍 Full request payload:', {
+        action: 'invoiceDetails',
+        month: formattedMonth,
+        soldToId: soldToIdValue ? [soldToIdValue] : undefined
+      });
+      
+      // Get access token for authorization
+      const accessToken = localStorage.getItem('access_token');
+      console.log('🔐 Access token available:', !!accessToken);
+      
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`;
+        console.log('✅ Authorization header added to request');
+      } else {
+        console.warn('⚠️ No access token found for API request');
+      }
+      
+      // Use the proper Next.js API route instead of direct backend call
+      const apiUrl = '/api/azure-invoice';
+      console.log('🌐 API URL:', apiUrl);
+      console.log('📦 Request headers:', headers);
+      console.log('🔐 Access token (first 20 chars):', accessToken ? accessToken.substring(0, 20) + '...' : 'null');
+      
+      const requestBody = { 
+        action: 'invoiceDetails',
+        month: formattedMonth,
+        soldToId: soldToIdValue ? [soldToIdValue] : undefined
+      };
+      console.log('📦 Request body:', requestBody);
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: headers,
+        credentials: 'include',
+        body: JSON.stringify(requestBody)
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('🔍 FULL API RESPONSE for invoice details:', result);
+        console.log('🔍 Response type:', typeof result);
+        console.log('🔍 Response keys:', Object.keys(result || {}));
+        
+        // Check different possible response structures
+        console.log('🔍 Checking response structures:');
+        console.log('🔍 result.data:', result.data);
+        console.log('🔍 result.data?.content:', result.data?.content);
+        console.log('🔍 result.content:', result.content);
+        console.log('🔍 Direct result as array:', Array.isArray(result) ? result : 'not array');
+        
+        // Try different response structures
+        let contentData = [];
+        if (result.data?.content) {
+          contentData = result.data.content;
+          console.log('✅ Using result.data.content:', contentData.length, 'items');
+        } else if (result.content) {
+          contentData = result.content;
+          console.log('✅ Using result.content:', contentData.length, 'items');
+        } else if (Array.isArray(result)) {
+          contentData = result;
+          console.log('✅ Using result directly as array:', contentData.length, 'items');
+        } else {
+          console.log('⚠️ No recognizable data structure found');
+        }
+        
+        console.log('🗜 Setting invoice details data:', contentData);
+        setInvoiceDetailsData(contentData);
+        console.log('✅ Invoice details loaded - content length:', contentData.length);
+      } else {
+        console.error('❌ API response not ok:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('❌ Error response:', errorText);
+      }
+    } catch (error) {
+      console.error('❌ Error loading invoice details:', error);
+    }
+  };
+
+  const loadMonthlyDifference = async (monthValue) => {
+    console.log('🔍 Loading monthly difference for month:', monthValue);
+    try {
+      const soldToIdValue = soldToId || userContext?.soldToId;
+      console.log('🔍 SoldToId values:', { soldToId, userContextSoldToId: userContext?.soldToId, final: soldToIdValue });
+      // Calculate previous month for comparison
+      // Handle both formats: 2025-12 and 202512
+      if (!monthValue) {
+        console.error('❌ No monthValue provided');
+        return;
+      }
+      
+      let year, month;
+      
+      if (monthValue.includes('-')) {
+        // Format: 2025-12
+        [year, month] = monthValue.split('-');
+        console.log('📅 Split monthValue (YYYY-MM format):', { year, month, original: monthValue });
+      } else if (monthValue.length === 6) {
+        // Format: 202512
+        year = monthValue.substring(0, 4);
+        month = monthValue.substring(4, 6);
+        console.log('📅 Split monthValue (YYYYMM format):', { year, month, original: monthValue });
+      } else {
+        console.error('❌ Invalid monthValue format:', monthValue, 'Expected YYYY-MM or YYYYMM');
+        return;
+      }
+      
+      // Ensure month is properly formatted (pad with zero if needed)
+      const currentMonthStr = year + (month.length === 1 ? '0' + month : month);
+      
+      // Calculate previous month
+      let prevYear = parseInt(year);
+      let prevMonth = parseInt(month) - 1;
+      if (prevMonth < 1) {
+        prevMonth = 12;
+        prevYear -= 1;
+      }
+      const prevMonthStr = prevYear.toString() + (prevMonth < 10 ? '0' + prevMonth : prevMonth.toString());
+      
+      console.log('📅 Month calculation details:', {
+        originalMonth: monthValue,
+        currentMonthStr,
+        prevMonthStr,
+        yearNum: parseInt(year),
+        monthNum: parseInt(month),
+        prevYearNum: prevYear,
+        prevMonthNum: prevMonth
+      });
+      
+      console.log('🔍 Full request payload:', {
+        action: 'monthlyDifference',
+        currentMonth: currentMonthStr,
+        previousMonth: prevMonthStr,
+        soldToId: soldToIdValue ? [soldToIdValue] : undefined
+      });
+      
+      // Get access token for authorization
+      const accessToken = localStorage.getItem('access_token');
+      console.log('🔐 Access token available:', !!accessToken);
+      console.log('🔐 Access token (first 20 chars):', accessToken ? accessToken.substring(0, 20) + '...' : 'null');
+      
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`;
+        console.log('✅ Authorization header added to monthly difference request');
+      } else {
+        console.warn('⚠️ No access token found for monthly difference API request');
+      }
+      
+      const apiUrl = '/api/azure-invoice';
+      const requestBody = { 
+        action: 'monthlyDifference', 
+        currentMonth: currentMonthStr,
+        previousMonth: prevMonthStr,
+        soldToId: soldToIdValue ? [soldToIdValue] : undefined
+      };
+      
+      console.log('🌐 Monthly Difference API URL:', apiUrl);
+      console.log('📦 Monthly Difference Request headers:', headers);
+      console.log('📦 Monthly Difference Request body:', requestBody);
+      console.log('🎯 Expected backend URL should be: /ccr-invoice-service/month/sku-difference/' + prevMonthStr + '/' + currentMonthStr + '?page=0&size=20');
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: headers,
+        credentials: 'include',
+        body: JSON.stringify(requestBody)
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('🔍 FULL API RESPONSE for monthly difference:', result);
+        console.log('🔍 Response data:', result.data);
+        console.log('🔍 Content array:', result.data?.content);
+        console.log('🔍 Total elements:', result.data?.totalElements);
+        setMonthlyDifferenceData(result.data?.content || []);
+        console.log('✅ Monthly difference loaded - content length:', result.data?.content?.length || 0);
+      } else {
+        console.error('❌ API response not ok:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('❌ Error response:', errorText);
+      }
+    } catch (error) {
+      console.error('❌ Error loading monthly difference:', error);
+    }
+  };
+
   return (
     <ErrorBoundary>
-      <div className="main_content_container azure-invoice-component" key={`azure-invoice-${selectedMonth?.value}-${renderKey}-${forceUpdate}-${invoiceTotal}-${invoiceCredits}`}>
-        <div className="c-container">
+      <div className="azure-invoice-page">
+        {/* Main Container with left/right spacing */}
+        <div className="azure-invoice-container">
           
-          {/* Summary Cards Row */}
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            gap: '40px', 
-            marginBottom: '30px',
-            paddingTop: '20px'
-          }}>
-            {isLoading ? (
-              // Skeleton loaders for summary cards
-              <>
-                <div style={{ textAlign: 'center' }}>
-                  <Skeleton shape="text" style={{ width: '80px', height: '12px', marginBottom: '5px' }} />
-                  <Skeleton shape="text" style={{ width: '100px', height: '24px' }} />
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <Skeleton shape="text" style={{ width: '100px', height: '12px', marginBottom: '5px' }} />
-                  <Skeleton shape="text" style={{ width: '120px', height: '24px' }} />
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <Skeleton shape="text" style={{ width: '90px', height: '12px', marginBottom: '5px' }} />
-                  <Skeleton shape="text" style={{ width: '100px', height: '24px' }} />
-                </div>
-              </>
-            ) : (
-              // Actual data display
-              <>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '12px', color: '#666', marginBottom: '5px' }}>Invoice Total</div>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: invoiceTotal > 0 ? '#0066cc' : '#999' }}>
-                    {invoiceTotal > 0 ? `$${invoiceTotal.toFixed(2)}` : 'No Data'}
-                  </div>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '12px', color: '#666', marginBottom: '5px' }}>Monthly Difference</div>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#28a745' }}>
-                    ${Math.abs(monthlyDifference).toFixed(2)} ({monthlyDifferencePercent}%)
-                  </div>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '12px', color: '#666', marginBottom: '5px' }}>Invoice Credits</div>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#0066cc' }}>
-                    ${invoiceCredits.toFixed(2)}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Month Selector */}
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            marginBottom: '30px',
-            paddingLeft: '0'
-          }}>
-            <div onClick={(e) => e.stopPropagation()}>
-              <span style={{ fontSize: '14px', fontWeight: 'bold', marginRight: '10px' }}>Invoice Month:</span>
-              <div style={{ display: 'inline-block' }}>
-                {!monthsLoaded ? (
-                  <Skeleton shape="rectangle" style={{ width: '200px', height: '32px' }} />
+          {/* Header Section with Title and KPIs */}
+          <div className="azure-invoice-header">
+            {/* Top Row: Azure Plan Invoice Title + KPI Cards */}
+            <div className="azure-invoice-header-top">
+              <h2 className="azure-invoice-title">
+                Azure Plan Invoice
+              </h2>
+              
+              {/* KPI Cards - Right Side */}
+              <div className="azure-invoice-kpi-cards">
+                {isLoading ? (
+                  <>
+                    <div className="azure-invoice-skeleton-kpi">
+                      <Skeleton shape="text" className="azure-invoice-skeleton-text-sm" />
+                      <Skeleton shape="text" className="azure-invoice-skeleton-text-md" />
+                    </div>
+                    <div className="azure-invoice-skeleton-kpi-large">
+                      <Skeleton shape="text" className="azure-invoice-skeleton-text-lg" />
+                      <Skeleton shape="text" className="azure-invoice-skeleton-text-xl" />
+                    </div>
+                    <div className="azure-invoice-skeleton-kpi">
+                      <Skeleton shape="text" className="azure-invoice-skeleton-text-md" />
+                      <Skeleton shape="text" className="azure-invoice-skeleton-text-md" />
+                    </div>
+                  </>
                 ) : (
-                  <DropDownList
-                    data={monthsData}
-                    textField="text"
-                    dataItemKey="value"
-                    value={selectedMonth || (monthsData.length > 0 ? monthsData[0] : null)}
-                    onChange={(e) => {
-                      console.log('🎯 DropDownList onChange triggered:', e);
-                      if (e && e.value) {
-                        console.log('✅ Valid selection, calling handleMonthChange with:', e.value);
-                        handleMonthChange(e.value);
-                      } else {
-                        console.log('❌ Invalid selection event:', e);
-                      }
-                    }}
-                    disabled={isLoading}
-                    style={{
-                      minWidth: '200px',
-                      opacity: isLoading ? 0.6 : 1
-                    }}
-                  />
+                  <>
+                    <div className="azure-invoice-kpi-card invoice-total">
+                      <div className="azure-invoice-kpi-label">
+                        Invoice Total
+                      </div>
+                      <div className={`azure-invoice-kpi-value invoice-total ${invoiceTotal > 0 ? '' : 'zero'}`}>
+                        {invoiceTotal > 0 ? `$${invoiceTotal.toFixed(2)}` : '$0'}
+                      </div>
+                    </div>
+                    
+                    <div className="azure-invoice-kpi-card monthly-difference">
+                      <div className="azure-invoice-kpi-label">
+                        Monthly Difference
+                      </div>
+                      <div className="azure-invoice-kpi-value monthly-difference">
+                        ${Math.abs(monthlyDifference).toFixed(2)} ({monthlyDifferencePercent}%)
+                      </div>
+                    </div>
+                    
+                    <div className="azure-invoice-kpi-card invoice-credits">
+                      <div className="azure-invoice-kpi-label">
+                        Invoice Credits
+                      </div>
+                      <div className="azure-invoice-kpi-value invoice-credits">
+                        ${invoiceCredits.toFixed(2)}
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
-              {isLoading && (
-                <span style={{ marginLeft: '10px', fontSize: '12px', color: '#0066cc' }}>
-                  Loading...
-                </span>
+            </div>
+
+            {/* Bottom Row: Invoice Month Dropdown + View Billed Usage */}
+            <div className="azure-invoice-header-bottom">
+              {isLoading || !monthsLoaded ? (
+                <>
+                  <div className="azure-invoice-month-selector">
+                    <Skeleton shape="text" className="azure-invoice-skeleton-label" />
+                    <Skeleton shape="rectangle" className="azure-invoice-skeleton-dropdown" />
+                  </div>
+                  <Skeleton shape="text" className="azure-invoice-skeleton-link" />
+                </>
+              ) : (
+                <>
+                  <div className="azure-invoice-month-selector">
+                    <label className="azure-invoice-month-label">
+                      Invoice Month
+                    </label>
+                    <DropDownList
+                      data={monthsData}
+                      textField="text"
+                      dataItemKey="value"
+                      value={selectedMonth || (monthsData.length > 0 ? monthsData[0] : null)}
+                      onChange={(e) => {
+                        console.log('🎯 DropDownList onChange triggered:', e);
+                        if (e && e.value) {
+                          console.log('✅ Valid selection, calling handleMonthChange with:', e.value);
+                          handleMonthChange(e.value);
+                        } else {
+                          console.log('❌ Invalid selection event:', e);
+                        }
+                      }}
+                      disabled={isLoading}
+                      className={`azure-invoice-month-dropdown ${isLoading ? 'disabled' : ''}`}
+                    />
+                  </div>
+                  
+                  <a 
+                    href="#" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      console.log('View Billed Usage clicked');
+                    }}
+                    className="azure-invoice-view-usage-link"
+                  >
+                    View Billed Usage
+                  </a>
+                </>
               )}
             </div>
-            <div>
-              <a href="#" style={{ fontSize: '14px', color: '#0066cc', textDecoration: 'none' }}>
-                View Actual Usage
-              </a>
-            </div>
           </div>
+          
+          {/* Charts Section with Carousel */}
+          <div className="o-grid o-grid--gutters azure-invoice-charts-section">
+            <div className="o-grid__item u-1/1">
+              {isLoading ? (
+                <Skeleton shape="rectangle" className="azure-invoice-skeleton-chart" />
+              ) : (
+                <Carousel
+                  id="azure-invoice-carousel"
+                  autoRotate={false}
+                  indicator={true}
+                  slides={{
+                    desktop: 1,
+                    mobile: 1,
+                    mobileLandscape: 1,
+                    tablet: 1,
+                    tabletLandscape: 1,
+                  }}
+                >
+                  {/* Slide 1: Invoice Breakdown + Trending Monthly Spend */}
+                  <div className="azure-invoice-chart-slide">
+                    <div className="azure-invoice-chart-container">
+                      <div className="azure-invoice-chart-box">
+                        
+                        <Chart 
+                          onRefresh={handleChartRefresh} 
+                          className="chart1"
+                          seriesColors={['#14a2b8', '#a11b4b', '#cccccc']}
+                        >
+                          <BasicGroupedChart
+                            chartType="column"
+                            title="Invoice Breakdown by Product Category"
+                            subTitle=""
+                            data={invoiceBreakdownData}
+                            categoryField="group"
+                            valueField="value"
+                            groupedByField="label"
+                            categoryTitle=""
+                            showCategoryLabels={false}
+                            legendPosition="bottom"
+                            legendTitle=""
+                            legendVisible={false}
+                            tooltipFormat="c2"
+                            showLabels={true}
+                            valueFormat="c2"
+                            labelFormat="c2"
+                            labelIncludeGroup={true}
+                            gap={1}
+                            spacing={0.3}
+                          />
+                        </Chart>
+                      </div>
+                    </div>
 
-          {/* Charts Section */}
-          <div style={{ display: 'flex', gap: '20px', marginBottom: '30px' }}>
-            
-            {/* Left Chart - Invoice Breakdown */}
-            <div style={{ flex: 1 }}>
-              <h3 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '20px' }}>
-                Invoice Breakdown by Product Category
-              </h3>
-              <div style={{ height: '300px' }}>
-                {isLoading ? (
-                  <Skeleton shape="rectangle" style={{ width: '100%', height: '100%' }} />
-                ) : (
-                  <Chart style={{ height: '100%' }}>
-                    <ChartSeries>
-                      <ChartSeriesItem 
-                        type="column" 
-                        data={chartData} 
-                        field="value" 
-                        categoryField="category"
-                        color="#17a2b8"
-                      />
-                    </ChartSeries>
-                    <ChartCategoryAxis>
-                      <ChartCategoryAxisItem 
-                        categories={chartData.map(item => item.category)}
-                        labels={{
-                          rotation: -45,
-                          font: '10px Arial'
-                        }}
-                      />
-                    </ChartCategoryAxis>
-                    <ChartValueAxis>
-                      <ChartValueAxisItem 
-                        labels={{
-                          format: 'C2'
-                        }}
-                      />
-                    </ChartValueAxis>
-                  </Chart>
-                )}
-              </div>
-            </div>
+                    <div className="azure-invoice-chart-container">
+                      <div className="azure-invoice-chart-box">
+                        <ChartTitleAndButtons
+                          title="Trending Monthly Spend"
+                          trendingChartType={trendingChartType}
+                          handleChartTypeChange={handleChartTypeChange}
+                          chartOptions={columnLineAreaOptions}
+                          dropDownList={true}
+                          apiEndPoint=""
+                          pageType="invoice"
+                        />
+                        {chartTypeLoading ? (
+                          <Skeleton shape="rectangle" className="azure-invoice-skeleton-chart-content" />
+                        ) : (
+                          <Chart 
+                            onRefresh={handleChartRefresh}
+                            seriesColors={['#14a2b8', '#a11b4b', '#cccccc']}
+                          >
+                            <BasicGroupedChart
+                              key={trendingChartType}
+                              chartType={trendingChartType}
+                              title=""
+                              subTitle=""
+                              data={invoiceTrendData}
+                              categoryField="group"
+                              categoryTitle=""
+                              categoryFormat="MMM yyyy"
+                              valueField="value"
+                              valueFormat="c2"
+                              groupedByField="label"
+                              legendPosition="bottom"
+                              legendTitle=""
+                              tooltipFormat="c2"
+                              showLabels={false}
+                              labelFormat="c2"
+                              labelIncludeGroup={true}
+                              stacked={trendingChartType === 'column'}
+                              // gap={1}
+                              // spacing={0.3}
+                            />
+                          </Chart>
+                        )}
+                      </div>
+                    </div>
+                  </div>
 
-            {/* Right Chart - Trending Monthly Spend */}
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 'bold', margin: 0 }}>
-                  Trending Monthly Spend
-                </h3>
-                <div style={{ fontSize: '12px', color: '#666' }}>Last 6 Months</div>
-              </div>
-              
-              <div style={{ height: '300px' }}>
-                {isLoading ? (
-                  <Skeleton shape="rectangle" style={{ width: '100%', height: '100%' }} />
-                ) : (
-                  <Chart style={{ height: '100%' }}>
-                    <ChartSeries>
-                      <ChartSeriesItem 
-                        type="column" 
-                        data={trendsChartData} 
-                        field="azure" 
-                        categoryField="category"
-                        color="#17a2b8"
-                        name="Azure Usage"
-                        stack="default"
+                  {/* Slide 2: Top Expensive Products */}
+                  <div className="azure-invoice-chart-slide-single">
+                    <div className="azure-invoice-chart-box">
+                      <ChartTitleAndButtons
+                        title="Top Expensive Products"
+                        trendingChartType={topNExpensiveProductsChartType}
+                        handleChartTypeChange={handleTopNExpensiveProductsChartTypeChange}
+                        chartOptions={barPieDoughnutOptions}
                       />
-                      <ChartSeriesItem 
-                        type="column" 
-                        data={trendsChartData} 
-                        field="marketplace" 
-                        categoryField="category"
-                        color="#dc3545"
-                        name="Marketplace"
-                        stack="default"
-                      />
-                      <ChartSeriesItem 
-                        type="column" 
-                        data={trendsChartData} 
-                        field="private" 
-                        categoryField="category"
-                        color="#6c757d"
-                        name="Private Marketplace"
-                        stack="default"
-                      />
-                    </ChartSeries>
-                    <ChartCategoryAxis>
-                      <ChartCategoryAxisItem 
-                        categories={trendsChartData.map(item => item.category)}
-                        labels={{
-                          rotation: -45,
-                          font: '10px Arial'
-                        }}
-                      />
-                    </ChartCategoryAxis>
-                    <ChartValueAxis>
-                      <ChartValueAxisItem 
-                        labels={{
-                          format: 'C2'
-                        }}
-                      />
-                    </ChartValueAxis>
-                    <ChartLegend position="bottom" visible={true} />
-                  </Chart>
-                )}
-              </div>
+                      {topNExpensiveProductsChartTypeLoading ? (
+                        <Skeleton shape="rectangle" className="azure-invoice-skeleton-chart-content" />
+                      ) : topNExpensiveProductsChartType === 'bar' ? (
+                        <Chart 
+                          onRefresh={handleChartRefresh} 
+                          className="chart3"
+                        >
+                          <BasicGroupedChart
+                            key={topNExpensiveProductsChartType}
+                            chartType={topNExpensiveProductsChartType}
+                            title=""
+                            subTitle=""
+                            data={topNExpensiveProducts}
+                            categoryField="group"
+                            valueField="value"
+                            groupedByField="label"
+                            categoryTitle=""
+                            showCategoryLabels={false}
+                            showValueLabels={false}
+                            legendPosition="bottom"
+                            legendTitle=""
+                            legendVisible={true}
+                            tooltipFormat="c2"
+                            showLabels={true}
+                            valueFormat="c2"
+                            labelFormat="c2"
+                            labelIncludeGroup={false}
+                            seriesColors={['#14a2b8', '#e74c3c', '#f39c12', '#27ae60', '#9b59b6', '#34495e', '#1abc9c', '#e67e22']}
+                            gap={0.2}
+                            spacing={1.5}
+                          />
+                        </Chart>
+                      ) : (
+                        <Chart 
+                          onRefresh={handleChartRefresh}
+                        >
+                          <BasicPieDoughnutChart
+                            key={topNExpensiveProductsChartType}
+                            chartType={topNExpensiveProductsChartType}
+                            title=""
+                            subTitle=""
+                            data={pieChartData}
+                            categoryField="category"
+                            valueField="value"
+                            tooltipFormat="c2"
+                            legendPosition="bottom"
+                            legendVisible={true}
+                            showLabels={true}
+                            valueFormat="c2"
+                            labelFormat="c2"
+                            seriesColors={['#14a2b8', '#e74c3c', '#f39c12', '#27ae60', '#9b59b6', '#34495e', '#1abc9c', '#e67e22']}
+                          />
+                        </Chart>
+                      )}
+                    </div>
+                  </div>
+                </Carousel>
+              )}
             </div>
           </div>
 
           {/* Filter Controls */}
-          <div style={{ 
-            display: 'flex', 
-            gap: '15px', 
-            alignItems: 'flex-end', 
-            marginBottom: '30px',
-            padding: '20px',
-            background: '#f8f9fa',
-            borderRadius: '6px'
-          }}>
-            {isLoading ? (
-              // Skeleton loaders for filters
-              <>
-                <div style={{ minWidth: '180px' }}>
-                  <Skeleton shape="text" style={{ width: '100px', height: '13px', marginBottom: '5px' }} />
-                  <Skeleton shape="rectangle" style={{ width: '100%', height: '32px' }} />
-                </div>
-                <div style={{ minWidth: '180px' }}>
-                  <Skeleton shape="text" style={{ width: '90px', height: '13px', marginBottom: '5px' }} />
-                  <Skeleton shape="rectangle" style={{ width: '100%', height: '32px' }} />
-                </div>
-                <div style={{ minWidth: '180px' }}>
-                  <Skeleton shape="text" style={{ width: '70px', height: '13px', marginBottom: '5px' }} />
-                  <Skeleton shape="rectangle" style={{ width: '100%', height: '32px' }} />
-                </div>
-                <div>
-                  <Skeleton shape="rectangle" style={{ width: '120px', height: '42px' }} />
-                </div>
-              </>
-            ) : (
-              // Actual filter controls
-              <>
-                <div style={{ minWidth: '180px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '13px', fontWeight: '600', color: '#495057' }}>
-                    Product Category
-                  </label>
-                  <DropDownList
-                    data={[{ label: 'All', value: 'All' }, ...getSelectListItems('productcategory')]}
-                    textField="label"
-                    dataItemKey="value"
-                    value={filters.productCategory}
-                    onChange={(e) => handleFilterChange('productCategory', e.target.value)}
-                    style={{
-                      width: '100%'
-                    }}
-                  />
-                </div>
-                
-                <div style={{ minWidth: '180px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '13px', fontWeight: '600', color: '#495057' }}>
-                    Product Name
-                  </label>
-                  <DropDownList
-                    data={[{ label: 'All', value: 'All' }, ...getSelectListItems('productname')]}
-                    textField="label"
-                    dataItemKey="value"
-                    value={filters.productName}
-                    onChange={(e) => handleFilterChange('productName', e.target.value)}
-                    style={{
-                      width: '100%'
-                    }}
-                  />
-                </div>
-                
-                <div style={{ minWidth: '180px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '13px', fontWeight: '600', color: '#495057' }}>
-                    Sku Name
-                  </label>
-                  <DropDownList
-                    data={[{ label: 'All', value: 'All' }, ...getSelectListItems('skuname')]}
-                    textField="label"
-                    dataItemKey="value"
-                    value={filters.skuName}
-                    onChange={(e) => handleFilterChange('skuName', e.target.value)}
-                    style={{
-                      width: '100%'
-                    }}
-                  />
-                </div>
-                
-                <div>
-                  <button 
-                    onClick={applyFilters}
-                    style={{
-                      padding: '10px 24px',
-                      background: '#007bff',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      fontSize: '13px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    Apply Filters
-                  </button>
-                </div>
-              </>
-            )}
+          <div className="azure-invoice-filter-section">
+            <div className="azure-invoice-filter-row">
+              {isLoading ? (
+                // Skeleton loaders for filters
+                <>
+                  <div className="azure-invoice-filter-group">
+                    <Skeleton shape="text" className="azure-invoice-skeleton-filter-label" />
+                    <Skeleton shape="rectangle" className="azure-invoice-skeleton-filter-dropdown" />
+                  </div>
+                  <div className="azure-invoice-filter-group">
+                    <Skeleton shape="text" className="azure-invoice-skeleton-filter-label-sm" />
+                    <Skeleton shape="rectangle" className="azure-invoice-skeleton-filter-dropdown" />
+                  </div>
+                  <div className="azure-invoice-filter-group">
+                    <Skeleton shape="text" className="azure-invoice-skeleton-filter-label-xs" />
+                    <Skeleton shape="rectangle" className="azure-invoice-skeleton-filter-dropdown" />
+                  </div>
+                  <div>
+                    <Skeleton shape="rectangle" className="azure-invoice-skeleton-filter-button" />
+                  </div>
+                </>
+              ) : (
+                // Actual filter controls
+                <>
+                  <div className="azure-invoice-filter-group">
+                    <label className="azure-invoice-filter-label">
+                      Product Category
+                    </label>
+                    <DropDownList
+                      data={[{ label: 'All', value: 'All' }, ...getSelectListItems('productcategory')]}
+                      textField="label"
+                      dataItemKey="value"
+                      value={filters.productCategory}
+                      onChange={(e) => handleFilterChange('productCategory', e.target.value)}
+                      className="azure-invoice-filter-dropdown"
+                    />
+                  </div>
+                  
+                  <div className="azure-invoice-filter-group">
+                    <label className="azure-invoice-filter-label">
+                      Product Name
+                    </label>
+                    <DropDownList
+                      data={[{ label: 'All', value: 'All' }, ...getSelectListItems('productname')]}
+                      textField="label"
+                      dataItemKey="value"
+                      value={filters.productName}
+                      onChange={(e) => handleFilterChange('productName', e.target.value)}
+                      className="azure-invoice-filter-dropdown"
+                    />
+                  </div>
+                  
+                  <div className="azure-invoice-filter-group">
+                    <label className="azure-invoice-filter-label">
+                      Sku Name
+                    </label>
+                    <DropDownList
+                      data={[{ label: 'All', value: 'All' }, ...getSelectListItems('skuname')]}
+                      textField="label"
+                      dataItemKey="value"
+                      value={filters.skuName}
+                      onChange={(e) => handleFilterChange('skuName', e.target.value)}
+                      className="azure-invoice-filter-dropdown"
+                    />
+                  </div>
+                  
+                  <div>
+                    <button 
+                      onClick={applyFilters}
+                      className="azure-invoice-apply-button"
+                    >
+                      Apply Filters
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
-          {/* Invoice Details Table */}
-          <div className="o-grid o-grid--gutters-tiny" style={{ marginBottom: '20px' }}>
-            <div className="o-grid__item u-1/1">
-              <div className="panel">
-                <div className="panel-body" style={{ padding: '0' }}>
-                  <div style={{ display: 'flex', borderBottom: '1px solid #e9ecef', background: '#f8f9fa' }}>
-                    <div style={{ fontSize: '14px', fontWeight: 'bold', padding: '12px', flex: 1, borderRight: '1px solid #e9ecef' }}>Invoice Details</div>
-                    <div style={{ fontSize: '14px', fontWeight: 'bold', padding: '12px', flex: 1 }}>Monthly Differences</div>
-                  </div>
-                  
-                  <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
-                    <thead style={{ background: '#f8f9fa' }}>
-                      <tr>
-                        <th style={{ padding: '10px', textAlign: 'left', borderRight: '1px solid #e9ecef' }}>Invoice Date</th>
-                        <th style={{ padding: '10px', textAlign: 'left', borderRight: '1px solid #e9ecef' }}>Customer Name</th>
-                        <th style={{ padding: '10px', textAlign: 'left', borderRight: '1px solid #e9ecef' }}>Tenant ID</th>
-                        <th style={{ padding: '10px', textAlign: 'left', borderRight: '1px solid #e9ecef' }}>Subscription ID</th>
-                        <th style={{ padding: '10px', textAlign: 'left', borderRight: '1px solid #e9ecef' }}>Subscription Name</th>
-                        <th style={{ padding: '10px', textAlign: 'left', borderRight: '1px solid #e9ecef' }}>Product Category</th>
-                        <th style={{ padding: '10px', textAlign: 'left', borderRight: '1px solid #e9ecef' }}>Product ID</th>
-                        <th style={{ padding: '10px', textAlign: 'left', borderRight: '1px solid #e9ecef' }}>Product Name</th>
-                        <th style={{ padding: '10px', textAlign: 'left' }}>SKU</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {invoiceDetails.map((item, index) => (
-                        <tr key={index} style={{ borderBottom: '1px solid #e9ecef' }}>
-                          <td style={{ padding: '8px', borderRight: '1px solid #e9ecef' }}>{item.date}</td>
-                          <td style={{ padding: '8px', borderRight: '1px solid #e9ecef' }}>{item.customer}</td>
-                          <td style={{ padding: '8px', borderRight: '1px solid #e9ecef', fontSize: '10px' }}>{item.tenantId}</td>
-                          <td style={{ padding: '8px', borderRight: '1px solid #e9ecef', fontSize: '10px' }}>{item.subscriptionId}</td>
-                          <td style={{ padding: '8px', borderRight: '1px solid #e9ecef' }}>{item.subscriptionName}</td>
-                          <td style={{ padding: '8px', borderRight: '1px solid #e9ecef' }}>{item.category}</td>
-                          <td style={{ padding: '8px', borderRight: '1px solid #e9ecef' }}>{item.productId}</td>
-                          <td style={{ padding: '8px', borderRight: '1px solid #e9ecef' }}>{item.productName}</td>
-                          <td style={{ padding: '8px' }}>{item.sku}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  
-                  <div style={{ padding: '10px', fontSize: '12px', color: '#666', borderTop: '1px solid #e9ecef' }}>
-                    Showing 1-{invoiceDetails.length} of {invoiceDetails.length} items
-                  </div>
-                </div>
-              </div>
+          {/* Invoice Details Tabs */}
+          <div className="azure-invoice-tabs-section">
+            <div ref={tabsRef}>
+              <TabStrip 
+                selected={selectedTabIndex} 
+                onSelect={handleTabSelect}
+                className="azure-invoice-tabstrip"
+              >
+                <TabStripTab title="Invoice Details">
+                  <InvoiceDetailsComponent 
+                    usageMonth={selectedMonth?.value}
+                    data={invoiceDetailsData}
+                    isLoading={isLoading}
+                  />
+                </TabStripTab>
+                <TabStripTab title="Monthly Differences">
+                  <MonthlyDifferenceComponent 
+                    usageMonth={selectedMonth?.value}
+                    data={monthlyDifferenceData}
+                    isLoading={isLoading}
+                  />
+                </TabStripTab>
+              </TabStrip>
             </div>
           </div>
 
           {/* Performance Info */}
           {ssrPerformance && (
-            <div style={{ 
-              fontSize: '12px', 
-              color: '#666',
-              textAlign: 'center',
-              marginTop: '20px'
-            }}>
+            <div className="azure-invoice-performance">
               Performance: Data fetched in {ssrPerformance.dataFetchTime}ms | Status: {ssrPerformance.cacheStatus} | Rendered at: {ssrPerformance.timestamp}
             </div>
           )}
@@ -743,3 +1149,150 @@ export default function AzureInvoiceClientContent(props) {
     </ErrorBoundary>
   );
 }
+
+// Invoice Details Component
+const InvoiceDetailsComponent = ({ usageMonth, data, isLoading }) => {
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
+
+  // Debug: Log what data the component receives
+  console.log('🧾 InvoiceDetailsComponent received:', {
+    usageMonth,
+    data,
+    dataLength: data?.length,
+    isArray: Array.isArray(data),
+    isLoading
+  });
+
+  return (
+    <div className="azure-invoice-tab-content">
+      {isLoading ? (
+        <Skeleton shape="rectangle" className="azure-invoice-skeleton-table" />
+      ) : (
+        <div className="azure-invoice-details-grid">
+          <table className="azure-invoice-data-table">
+            <thead>
+              <tr>
+                <th>Invoice Date</th>
+                <th>Customer Name</th>
+                <th>Tenant ID</th>
+                <th>Subscription ID</th>
+                <th>Subscription Name</th>
+                <th>Product Category</th>
+                <th>Product ID</th>
+                <th>Product Name</th>
+                <th>SKU Name</th>
+                <th>Unit Price</th>
+                <th>Quantity</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data && data.length > 0 ? (
+                data.map((item, index) => (
+                  <tr key={index}>
+                    <td>{new Date(item.invoiceDate).toLocaleDateString()}</td>
+                    <td>{item.tenantName}</td>
+                    <td className="azure-invoice-table-id">{item.tenantId}</td>
+                    <td className="azure-invoice-table-id">{item.subscriptionID}</td>
+                    <td>{item.subscriptionName}</td>
+                    <td>{item.productCategory}</td>
+                    <td>{item.productId}</td>
+                    <td>{item.productName}</td>
+                    <td>{item.skuName}</td>
+                    <td>${item.unitPrice?.toFixed(2) || '0.00'}</td>
+                    <td>{item.quantity}</td>
+                    <td>${item.totalForCustomer?.toFixed(2) || '0.00'}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="12" className="azure-invoice-table-empty">
+                    No invoice details available
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+          
+          {data && data.length > 0 && (
+            <div className="azure-invoice-table-footer">
+              Showing 1-{Math.min(pageSize, data.length)} of {data.length} items
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Monthly Difference Component  
+const MonthlyDifferenceComponent = ({ usageMonth, data, isLoading }) => {
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
+
+  return (
+    <div className="azure-invoice-tab-content">
+      {isLoading ? (
+        <Skeleton shape="rectangle" className="azure-invoice-skeleton-table" />
+      ) : (
+        <div className="azure-invoice-differences-grid">
+          <table className="azure-invoice-data-table">
+            <thead>
+              <tr>
+                <th>Start Month</th>
+                <th>End Month</th>
+                <th>Customer Name</th>
+                <th>Subscription Name</th>
+                <th>Product Category</th>
+                <th>Product Name</th>
+                <th>SKU Name</th>
+                <th>Publisher</th>
+                <th>Cost Difference</th>
+                <th>Currency</th>
+                <th>Change Type</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data && data.length > 0 ? (
+                data.map((item, index) => (
+                  <tr key={index}>
+                    <td>{new Date(item.startMonth).toLocaleDateString()}</td>
+                    <td>{new Date(item.endMonth).toLocaleDateString()}</td>
+                    <td>{item.tenantName}</td>
+                    <td>{item.subscriptionName}</td>
+                    <td>{item.productCategory}</td>
+                    <td>{item.productName}</td>
+                    <td>{item.skuName}</td>
+                    <td>{item.publisherName}</td>
+                    <td className={`cost-difference ${item.costDifference >= 0 ? 'positive' : 'negative'}`}>
+                      ${item.costDifference?.toFixed(4) || '0.0000'}
+                    </td>
+                    <td>{item.currency}</td>
+                    <td>
+                      <span className={`change-type ${item.changeType?.toLowerCase()?.replace(' ', '-')}`}>
+                        {item.changeType}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="11" className="azure-invoice-table-empty">
+                    No monthly differences available
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+          
+          {data && data.length > 0 && (
+            <div className="azure-invoice-table-footer">
+              Showing 1-{Math.min(pageSize, data.length)} of {data.length} items
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};

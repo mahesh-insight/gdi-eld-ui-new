@@ -23,7 +23,14 @@ const authSlice = createSlice({
       state.isLoading = action?.payload ?? true;
     },
     setUser: (state, action) => {
-      state.user = action?.payload ?? null;
+      // Ensure soldToId is preserved/included in user object
+      const newUser = action?.payload ?? null;
+      if (newUser && !newUser.soldToId && state.soldTo) {
+        // If soldToId is missing from user but exists in state.soldTo, add it
+        state.user = { ...newUser, soldToId: state.soldTo };
+      } else {
+        state.user = newUser;
+      }
     },
     setLoginResponse: (state, action) => {
       state.loginResponse = action?.payload ?? null;

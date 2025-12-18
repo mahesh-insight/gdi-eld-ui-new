@@ -28,36 +28,79 @@ export default function AuthContextInitializer({ children }) {
     const dispatch = useDispatch();
 
     useEffect(() => {
-        console.log('🔧 AuthContextInitializer: Initializing auth state from cookies');
+        console.log('🔧 AuthContextInitializer: Initializing auth state - prioritizing Redux persist over cookies');
         
-        // Check if we already have persisted data in Redux first
-        let hasPersistedLoginResponse = false;
+        // PRIORITY 1: Check Redux persist storage first (doesn't expire)
+        // This ensures login response persists even after cookie expiration
+        let hasValidPersistedAuth = false;
         try {
             const persistedAuthRaw = typeof window !== 'undefined' ? localStorage.getItem('persist:ccr-auth') : null;
             if (persistedAuthRaw) {
                 const persistedAuth = JSON.parse(persistedAuthRaw);
-                const loginResponseStr = persistedAuth.loginResponse;
-                if (loginResponseStr && loginResponseStr !== 'null' && loginResponseStr !== 'undefined') {
-                    const persistedLoginResponse = typeof loginResponseStr === 'string' ? JSON.parse(loginResponseStr) : loginResponseStr;
-                    if (persistedLoginResponse && Object.keys(persistedLoginResponse).length > 5) {
-                        hasPersistedLoginResponse = true;
-                        console.log('✅ AuthContextInitializer: Found full loginResponse in persist storage, skipping cookie initialization');
+                
+                // Parse all persisted fields
+                const parseField = (field) => {
+                    if (!field) return null;
+                    try {
+                        return typeof field === 'string' ? JSON.parse(field) : field;
+                    } catch {
+                        return field;
                     }
+                };
+
+                const persistedToken = parseField(persistedAuth.accessToken);
+                const persistedLoginResponse = parseField(persistedAuth.loginResponse);
+                const persistedIsAuth = parseField(persistedAuth.isAuthenticated);
+                const persistedUser = parseField(persistedAuth.user);
+                const persistedContext = parseField(persistedAuth.contextData);
+                const persistedSoldTo = parseField(persistedAuth.soldTo);
+                const persistedSalesOrg = parseField(persistedAuth.salesOrg);
+
+                console.log('🔍 Persisted auth data check:', {
+                    hasToken: !!persistedToken,
+                    hasLoginResponse: !!persistedLoginResponse,
+                    isAuth: persistedIsAuth,
+                    hasUser: !!persistedUser,
+                    loginResponseKeys: persistedLoginResponse ? Object.keys(persistedLoginResponse).length : 0
+                });
+
+                // Validate that we have complete authentication data
+                if (persistedIsAuth && persistedToken && persistedLoginResponse && 
+                    Object.keys(persistedLoginResponse).length > 5) {
+                    
+                    hasValidPersistedAuth = true;
+                    console.log('✅ AuthContextInitializer: Valid persisted auth found - verifying user object completeness');
+                    
+                    // Even with valid persist data, ensure user object has critical fields
+                    // This prevents header display issues after cache expiry
+                    const soldToId = persistedSoldTo || persistedLoginResponse?.soldToId || persistedLoginResponse?.soldTo;
+                    if (persistedUser && (!persistedUser.soldToId || !persistedUser.firstName)) {
+                        console.log('🔧 AuthContextInitializer: Updating user object with missing fields');
+                        dispatch(setUser({
+                            ...persistedUser,
+                            soldToId: soldToId || persistedUser.soldToId,
+                            firstName: persistedUser.firstName || persistedLoginResponse?.firstName,
+                            lastName: persistedUser.lastName || persistedLoginResponse?.lastName || "",
+                            username: persistedUser.username || persistedLoginResponse?.username,
+                            persona: persistedUser.persona || persistedLoginResponse?.persona
+                        }));
+                    }
+                    
+                    console.log('✅ AuthContextInitializer: Relying on Redux persist rehydration (with user object verification)');
+                    return; // Let Redux persist handle the state
                 }
             }
         } catch (e) {
-            console.warn('⚠️ Error checking persisted loginResponse:', e);
+            console.warn('⚠️ Error checking persisted auth:', e);
         }
 
-        // If we have full login response in persist, don't overwrite it with minimal cookie data
-        if (hasPersistedLoginResponse) {
-            console.log('⏭️ AuthContextInitializer: Skipping initialization - using persisted data');
-            return;
-        }
+        // PRIORITY 2: Fall back to cookies only if persist storage doesn't have valid data
+        if (!hasValidPersistedAuth) {
+            console.log('⏭️ AuthContextInitializer: No valid persist data, checking cookies...');
         
-        // This runs once client-side after the page loads
-        const userContextString = Cookies.get('user_context');
-        const accessToken = Cookies.get('access_token');
+            // This runs once client-side after the page loads
+            const userContextString = Cookies.get('user_context');
+            const accessToken = Cookies.get('access_token');
         
         console.log('🔧 AuthContextInitializer: Found cookies', {
             hasUserContext: !!userContextString,
@@ -66,69 +109,28 @@ export default function AuthContextInitializer({ children }) {
 
         if (userContextString && accessToken) {
             try {
-                const userContext = JSON.parse(userContextString);
-                console.log('🔧 AuthContextInitializer: Parsed user context', userContext);
-                
-                // Create comprehensive login response object that matches Header expectations
-                const loginResponseData = {
-                    username: userContext.username,
-                    firstName: userContext.firstName,
-                    lastName: userContext.lastName || "",
-                    persona: userContext.persona,
-                    soldToID: userContext.soldToId,
-                    soldToId: userContext.soldToId,
-                    salesOrgId: userContext.salesOrgId,
-                    accessToken: accessToken,
-                    isAuthenticated: true,
-                    // Add userProfile structure that Header expects
-                    userProfile: {
-                        defaultContext: [{
-                            soldTo: userContext.soldToId,
-                            soldToName: userContext.soldToName || "",
-                            salesOrgId: userContext.salesOrgId
-                        }]
-                    }
-                };
+                const loginResponseData = JSON.parse(userContextString);
+                console.log('📦 Using complete login response from cookies:', loginResponseData);
 
-                console.log('📦 Created loginResponse:', loginResponseData);
-
-                // 1. Initialize userSlice
-                dispatch(setIsLoggedInState(true));
-                dispatch(setUserState([{
-                    userID: userContext.username,
-                    role: userContext.persona,
-                    firstName: userContext.firstName,
-                    lastName: userContext.lastName || "",
-                    soldToList: [{
-                        soldToName: userContext.soldToName || "",
-                        soldTo: userContext.soldToId,
-                        soldToID: userContext.soldToId
-                    }]
-                }]));
-                dispatch(setSelectedAccountState([{
-                    soldToID: userContext.soldToId,
-                    soldTo: userContext.soldToId
-                }]));
-                dispatch(setLoginResponseState([{
-                    soldToID: userContext.soldToId,
-                    soldTo: userContext.soldToId
-                }]));
-                
-                // 2. Initialize authSlice (main authentication state)
+                // Store complete login response in Redux - no complex parsing needed
                 dispatch(setAuthenticated(true));
-                dispatch(setUser({
-                    username: userContext.username,
-                    firstName: userContext.firstName,
-                    lastName: userContext.lastName || "",
-                    persona: userContext.persona
-                }));
                 dispatch(setLoginResponse(loginResponseData));
                 dispatch(setAccessToken(accessToken));
-                dispatch(setContextData(userContext));
-                dispatch(setSoldTo(userContext.soldToId));
-                dispatch(setSalesOrg(userContext.salesOrgId));
+                dispatch(setUser(loginResponseData)); // Use complete login response as user data
+                dispatch(setContextData(loginResponseData));
+                dispatch(setSoldTo(loginResponseData.soldToId));
+                dispatch(setSalesOrg(loginResponseData.salesOrgId));
                 
-                console.log('✅ AuthContextInitializer: Successfully initialized auth state');
+                // Legacy userSlice for backward compatibility
+                dispatch(setIsLoggedInState(true));
+                dispatch(setUserState([loginResponseData]));
+                dispatch(setSelectedAccountState([{
+                    soldToID: loginResponseData.soldToId,
+                    soldTo: loginResponseData.soldToId
+                }]));
+                dispatch(setLoginResponseState([loginResponseData]));
+                
+                console.log('✅ AuthContextInitializer: Successfully initialized auth state from cookies');
 
             } catch (e) {
                 console.error("❌ Failed to parse user context cookie:", e);
@@ -137,12 +139,14 @@ export default function AuthContextInitializer({ children }) {
                 dispatch(clearUserState());
             }
         } else {
-            // Fallback: try redux-persist localStorage (helps after hard refresh when cookies are HTTP-only)
+            console.log('⚠️ AuthContextInitializer: No auth cookies found, checking persist storage fallback...');
+            
+            // PRIORITY 3: Final fallback - try redux-persist localStorage
             try {
                 const persistedAuthRaw = typeof window !== 'undefined' ? localStorage.getItem('persist:ccr-auth') : null;
                 if (persistedAuthRaw) {
                     const persistedAuth = JSON.parse(persistedAuthRaw);
-                    console.log('🔍 Raw persisted auth:', persistedAuth);
+                    console.log('🔍 Raw persisted auth (fallback check):', persistedAuth);
                     
                     // Redux-persist stores each field as a JSON-stringified value
                     // Need to parse each field separately
@@ -163,28 +167,30 @@ export default function AuthContextInitializer({ children }) {
                     const persistedUser = parseField(persistedAuth.user);
                     const persistedIsAuth = parseField(persistedAuth.isAuthenticated);
 
-                    console.log('🔍 Parsed persist data:', {
+                    console.log('🔍 Parsed persist data (fallback):', {
                         hasToken: !!persistedToken,
                         hasContext: !!persistedContext,
                         hasLoginResponse: !!persistedLoginResponse,
                         isAuth: persistedIsAuth
                     });
 
-                    if (persistedToken && persistedIsAuth) {
-                        console.log('🔧 AuthContextInitializer: Rehydrating from persist storage');
+                    if (persistedToken && persistedIsAuth && persistedLoginResponse) {
+                        console.log('🔧 AuthContextInitializer: Rehydrating from persist storage (fallback)');
+                        
+                        // Ensure soldToId is available in user object
                         const fallbackContext = persistedContext || persistedLoginResponse || {};
-                        const soldToId = persistedSoldTo || fallbackContext?.soldToId;
-                        const salesOrgId = persistedSalesOrg || fallbackContext?.salesOrgId;
+                        const soldToId = persistedSoldTo || fallbackContext?.soldToId || persistedLoginResponse?.soldToId;
+                        const salesOrgId = persistedSalesOrg || fallbackContext?.salesOrgId || persistedLoginResponse?.salesOrgId;
 
                         // User slice
                         dispatch(setIsLoggedInState(true));
                         dispatch(setUserState([{
-                            userID: fallbackContext.username,
-                            role: fallbackContext.persona,
-                            firstName: fallbackContext.firstName,
-                            lastName: "",
+                            userID: persistedUser?.username || fallbackContext.username,
+                            role: persistedUser?.persona || fallbackContext.persona,
+                            firstName: persistedUser?.firstName || fallbackContext.firstName,
+                            lastName: persistedUser?.lastName || "",
                             soldToList: [{
-                                soldToName: "",
+                                soldToName: persistedLoginResponse?.userProfile?.defaultContext?.[0]?.soldToName || "",
                                 soldTo: soldToId,
                                 soldToID: soldToId
                             }]
@@ -195,19 +201,21 @@ export default function AuthContextInitializer({ children }) {
                             soldTo: soldToId
                         }]));
 
-                        // Auth slice
+                        // Auth slice - ensure soldToId is in user object
                         dispatch(setAuthenticated(true));
                         dispatch(setUser({
-                            username: fallbackContext.username || persistedUser?.username,
-                            firstName: fallbackContext.firstName || persistedUser?.firstName,
-                            persona: fallbackContext.persona || persistedUser?.persona
+                            username: persistedUser?.username || fallbackContext.username,
+                            firstName: persistedUser?.firstName || fallbackContext.firstName,
+                            lastName: persistedUser?.lastName || "",
+                            persona: persistedUser?.persona || fallbackContext.persona,
+                            soldToId: soldToId // Critical: include soldToId
                         }));
-                        dispatch(setLoginResponse(persistedLoginResponse || fallbackContext));
+                        dispatch(setLoginResponse(persistedLoginResponse));
                         dispatch(setAccessToken(persistedToken));
                         dispatch(setContextData(fallbackContext));
                         dispatch(setSoldTo(soldToId));
                         dispatch(setSalesOrg(salesOrgId));
-                        console.log('✅ AuthContextInitializer: Rehydrated auth state from persist storage');
+                        console.log('✅ AuthContextInitializer: Rehydrated auth state from persist storage (fallback)');
                         return;
                     }
                 }
@@ -215,10 +223,11 @@ export default function AuthContextInitializer({ children }) {
                 console.warn('⚠️ AuthContextInitializer: Persist fallback failed', err);
             }
 
-            console.log('⚠️ AuthContextInitializer: No auth cookies or persist data found, setting unauthenticated state');
+            console.log('⚠️ AuthContextInitializer: No auth data found anywhere, setting unauthenticated state');
             dispatch(setAuthenticated(false));
             dispatch(setIsLoggedInState(false));
         }
+    }
     }, [dispatch]);
 
     return <>{children}</>;

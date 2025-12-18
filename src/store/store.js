@@ -17,7 +17,7 @@ if (typeof window !== 'undefined') {
   };
 }
 
-console.log('🔧 Redux Persist Storage:', typeof window !== 'undefined' ? 'Client (localStorage)' : 'Server (no-op)');
+
 
 // Import slices
 import authSlice from './authSlice';
@@ -27,11 +27,11 @@ import pageSlice from './pageSlice';
 import userSlice from '../lib/store/slices/userSlice';
 import gridSlice from './gridSlice';
 
-// Persist configuration for auth slice
+// Persist configuration for auth slice - loginResponse included for header data
 const authPersistConfig = {
-  key: 'ccr-auth',
+  key: 'ccr-auth', 
   storage,
-  whitelist: ['isAuthenticated', 'user', 'loginResponse', 'accessToken', 'contextData', 'soldTo', 'salesOrg'], // Only persist these fields
+  whitelist: ['isAuthenticated', 'user', 'loginResponse', 'accessToken', 'contextData', 'soldTo', 'salesOrg'], // loginResponse persists until logout
   // Add transform to handle malformed data
   transforms: [
     {
@@ -187,14 +187,12 @@ export const store = configureStore({
         // Fix undefined payload for persist actions
         if (action.type && action.type.startsWith('persist/')) {
           if ('payload' in action && action.payload === undefined) {
-            console.warn('🔧 Fixed undefined payload for persist action:', action.type);
             return next({ ...action, payload: null });
           }
         }
         
         // Fix undefined payload for any action
         if ('payload' in action && action.payload === undefined) {
-          console.warn('🔧 Fixed undefined payload for action:', action.type);
           return next({ ...action, payload: null });
         }
         
@@ -236,7 +234,6 @@ if (typeof window !== 'undefined') {
       }
     }
   } catch (error) {
-    console.warn('🔧 Corrupted auth persist data detected, clearing...', error);
     localStorage.removeItem('persist:ccr-auth');
   }
   
@@ -257,17 +254,14 @@ if (typeof window !== 'undefined') {
             : parsed.cacheMetadata;
           const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
           if (metadata && metadata.lastUpdated && metadata.lastUpdated < oneDayAgo) {
-            console.log('🧹 Azure Invoice cache expired (>24h), clearing...');
             localStorage.removeItem('persist:ccr-azure-invoice');
           }
         } catch (metaError) {
-          console.warn('🔧 Error parsing cache metadata, clearing...', metaError);
           localStorage.removeItem('persist:ccr-azure-invoice');
         }
       }
     }
   } catch (error) {
-    console.warn('🔧 Corrupted Azure Invoice persist data detected, clearing...', error);
     localStorage.removeItem('persist:ccr-azure-invoice');
   }
 }

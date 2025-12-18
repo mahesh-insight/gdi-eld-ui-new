@@ -216,28 +216,37 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
         }
         
         // Set HTTP cookies for server-side access (so SSR can detect authentication)
-        console.log('🍪 Setting authentication cookies for server-side access...');
+        // Note: Cookies are now secondary to Redux persist storage
+        // They're kept for SSR compatibility but auth state primarily relies on Redux persist
+        console.log('🍪 Setting authentication cookies for server-side SSR compatibility...');
         
         try {
-          // Set access token cookie
-          document.cookie = `access_token=${bearerToken}; path=/; max-age=${24 * 60 * 60}; SameSite=Strict`;
-          console.log('✅ Access token cookie set');
+          // Set access token cookie with longer expiration (7 days to match typical session length)
+          // Using session cookie (no max-age) so it clears when browser closes, but Redux persist will maintain the session
+          document.cookie = `access_token=${bearerToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
+          console.log('✅ Access token cookie set (7 days)');
           
           // Set user context cookie for server-side soldToId extraction
           const userContextData = {
             soldToId: soldToId,
             persona: response.persona,
             firstName: response.firstName,
+            username: response.username || response.userProfile?.username,
+            lastName: response.lastName,
+            salesOrgId: finalSalesOrg || response.salesOrgId,
             isAuthenticated: true
           };
-          document.cookie = `user_context=${encodeURIComponent(JSON.stringify(userContextData))}; path=/; max-age=${24 * 60 * 60}; SameSite=Strict`;
+          document.cookie = `user_context=${encodeURIComponent(JSON.stringify(userContextData))}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
           
-          console.log('✅ Authentication cookies set successfully:', {
+          console.log('✅ Authentication cookies set successfully (7 days):', {
             accessTokenLength: bearerToken?.length,
             userContextData
           });
+          console.log('ℹ️ Primary auth storage: Redux persist (localStorage) - persists until logout');
+          console.log('ℹ️ Secondary auth storage: Cookies (7 days) - for SSR compatibility');
         } catch (cookieError) {
           console.error('❌ Failed to set cookies:', cookieError);
+          console.log('ℹ️ Continuing with Redux persist storage only');
         }
 
         // Final dispatch to Redux store with complete auth data including context
@@ -251,17 +260,20 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
           statusText: contextResponse.statusText
         } : null;
         
+        // Ensure soldToId is included in user object for Header component
         const authPayload = {
           isAuthenticated: true,
           user: {
             soldToId: soldToId || null,
             persona: safeResponse.persona || null,
-            firstName: safeResponse.firstName || null
+            firstName: safeResponse.firstName || null,
+            lastName: safeResponse.lastName || null,
+            username: safeResponse.username || safeResponse.userProfile?.username || null
           },
           loginResponse: safeResponse,
           accessToken: bearerToken || null,
           contextData: serializableContextData,
-          soldTo: finalSoldTo || null,
+          soldTo: finalSoldTo || soldToId || null,
           salesOrg: finalSalesOrg || null
         };
         
@@ -269,15 +281,17 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
           isAuthenticated: authPayload.isAuthenticated,
           hasUser: !!authPayload.user,
           userSoldToId: authPayload.user?.soldToId,
+          userName: authPayload.user?.username,
           hasAccessToken: !!authPayload.accessToken,
           accessTokenLength: authPayload.accessToken?.length,
           hasLoginResponse: !!authPayload.loginResponse,
+          loginResponseKeys: authPayload.loginResponse ? Object.keys(authPayload.loginResponse).length : 0,
           hasContextData: !!authPayload.contextData
         });
         
         try {
           dispatch(initializeAuth(authPayload));
-          console.log('✅ Redux auth state updated successfully');
+          console.log('✅ Redux auth state updated successfully - data will persist in localStorage via redux-persist');
         } catch (dispatchError) {
           console.error('❌ Failed to dispatch auth data:', dispatchError);
         }

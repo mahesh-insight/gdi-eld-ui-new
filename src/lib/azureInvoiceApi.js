@@ -260,9 +260,7 @@ export async function fetchInvoiceMonthDetail({
     return { error: 'No soldToId available' };
   }
   
-  const serviceName = monthlyDifference
-    ? "invoiceMonthlyDifferenceDetail"
-    : "invoiceMonthDetail";
+  const serviceName = "invoiceMonthDetail";
 
   // Build URL params: month/{value}?filter={filter}
   let urlParams = value;

@@ -6,13 +6,15 @@ import {
   fetchSummaryDataServer,
   fetchCreditsDataServer,
   fetchTrendsDataServer,
-  fetchAzureInvoiceDataForMonth
+  fetchAzureInvoiceDataForMonth,
+  fetchInvoiceDetailsServer,
+  fetchMonthlyDifferenceServer
 } from '../../azure-invoice/actions';
 
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { action, soldToId, selectedMonth, month } = body;
+    const { action, soldToId, selectedMonth, month, currentMonth, previousMonth } = body;
 
     console.log('🚀 Azure Invoice API called with:', { action, soldToId, selectedMonth, month });
 
@@ -43,6 +45,12 @@ export async function POST(request) {
         break;
       case 'trends':
         result = await fetchTrendsDataServer(soldToId, selectedMonth);
+        break;
+      case 'invoiceDetails':
+        result = await fetchInvoiceDetailsServer(soldToId, month);
+        break;
+      case 'monthlyDifference':
+        result = await fetchMonthlyDifferenceServer(soldToId, currentMonth, previousMonth);
         break;
       case 'monthData':
         const monthParam = month || selectedMonth;
