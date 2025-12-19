@@ -12,6 +12,8 @@ import { BasicGroupedChart } from '@/common/Charts/BasicGroupedChart';
 import { BasicPieDoughnutChart } from '@/common/Charts/BasicPieDoughnutChart';
 import ChartTitleAndButtons from '@/components/ChartTitleAndButtons';
 import useRefreshChartType from '@/common/Charts/useRefreshChartType';
+import InvoiceDetailsComponent from './components/InvoiceDetailsComponent';
+import MonthlyDifferenceComponent from './components/MonthlyDifferenceComponent';
 import './AzureInvoice.css';
 // Remove server action imports since we'll use client-side API calls
 
@@ -73,15 +75,6 @@ export default function AzureInvoiceClientContent(props) {
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
   const tabsRef = useRef(null);
   const [invoiceDetailsData, setInvoiceDetailsData] = useState(extractedInvoiceDetailsData || []);
-  
-  // Debug: Log invoice details data whenever it changes
-  useEffect(() => {
-    console.log('🗜 Invoice Details Data State Changed:', {
-      length: invoiceDetailsData.length,
-      data: invoiceDetailsData,
-      isArray: Array.isArray(invoiceDetailsData)
-    });
-  }, [invoiceDetailsData]);
   const [monthlyDifferenceData, setMonthlyDifferenceData] = useState([]);
   
   const handleChartRefresh = useRefreshChartType();
@@ -358,51 +351,31 @@ export default function AzureInvoiceClientContent(props) {
 
   // Calculate summary values using useMemo to ensure they update when state changes
   const invoiceTotal = useMemo(() => {
-    console.log('🔍 Full currentSummaryData structure:', currentSummaryData);
     
     const value = currentSummaryData?.spendPeriod?.totalSpend || 0;
-    console.log('💰 Invoice Total calculated:', value, 'from spendPeriod:', currentSummaryData?.spendPeriod);
     return value;
   }, [currentSummaryData]);
 
   const monthlyDifference = useMemo(() => {
     const value = currentSummaryData?.spendPeriod?.differenceTotalSpend || 0;
-    console.log('📊 Monthly Difference calculated:', value);
     return value;
   }, [currentSummaryData]);
 
   const monthlyDifferencePercent = useMemo(() => {
     const value = currentSummaryData?.spendPeriod?.differencePercentSpend || 0;
-    console.log('📈 Monthly Difference % calculated:', value);
     return value;
   }, [currentSummaryData]);
 
   const invoiceCredits = useMemo(() => {
-    console.log('🔍 Full currentCreditsData structure:', currentCreditsData);
-    
+    // FIXED: Use correct field for invoice credits from API response
     const value = currentCreditsData?.totalSpend || 0;
-    console.log('💳 Invoice Credits calculated:', value);
     return value;
   }, [currentCreditsData]);
-
-  // Debug: Log calculated values when they change
-  console.log('🔍 COMPONENT RENDER - Calculated values:', {
-    invoiceTotal,
-    monthlyDifference,
-    monthlyDifferencePercent,
-    invoiceCredits,
-    selectedMonth: selectedMonth?.value,
-    renderKey,
-    forceUpdate,
-    hasData: !!currentSummaryData,
-    timestamp: Date.now()
-  });
 
   // Extract spend breakdown using useMemo
   const spendBreakdown = useMemo(() => {
     // Use direct spend array from API response
     const data = currentSummaryData?.spend || currentSummaryData?.spendPeriod?.spend || [];
-    console.log('📊 Spend Breakdown calculated:', data);
     return data;
   }, [currentSummaryData]);
   
@@ -415,14 +388,11 @@ export default function AzureInvoiceClientContent(props) {
       label: item.label,
       value: item.value
     }));
-    console.log('📈 Invoice Breakdown Data (source):', spendData);
-    console.log('📈 Invoice Breakdown Data (transformed):', data);
     return data;
   }, [currentSummaryData]);
 
   // Prepare data for Trending Monthly Spend (BasicGroupedChart format)
   const invoiceTrendData = useMemo(() => {
-    console.log('🔍 Full currentTrendsData structure:', currentTrendsData);
     
     let periodsData = [];
     if (currentTrendsData?.spendPeriod) {
@@ -458,24 +428,13 @@ export default function AzureInvoiceClientContent(props) {
       });
     });
     
-    console.log('📊 Invoice Trend Data calculated:', data);
     return data;
   }, [currentTrendsData]);
   
   // Top N Expensive Products data
-  const topNExpensiveProducts = useMemo(() => {
-    // FIXED: Use topNExpensiveProducts.spend for product-level data
-    console.log('🔍 DEBUGGING Top N Expensive Products Data Sources:');
-    console.log('🔍 Full currentSummaryData object:', currentSummaryData);
-    console.log('🔍 currentSummaryData?.topNExpensiveProducts:', currentSummaryData?.topNExpensiveProducts);
-    console.log('🔍 currentSummaryData?.topNExpensiveProducts?.spend:', currentSummaryData?.topNExpensiveProducts?.spend);
-    
+  const topNExpensiveProducts = useMemo(() => {    
     // Use topNExpensiveProducts.spend for product-level data (FortiWeb, Veeam, etc.)
     const spendData = currentSummaryData?.topNExpensiveProducts?.spend || [];
-    
-    console.log('🔍 Selected spendData source (topNExpensiveProducts):', spendData);
-    console.log('🔍 Is spendData an array?', Array.isArray(spendData));
-    console.log('🔍 SpendData length:', spendData?.length || 0);
     
     // If no data or empty array, create debug info
     if (!spendData || spendData.length === 0) {
@@ -491,28 +450,18 @@ export default function AzureInvoiceClientContent(props) {
         value: item.value
       }));
       
-    console.log('💰 Top N Expensive Products (source data):', spendData);
-    console.log('💰 Top N Expensive Products (transformed):', products);
-    console.log('💰 Total products count:', products.length);
     return products;
   }, [currentSummaryData]);
   
   // Pie chart data for Top Expensive Products
   const pieChartData = useMemo(() => {
     // FIXED: Use topNExpensiveProducts.spend for product-level data
-    const spendData = currentSummaryData?.topNExpensiveProducts?.spend || [];
-    
-    console.log('🥧 PIE CHART DEBUGGING:');
-    console.log('🥧 spendData source (topNExpensiveProducts):', spendData);
-    console.log('🥧 spendData length:', spendData?.length || 0);
-    
+    const spendData = currentSummaryData?.topNExpensiveProducts?.spend || [];    
     const data = spendData
       .map(item => ({
         category: item.label,
         value: item.value
       }));
-    console.log('🥧 Pie Chart Data (final):', data);
-    console.log('🥧 Total pie chart items:', data.length);
     return data;
   }, [currentSummaryData]);
   
@@ -1117,7 +1066,7 @@ export default function AzureInvoiceClientContent(props) {
               <TabStrip 
                 selected={selectedTabIndex} 
                 onSelect={handleTabSelect}
-                className="azure-invoice-tabstrip"
+                className="azure-invoice-tabstrip tabstrip"
               >
                 <TabStripTab title="Invoice Details">
                   <InvoiceDetailsComponent 
@@ -1149,150 +1098,3 @@ export default function AzureInvoiceClientContent(props) {
     </ErrorBoundary>
   );
 }
-
-// Invoice Details Component
-const InvoiceDetailsComponent = ({ usageMonth, data, isLoading }) => {
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(20);
-
-  // Debug: Log what data the component receives
-  console.log('🧾 InvoiceDetailsComponent received:', {
-    usageMonth,
-    data,
-    dataLength: data?.length,
-    isArray: Array.isArray(data),
-    isLoading
-  });
-
-  return (
-    <div className="azure-invoice-tab-content">
-      {isLoading ? (
-        <Skeleton shape="rectangle" className="azure-invoice-skeleton-table" />
-      ) : (
-        <div className="azure-invoice-details-grid">
-          <table className="azure-invoice-data-table">
-            <thead>
-              <tr>
-                <th>Invoice Date</th>
-                <th>Customer Name</th>
-                <th>Tenant ID</th>
-                <th>Subscription ID</th>
-                <th>Subscription Name</th>
-                <th>Product Category</th>
-                <th>Product ID</th>
-                <th>Product Name</th>
-                <th>SKU Name</th>
-                <th>Unit Price</th>
-                <th>Quantity</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data && data.length > 0 ? (
-                data.map((item, index) => (
-                  <tr key={index}>
-                    <td>{new Date(item.invoiceDate).toLocaleDateString()}</td>
-                    <td>{item.tenantName}</td>
-                    <td className="azure-invoice-table-id">{item.tenantId}</td>
-                    <td className="azure-invoice-table-id">{item.subscriptionID}</td>
-                    <td>{item.subscriptionName}</td>
-                    <td>{item.productCategory}</td>
-                    <td>{item.productId}</td>
-                    <td>{item.productName}</td>
-                    <td>{item.skuName}</td>
-                    <td>${item.unitPrice?.toFixed(2) || '0.00'}</td>
-                    <td>{item.quantity}</td>
-                    <td>${item.totalForCustomer?.toFixed(2) || '0.00'}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="12" className="azure-invoice-table-empty">
-                    No invoice details available
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-          
-          {data && data.length > 0 && (
-            <div className="azure-invoice-table-footer">
-              Showing 1-{Math.min(pageSize, data.length)} of {data.length} items
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// Monthly Difference Component  
-const MonthlyDifferenceComponent = ({ usageMonth, data, isLoading }) => {
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(20);
-
-  return (
-    <div className="azure-invoice-tab-content">
-      {isLoading ? (
-        <Skeleton shape="rectangle" className="azure-invoice-skeleton-table" />
-      ) : (
-        <div className="azure-invoice-differences-grid">
-          <table className="azure-invoice-data-table">
-            <thead>
-              <tr>
-                <th>Start Month</th>
-                <th>End Month</th>
-                <th>Customer Name</th>
-                <th>Subscription Name</th>
-                <th>Product Category</th>
-                <th>Product Name</th>
-                <th>SKU Name</th>
-                <th>Publisher</th>
-                <th>Cost Difference</th>
-                <th>Currency</th>
-                <th>Change Type</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data && data.length > 0 ? (
-                data.map((item, index) => (
-                  <tr key={index}>
-                    <td>{new Date(item.startMonth).toLocaleDateString()}</td>
-                    <td>{new Date(item.endMonth).toLocaleDateString()}</td>
-                    <td>{item.tenantName}</td>
-                    <td>{item.subscriptionName}</td>
-                    <td>{item.productCategory}</td>
-                    <td>{item.productName}</td>
-                    <td>{item.skuName}</td>
-                    <td>{item.publisherName}</td>
-                    <td className={`cost-difference ${item.costDifference >= 0 ? 'positive' : 'negative'}`}>
-                      ${item.costDifference?.toFixed(4) || '0.0000'}
-                    </td>
-                    <td>{item.currency}</td>
-                    <td>
-                      <span className={`change-type ${item.changeType?.toLowerCase()?.replace(' ', '-')}`}>
-                        {item.changeType}
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="11" className="azure-invoice-table-empty">
-                    No monthly differences available
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-          
-          {data && data.length > 0 && (
-            <div className="azure-invoice-table-footer">
-              Showing 1-{Math.min(pageSize, data.length)} of {data.length} items
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};

@@ -71,19 +71,21 @@ export default function AuthContextInitializer({ children }) {
                     hasValidPersistedAuth = true;
                     console.log('✅ AuthContextInitializer: Valid persisted auth found - verifying user object completeness');
                     
-                    // Even with valid persist data, ensure user object has critical fields
-                    // This prevents header display issues after cache expiry
+                    // CRITICAL: Always ensure user object has complete fields to prevent header display issues
+                    // This prevents showing firstName instead of account name after cache reset
                     const soldToId = persistedSoldTo || persistedLoginResponse?.soldToId || persistedLoginResponse?.soldTo;
-                    if (persistedUser && (!persistedUser.soldToId || !persistedUser.firstName)) {
-                        console.log('🔧 AuthContextInitializer: Updating user object with missing fields');
-                        dispatch(setUser({
-                            ...persistedUser,
-                            soldToId: soldToId || persistedUser.soldToId,
-                            firstName: persistedUser.firstName || persistedLoginResponse?.firstName,
-                            lastName: persistedUser.lastName || persistedLoginResponse?.lastName || "",
-                            username: persistedUser.username || persistedLoginResponse?.username,
-                            persona: persistedUser.persona || persistedLoginResponse?.persona
-                        }));
+                    console.log('🔧 AuthContextInitializer: Ensuring complete user object for header display');
+                    dispatch(setUser({
+                        ...persistedUser,
+                        soldToId: soldToId || persistedUser?.soldToId,
+                        firstName: persistedUser?.firstName || persistedLoginResponse?.firstName || '',
+                        lastName: persistedUser?.lastName || persistedLoginResponse?.lastName || '',
+                        username: persistedUser?.username || persistedLoginResponse?.username || '',
+                        persona: persistedUser?.persona || persistedLoginResponse?.persona || ''
+                    }));
+                    // CRITICAL: Also ensure loginResponse is complete
+                    if (!persistedLoginResponse?.userProfile?.defaultContext?.[0]?.soldToName) {
+                        console.warn('⚠️ Missing soldToName in loginResponse - this may cause header display issues');
                     }
                     
                     console.log('✅ AuthContextInitializer: Relying on Redux persist rehydration (with user object verification)');
@@ -112,12 +114,25 @@ export default function AuthContextInitializer({ children }) {
                 const loginResponseData = JSON.parse(userContextString);
                 console.log('📦 Using complete login response from cookies:', loginResponseData);
 
-                // Store complete login response in Redux - no complex parsing needed
+                // FIXED: Store complete login response with proper structure
                 dispatch(setAuthenticated(true));
-                dispatch(setLoginResponse(loginResponseData));
-                dispatch(setAccessToken(accessToken));
-                dispatch(setUser(loginResponseData)); // Use complete login response as user data
-                dispatch(setContextData(loginResponseData));
+                dispatch(setLoginResponse(loginResponseData)); // This now handles access token extraction too
+                
+                // Set user data from login response
+                const userData = {
+                    id: loginResponseData.id,
+                    username: loginResponseData.username,
+                    email: loginResponseData.email,
+                    firstName: loginResponseData.firstName,
+                    lastName: loginResponseData.lastName,
+                    persona: loginResponseData.persona,
+                    soldToId: loginResponseData.userProfile?.defaultContext?.[0]?.soldToId,
+                    permissions: loginResponseData.permissions,
+                    isInsightEmployee: loginResponseData.isInsightEmployee,
+                    isInsightAdmin: loginResponseData.isInsightAdmin
+                };
+                dispatch(setUser(userData));
+                dispatch(setContextData(loginResponseData.userProfile?.defaultContext?.[0] || {}));
                 dispatch(setSoldTo(loginResponseData.soldToId));
                 dispatch(setSalesOrg(loginResponseData.salesOrgId));
                 

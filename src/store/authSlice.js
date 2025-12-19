@@ -5,7 +5,7 @@ const initialState = {
   isAuthenticated: false,
   isLoading: false,
   user: null,
-  loginResponse: null,
+  loginResponse: null, // Stores complete login response with all user data
   accessToken: null,
   contextData: null,
   soldTo: null,
@@ -33,7 +33,16 @@ const authSlice = createSlice({
       }
     },
     setLoginResponse: (state, action) => {
-      state.loginResponse = action?.payload ?? null;
+      // Store complete login response with all user profile data
+      const response = action?.payload ?? null;
+      state.loginResponse = response;
+      
+      // Also extract key fields for direct access
+      if (response) {
+        state.accessToken = response.tokens?.bearerToken || response.accessToken;
+        state.soldTo = response.userProfile?.defaultContext?.[0]?.soldToId || response.soldToId;
+        state.salesOrg = response.userProfile?.defaultContext?.[0]?.salesOrgId || response.salesOrgId;
+      }
     },
     setAccessToken: (state, action) => {
       state.accessToken = action?.payload ?? null;

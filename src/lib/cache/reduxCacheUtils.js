@@ -72,10 +72,10 @@ export const ReduxCacheUtils = {
   /**
    * Check if cache is valid for current session
    * @param {string} soldToId - Current user's soldToId
-   * @param {number} maxAgeMinutes - Maximum cache age in minutes (default: 30)
+   * @param {number} maxAgeMinutes - Maximum cache age in minutes (default: 1 for testing)
    * @returns {boolean} True if cache is valid and can be used
    */
-  isCacheValid: (soldToId, maxAgeMinutes = 30) => {
+  isCacheValid: (soldToId, maxAgeMinutes = 1) => { // Changed from 30 to 1 minute for testing
     const state = store.getState();
     const azureData = state.azureInvoice;
     

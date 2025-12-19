@@ -102,27 +102,39 @@ const Header = () => {
   const { user, logout, isAuthenticated, loginResponse } = useAuth();
   const router = useRouter();
   
-  // Get all data from Redux loginResponse - this persists until logout
+  // FIXED: Get all data from Redux loginResponse using the actual login response structure
   const displayFirstName = loginResponse?.firstName || 'User';
   const displayLastName = loginResponse?.lastName || '';
-  const displayUsername = loginResponse?.username || '';
+  const displayUsername = loginResponse?.username || loginResponse?.email || '';
   const displayPersona = loginResponse?.persona || '';
   
-  // Extract account info from userProfile.defaultContext[0] as per login response structure
+  // Extract account info from userProfile.defaultContext[0] using actual structure
   const defaultContext = loginResponse?.userProfile?.defaultContext?.[0];
   const soldTo = defaultContext?.soldTo || '';
-  const companyName = defaultContext?.soldToName || displayFirstName;
+  const soldToId = defaultContext?.soldToId || '';
+  const companyName = defaultContext?.soldToName || 'Unknown Account';
   
-  console.log('🔍 Header: Redux data check:', {
+  // Store access token from tokens.bearerToken
+  const accessToken = loginResponse?.tokens?.bearerToken || loginResponse?.accessToken;
+  
+  console.log('🔍 Header: Redux data check (using complete login response):', {
     isAuthenticated,
     hasLoginResponse: !!loginResponse,
     loginResponseKeys: loginResponse ? Object.keys(loginResponse) : [],
     hasDefaultContext: !!defaultContext,
-    defaultContextData: defaultContext,
-    displayFirstName,
-    companyName,
-    soldTo,
-    dataSource: 'Redux loginResponse.userProfile.defaultContext[0] (persists until logout)'
+    hasAccessToken: !!accessToken,
+    userData: {
+      firstName: displayFirstName,
+      lastName: displayLastName,
+      username: displayUsername,
+      persona: displayPersona
+    },
+    accountData: {
+      companyName,
+      soldTo,
+      soldToId
+    },
+    dataSource: 'Complete login response stored in Redux (persists until logout)'
   });
   
 // Validate Redux data availability
@@ -134,7 +146,8 @@ const Header = () => {
     console.log('✅ Header: All data from Redux loginResponse (persists until logout):', {
       userDisplay: `${displayLastName ? displayLastName + ', ' : ''}${displayFirstName}`,
       accountDisplay: `${companyName} - ${soldTo || 'N/A'}`,
-      dataIntegrity: 'Redux store → persists across sessions'
+      dataIntegrity: 'Redux store → persists across sessions',
+      fallbackFixed: 'Company name no longer falls back to firstName'
     });
   }
   

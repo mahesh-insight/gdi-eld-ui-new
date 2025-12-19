@@ -24,10 +24,10 @@ export async function POST() {
 
   console.log('🔧 [DEV-AUTH] Setting cookies:', { testBearerToken, userContextData });
 
-  // Set cookies server-side with more persistent settings
+  // Set cookies server-side with short expiration for testing
   cookieStore.set('access_token', testBearerToken, {
     path: '/',
-    maxAge: 24 * 60 * 60, // 24 hours
+    maxAge: 2 * 60, // 2 minutes for testing (was 24 hours)
     sameSite: 'lax', // More permissive for local development
     httpOnly: false, // Allow client-side access
     secure: false // Allow HTTP in development
@@ -35,7 +35,7 @@ export async function POST() {
   
   cookieStore.set('user_context', JSON.stringify(userContextData), {
     path: '/',
-    maxAge: 24 * 60 * 60, // 24 hours
+    maxAge: 1 * 60, // 2 minutes for testing (was 24 hours)
     sameSite: 'lax', // More permissive for local development
     httpOnly: false, // Allow client-side access
     secure: false // Allow HTTP in development
@@ -48,7 +48,7 @@ export async function POST() {
     user: userContextData
   }), {
     path: '/',
-    maxAge: 24 * 60 * 60, // 24 hours
+    maxAge: 1 * 60, // 2 minutes for testing (was 24 hours)
     sameSite: 'lax',
     httpOnly: false,
     secure: false

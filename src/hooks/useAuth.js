@@ -38,6 +38,16 @@ export const useAuth = () => {
     // Clear Redux state (this clears all sensitive data from memory)
     dispatch(clearAuth());
     
+    // FIXED: Also clear the userSlice state to prevent stale user data
+    import('@/lib/store/slices/userSlice').then((module) => {
+      if (module.clearUserState) {
+        dispatch(module.clearUserState());
+        console.log('✅ Auth: Cleared userSlice state');
+      }
+    }).catch(err => {
+      console.warn('⚠️ Auth: Could not clear userSlice:', err);
+    });
+    
     // Clear Azure Invoice cache as well
     if (typeof window !== 'undefined') {
       try {
@@ -54,6 +64,7 @@ export const useAuth = () => {
         // Clear all localStorage including Redux persist
         localStorage.removeItem('persist:ccr-auth');
         localStorage.removeItem('persist:ccr-azure-invoice');
+        localStorage.removeItem('persist:ccr-user'); // Also clear user slice persist
         console.log('✅ Auth: Cleared localStorage persist data');
       } catch (err) {
         console.warn('⚠️ Auth: localStorage clear error:', err);
