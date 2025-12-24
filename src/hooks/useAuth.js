@@ -21,8 +21,16 @@ export const useAuth = () => {
   const dispatch = useDispatch();
   const auth = useSelector(state => state.auth);
 
-  // Auto-authenticate for development immediately when hook is called
-  // Remove auto-authentication - let the real auth flow handle authentication
+  // DEBUGGING: Log what we're actually getting from Redux
+  console.log('🔍 useAuth: Current auth state:', {
+    isAuthenticated: auth?.isAuthenticated,
+    hasUser: !!auth?.user,
+    hasAccessToken: !!auth?.accessToken,
+    hasLoginResponse: !!auth?.loginResponse,
+    userKeys: auth?.user ? Object.keys(auth.user) : [],
+    authKeys: Object.keys(auth || {}),
+    authStateRaw: auth
+  });
 
   const login = (loginData) => {
     dispatch(setAuthenticated(true));

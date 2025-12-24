@@ -99,7 +99,32 @@ const services = {
   mpsaStatus: {
     method: "GET",
     url: `/ccr-dashboard-service/context`,
-    pathParam: true, // Indicates this service accepts path parameters
+    pathParam: true,
+  },
+  // Dashboard
+  getAzureSpendWidget:{
+    method: 'post',
+    baseURL: `/ccr-dashboard-service/microsoft/azurespend`
+  },
+  getAwsSpendWidget:{
+    method: 'post',
+    baseURL: `/ccr-dashboard-service/aws/billableitem`
+  },
+  getMSCloudWidget:{
+    method: 'post',
+    baseURL: `/ccr-dashboard-service/microsoft/mscloud`
+  },
+  getM365Widget:{
+    method: 'post',
+    baseURL: `/ccr-dashboard-service/microsoft/m365`
+  },
+  getAdobeSpendWidget:{
+    method: 'post',
+    baseURL: `/ccr-dashboard-service/adobe/billableitem`
+  },
+  getMPSAWidget:{
+    method: 'post',
+    baseURL: `/ccr-dashboard-service/microsoft/mpsa`
   },
   // Invoice services - properly configured for centralized API management
   invoiceMonths: {
