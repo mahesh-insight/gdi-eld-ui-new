@@ -1,0 +1,425 @@
+/* src/app/invoices/invoices.css */
+.invoices-container {
+  width: 100%;
+  margin: 0 auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+/* Header Section - Horizontal Layout */
+.invoices-header-row {
+  display: flex;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  align-items: center;
+}
+
+.header-left {
+  flex: 0 0 auto;
+  margin-right: 40px;
+}
+
+.header-left h1 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.header-right {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.header-stats {
+  display: flex;
+  gap: 32px;
+  align-items: center;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 120px;
+}
+
+.stat-item.unbilled {
+  align-items: flex-start;
+}
+
+.stat-link {
+  color: #e91e63;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.stat-link:hover {
+  text-decoration: underline;
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #6c757d;
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
+
+.stat-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #e91e63;
+}
+
+.info-icon {
+  font-size: 12px;
+  color: #007bff;
+  margin-left: 4px;
+}
+
+.status-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-badge {
+  background: #28a745;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.download-pdf {
+  background: none;
+  border: none;
+  color: #e91e63;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* Chart Information Section */
+.chart-info-section {
+  background: white;
+  padding: 16px 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.chart-instruction {
+  margin: 0;
+  color: #6c757d;
+  font-size: 14px;
+  font-style: italic;
+}
+
+/* Filters Section - 75% width */
+.invoices-filters-section {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+}
+
+.filters-container {
+  max-width: 75%;
+}
+
+.primary-filters {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.dropdown-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 30%;
+}
+
+.dropdown-group label {
+  font-weight: 500;
+  color: #495057;
+  font-size: 14px;
+}
+
+/* Additional Filters Section */
+.invoices-additional-filters {
+  background: white;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.invoices-additional-filters .dropdown-row {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  align-items: end;
+
+  .dropdown-group{
+    min-width: 24%;
+  }
+}
+
+.invoices-filters {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  background: white;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.apply-filters-btn {
+  background-color: #ae0a46;
+  color: white;
+  border: none;
+  padding: 14px 35px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.apply-filters-btn:hover:not(:disabled) {
+  background-color: #6f062d;
+}
+
+.apply-filters-btn:disabled {
+  background-color: #ae0a46;
+  cursor: not-allowed;
+}
+
+/* Charts Row */
+.invoices-charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.invoices-breakdown-chart,
+.invoices-trend-chart {
+  background: white;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.invoices-breakdown-chart h3,
+.invoices-trend-chart h3 {
+  margin: 0 0 16px 0;
+  color: #2c3e50;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* Responsive design for charts */
+@media (max-width: 1200px) {
+  .invoices-charts-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Chart Section */
+.invoices-chart {
+  background: white;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.invoices-chart h3 {
+  margin: 0 0 16px 0;
+  color: #2c3e50;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* Grid Section */
+.invoices-grid {
+  background: white;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.invoices-grid h3 {
+  margin: 0 0 16px 0;
+  color: #2c3e50;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* Error Message */
+.error-message {
+  background: white;
+  padding: 40px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.error-message h2 {
+  color: #dc3545;
+  margin: 0 0 16px 0;
+}
+
+.error-message p {
+  color: #6c757d;
+  margin: 0 0 24px 0;
+}
+
+.error-message button {
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.error-message button:hover {
+  background-color: #0056b3;
+}
+
+/* Debug Info */
+.debug-info,
+.ssr-performance-info {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.debug-info h4,
+.ssr-performance-info h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+}
+
+.debug-info p,
+.ssr-performance-info p {
+  margin: 4px 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .invoices-container {
+    padding: 16px;
+    gap: 16px;
+  }
+  
+  .invoices-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .header-left {
+    margin-right: 0;
+  }
+  
+  .header-right {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .header-stats {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+    width: 100%;
+  }
+  
+  .stat-item {
+    align-items: flex-start;
+    min-width: auto;
+  }
+  
+  .stat-content {
+    align-items: flex-start;
+    text-align: left;
+  }
+  
+  .header-left h1 {
+    font-size: 20px;
+  }
+  
+  .filters-container {
+    max-width: 100%;
+  }
+  
+  .primary-filters {
+    flex-direction: column;
+  }
+  
+  .dropdown-group {
+    min-width: auto;
+    width: 100%;
+  }
+}
+
+/* Kendo UI Customizations */
+.k-dropdownlist {
+  width: 100%;
+}
+
+.k-grid {
+  border: 1px solid #dee2e6;
+}
+
+.k-grid-header {
+  background-color: #f8f9fa;
+}
+
+.k-chart {
+  background: transparent;
+}
+
+/* Custom Chart Colors - Teal/Blue matching reference */
+.k-chart-series .k-series-0 .k-column {
+  fill: #1f9a85 !important;
+}
+
+.k-chart-series .k-series-0 .k-column:hover {
+  fill: #177a6b !important;
+}
+
+/* Chart axis styling */
+.k-chart .k-chart-axis-labels {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.k-chart .k-chart-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+}

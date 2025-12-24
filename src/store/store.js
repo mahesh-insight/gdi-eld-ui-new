@@ -268,3 +268,8 @@ if (typeof window !== 'undefined') {
 
 // Export store for use in components
 export default store;
+
+// Make store accessible for request interceptors (client-side only)
+if (typeof window !== 'undefined') {
+  window.__REDUX_STORE__ = store;
+}

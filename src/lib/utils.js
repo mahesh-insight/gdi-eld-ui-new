@@ -12,3 +12,21 @@ export function formatDate(date) {
     day: 'numeric',
   }).format(date);
 }
+
+export function exceptionHandler(error) {
+  console.error('Exception:', error);
+  
+  if (error?.response?.data?.message) {
+    return error.response.data.message;
+  }
+  
+  if (error?.message) {
+    return error.message;
+  }
+  
+  if (typeof error === 'string') {
+    return error;
+  }
+  
+  return 'An unexpected error occurred. Please try again.';
+}

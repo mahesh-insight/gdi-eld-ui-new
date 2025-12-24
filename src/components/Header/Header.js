@@ -36,33 +36,33 @@ const navItems = [
   {
     label: "Insight Invoices",
     children: [
-      { label: "Invoice Details", href: "/invoices/details" },
+      { label: "Invoice Details", href: "/invoices" },
       { label: "Invoice History", href: "/invoices/history" },
     ],
   },
-  {
-    label: "Invoices",
-    children: [
-      {
-        label: "Invoice Details",
-        href: "/invoices/details",
-      },
-      {
-        label: "Invoice History",
-        href: "/invoices/history",
-        children: [
-          {
-            label: "History Details",
-            href: "/invoices/history/details",
-          },
-          {
-            label: "History Summary",
-            href: "/invoices/history/summary",
-          },
-        ],
-      },
-    ],
-  },
+  // {
+  //   label: "Invoices",
+  //   children: [
+  //     {
+  //       label: "Invoice Details",
+  //       href: "/invoices",
+  //     },
+  //     {
+  //       label: "Invoice History",
+  //       href: "/invoices/history",
+  //       children: [
+  //         {
+  //           label: "History Details",
+  //           href: "/invoices/history/details",
+  //         },
+  //         {
+  //           label: "History Summary",
+  //           href: "/invoices/history/summary",
+  //         },
+  //       ],
+  //     },
+  //   ],
+  // },
   {
     label: "Cloud Consumption",
     children: [
@@ -99,8 +99,12 @@ const Header = () => {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isAccountSettingsOpen, setIsAccountSettingsOpen] = useState(false);
   const [indicatorStyle, setIndicatorStyle] = useState({});
-  const { user, logout, isAuthenticated, loginResponse } = useAuth();
+  const { logout } = useAuth(); // Only use logout function from useAuth
   const router = useRouter();
+  
+  // Read authentication data directly from Redux store (persisted)
+  const loginResponse = useSelector((state) => state.auth.loginResponse);
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   
   // FIXED: Get all data from Redux loginResponse using the actual login response structure
   const displayFirstName = loginResponse?.firstName || 'User';
@@ -108,16 +112,18 @@ const Header = () => {
   const displayUsername = loginResponse?.username || loginResponse?.email || '';
   const displayPersona = loginResponse?.persona || '';
   
-  // Extract account info from userProfile.defaultContext[0] using actual structure
+  // Extract account info from userProfile.defaultContext[0] - ONLY from Redux loginResponse
   const defaultContext = loginResponse?.userProfile?.defaultContext?.[0];
   const soldTo = defaultContext?.soldTo || '';
   const soldToId = defaultContext?.soldToId || '';
-  const companyName = defaultContext?.soldToName || 'Unknown Account';
+  
+  // SIMPLIFIED: Only use soldToName from Redux loginResponse - no fallbacks
+  const companyName = defaultContext?.soldToName;
   
   // Store access token from tokens.bearerToken
   const accessToken = loginResponse?.tokens?.bearerToken || loginResponse?.accessToken;
   
-  console.log('🔍 Header: Redux data check (using complete login response):', {
+  console.log('🔍 Header: Redux data check (reading directly from Redux store):', {
     isAuthenticated,
     hasLoginResponse: !!loginResponse,
     loginResponseKeys: loginResponse ? Object.keys(loginResponse) : [],
@@ -132,22 +138,59 @@ const Header = () => {
     accountData: {
       companyName,
       soldTo,
-      soldToId
+      soldToId,
+      rawSoldToName: defaultContext?.soldToName, // RAW VALUE CHECK
+      companyNameSource: 'Redux loginResponse.userProfile.defaultContext[0].soldToName ONLY'
     },
-    dataSource: 'Complete login response stored in Redux (persists until logout)'
+    dataSource: 'Redux store (persisted until logout - no time limits)',
+    reduxHydrated: !!loginResponse,
+    
+    // DEBUGGING: Check exact login response structure
+    loginResponseStructure: loginResponse ? {
+      hasUserProfile: !!loginResponse.userProfile,
+      hasDefaultContext: !!loginResponse.userProfile?.defaultContext,
+      defaultContextLength: loginResponse.userProfile?.defaultContext?.length || 0,
+      defaultContext0: loginResponse.userProfile?.defaultContext?.[0] || 'MISSING',
+      soldToNameValue: loginResponse.userProfile?.defaultContext?.[0]?.soldToName || 'MISSING',
+      // FULL LOGIN RESPONSE DUMP to understand actual structure
+      fullLoginResponse: JSON.stringify(loginResponse, null, 2)
+    } : 'NO_LOGIN_RESPONSE'
   });
+  
+  // ADDITIONAL DEBUG: Check if soldToName exists anywhere in the login response
+  if (loginResponse) {
+    console.log('🕵️ DETAILED SOLDTONAME SEARCH:', {
+      // Search for soldToName at different levels
+      rootLevel: loginResponse.soldToName || 'NOT_FOUND',
+      userProfileLevel: loginResponse.userProfile?.soldToName || 'NOT_FOUND', 
+      defaultContextLevel: loginResponse.userProfile?.defaultContext?.[0]?.soldToName || 'NOT_FOUND',
+      // Search for any property containing "soldTo" or similar
+      allPropsContainingSoldTo: Object.keys(loginResponse).filter(key => 
+        key.toLowerCase().includes('soldto') || 
+        key.toLowerCase().includes('company') ||
+        key.toLowerCase().includes('name')
+      ),
+      // Check if userProfile exists and what it contains
+      userProfileStructure: loginResponse.userProfile ? Object.keys(loginResponse.userProfile) : 'NO_USER_PROFILE',
+      // Check defaultContext array
+      defaultContextArray: loginResponse.userProfile?.defaultContext || 'NO_DEFAULT_CONTEXT',
+      // Check first item in defaultContext
+      firstContextKeys: loginResponse.userProfile?.defaultContext?.[0] ? 
+        Object.keys(loginResponse.userProfile.defaultContext[0]) : 'NO_FIRST_CONTEXT'
+    });
+  }
   
 // Validate Redux data availability
   if (isAuthenticated && !loginResponse) {
-    console.warn('⚠️ Header: Authenticated but no loginResponse in Redux - may need to re-login');
+    console.warn('⚠️ Header: Authenticated but no loginResponse in Redux - store may be hydrating');
   }
   
   if (isAuthenticated && loginResponse) {
-    console.log('✅ Header: All data from Redux loginResponse (persists until logout):', {
+    console.log('✅ Header: Reading soldToName from Redux store ONLY:', {
       userDisplay: `${displayLastName ? displayLastName + ', ' : ''}${displayFirstName}`,
       accountDisplay: `${companyName} - ${soldTo || 'N/A'}`,
-      dataIntegrity: 'Redux store → persists across sessions',
-      fallbackFixed: 'Company name no longer falls back to firstName'
+      dataIntegrity: 'Redux store → persists until logout (no time limits)',
+      simplifiedLogic: 'No fallback chains - only loginResponse.userProfile.defaultContext[0].soldToName'
     });
   }
   

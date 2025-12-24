@@ -14,6 +14,7 @@ import ChartTitleAndButtons from '@/components/ChartTitleAndButtons';
 import useRefreshChartType from '@/common/Charts/useRefreshChartType';
 import InvoiceDetailsComponent from './components/InvoiceDetailsComponent';
 import MonthlyDifferenceComponent from './components/MonthlyDifferenceComponent';
+import { getInsightThemeColors } from '@/lib/chartColors';
 import './AzureInvoice.css';
 // Remove server action imports since we'll use client-side API calls
 
@@ -837,7 +838,7 @@ export default function AzureInvoiceClientContent(props) {
                         <Chart 
                           onRefresh={handleChartRefresh} 
                           className="chart1"
-                          seriesColors={['#14a2b8', '#a11b4b', '#cccccc']}
+                          seriesColors={getInsightThemeColors()}
                         >
                           <BasicGroupedChart
                             chartType="column"
@@ -880,7 +881,7 @@ export default function AzureInvoiceClientContent(props) {
                         ) : (
                           <Chart 
                             onRefresh={handleChartRefresh}
-                            seriesColors={['#14a2b8', '#a11b4b', '#cccccc']}
+                            seriesColors={getInsightThemeColors()}
                           >
                             <BasicGroupedChart
                               key={trendingChartType}
@@ -946,7 +947,7 @@ export default function AzureInvoiceClientContent(props) {
                             valueFormat="c2"
                             labelFormat="c2"
                             labelIncludeGroup={false}
-                            seriesColors={['#14a2b8', '#e74c3c', '#f39c12', '#27ae60', '#9b59b6', '#34495e', '#1abc9c', '#e67e22']}
+                            seriesColors={getInsightThemeColors()}
                             gap={0.2}
                             spacing={1.5}
                           />
@@ -969,7 +970,7 @@ export default function AzureInvoiceClientContent(props) {
                             showLabels={true}
                             valueFormat="c2"
                             labelFormat="c2"
-                            seriesColors={['#14a2b8', '#e74c3c', '#f39c12', '#27ae60', '#9b59b6', '#34495e', '#1abc9c', '#e67e22']}
+                            seriesColors={getInsightThemeColors()}
                           />
                         </Chart>
                       )}

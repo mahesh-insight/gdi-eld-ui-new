@@ -131,6 +131,71 @@ const services = {
     url: "/ccr-invoice-service/total",
     urlParam: true,
   },
+
+  // Billable Items
+  providers: {
+    method: 'POST',
+    url: `/ccr-billableitem-service/provider`
+  },
+  microsoftBillableInvoiceMonths: {
+    method: 'POST',
+    url: `/ccr-billableitem-service/microsoft/months`
+  },
+  microsoftBillableInvoiceSummary: {
+    method: 'POST',
+    url: `/ccr-billableitem-service/microsoft/summary/{{urlParam}}`,
+    urlParam: true
+  },
+  microsoftBillableInvoiceMonthDetail: {
+    method: 'POST',
+    url: `/ccr-billableitem-service/microsoft/month/{{urlParam}}`,
+    urlParam: true
+  },
+  microsoftBillableInvoiceTrend: {
+    method: 'POST',
+    url: `/ccr-billableitem-service/microsoft/trend`
+  },
+
+  // AWS Billable Items
+  awsBillableInvoiceMonths: {
+    method: 'POST',
+    url: `/ccr-billableitem-service/aws/months`
+  },
+  awsBillableInvoiceSummary: {
+    method: 'POST',
+    url: `/ccr-billableitem-service/aws/summary/{{urlParam}}`,
+    urlParam: true
+  },
+  awsBillableInvoiceMonthDetail: {
+    method: 'POST',
+    url: `/ccr-billableitem-service/aws/month/{{urlParam}}`,
+    urlParam: true
+  },
+  awsBillableInvoiceTrend: {
+    method: 'POST',
+    url: `/ccr-billableitem-service/aws/trend`
+  },
+
+  // Adobe Billable Items
+  adobeBillableInvoiceMonths: {
+    method: 'POST',
+    url: `/ccr-billableitem-service/adobe/months`
+  },
+  adobeBillableInvoiceSummary: {
+    method: 'POST',
+    url: `/ccr-billableitem-service/adobe/summary/{{urlParam}}`,
+    urlParam: true
+  },
+  adobeBillableInvoiceMonthDetail: {
+    method: 'POST',
+    url: `/ccr-billableitem-service/adobe/month/{{urlParam}}`,
+    urlParam: true
+  },
+  adobeBillableInvoiceTrend: {
+    method: 'POST',
+    url: `/ccr-billableitem-service/adobe/trend`
+  },
+
 };
 
 /**
@@ -163,3 +228,4 @@ const servicesExport = {
 };
 
 export default servicesExport;
+export { getService, services };

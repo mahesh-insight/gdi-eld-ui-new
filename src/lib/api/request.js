@@ -276,7 +276,9 @@ const instance = (serviceName, configuration = {}) => {
         !configuration.stopRetry
       ) {
         if (isBrowser) {
-          // Client-side: clear localStorage and redirect
+          console.log('🔒 Token expired (401) - logging out and redirecting to login');
+          
+          // Clear localStorage items
           localStorage.removeItem("access_token");
           localStorage.removeItem("authenticationURL");
           localStorage.removeItem("logged_in");
@@ -284,8 +286,33 @@ const instance = (serviceName, configuration = {}) => {
           localStorage.removeItem("user_data");
           localStorage.removeItem("account_selection");
           localStorage.removeItem("login_response");
+          localStorage.removeItem("uiProps");
+          
+          // Clear Redux persist store items
+          localStorage.removeItem("persist:root");
+          localStorage.removeItem("persist:ccr-auth");
+          
           sessionStorage?.clear();
-          window.location = '/';
+          
+          // Clear Redux store if available
+          try {
+            if (window.__REDUX_STORE__) {
+              const { clearAuth } = await import('@/store/authSlice');
+              window.__REDUX_STORE__.dispatch(clearAuth());
+              console.log('✅ Redux auth state cleared');
+            }
+          } catch (error) {
+            console.warn('⚠️ Could not clear Redux auth state:', error);
+          }
+          
+          // Clear cookies
+          document.cookie = 'access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+          document.cookie = 'user_context=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+          
+          // Redirect to login
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 100);
         }
         configuration.stopRetry = true;
         return response;

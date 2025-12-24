@@ -79,7 +79,7 @@ export const BasicGroupedChart = (props) => {
      dynamicMax = 1;
   }
 
-  const series = groupBy(data, [
+  const series = groupBy(data || [], [
     { field: groupedByField, },
   ]);
 

@@ -1,0 +1,325 @@
+// src/app/invoices/actions.js
+'use server';
+
+import { cookies } from 'next/headers';
+import { getOrSetCached } from '@/lib/cache/serverCache';
+import { CacheTTL } from '@/lib/cache/cacheKeys';
+import { getService } from '@/lib/api/services';
+
+/**
+ * Consolidated fetch for all invoice data (optimized like azure-invoice)
+ * This combines multiple API calls into a single server action with caching
+ */
+export async function fetchConsolidatedInvoiceData(soldToId, provider, selectedMonth, invoiceNumber = null) {
+  try {
+    console.log('🚀 Consolidated Invoice Fetch:', { soldToId, provider, selectedMonth, invoiceNumber });
+    
+    const cookieStore = await cookies();
+    const accessTokenCookie = cookieStore.get('access_token');
+    
+    if (!accessTokenCookie) {
+      return { error: 'Authentication required', data: null };
+    }
+    
+    const accessToken = accessTokenCookie.value;
+    const abbreviation = typeof provider === 'string' ? provider : provider?.abbreviation;
+    const monthValue = typeof selectedMonth === 'string' ? selectedMonth : selectedMonth?.value;
+    
+    // Build filter parameter for invoice number
+    let filterParam = '';
+    const invoiceFilter = invoiceNumber && invoiceNumber !== 'all' && invoiceNumber !== 'All' ? invoiceNumber : 'all';
+    filterParam = `?filter=invoicenumber=${invoiceFilter}`;
+    
+    console.log('🔄 Making consolidated API calls with:', { abbreviation, monthValue, filterParam });
+    
+    // Create cache key for consolidated data
+    const cacheKey = `invoice-consolidated:${soldToId}:${abbreviation}:${monthValue}:${invoiceFilter}`;
+    
+    const data = await getOrSetCached(
+      cacheKey,
+      async () => {
+        console.log('📥 Cache MISS - fetching consolidated data from APIs');
+        
+        // Make all API calls in parallel using services
+        const [summaryResult, trendResult, gridResult] = await Promise.allSettled([
+          // Invoice Summary (month data)
+          (async () => {
+            const serviceConfig = getService('providers'); // Get base URL
+            const url = `${serviceConfig.baseURL}/ccr-billableitem-service/${abbreviation}/summary/${monthValue}${filterParam}`;
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`
+              },
+              body: JSON.stringify([soldToId])
+            });
+            if (!response.ok) throw new Error(`Summary API error: ${response.status}`);
+            return response.json();
+          })(),
+          
+          // Trend data
+          (async () => {
+            const serviceConfig = getService('providers'); // Get base URL
+            const url = `${serviceConfig.baseURL}/ccr-billableitem-service/${abbreviation}/trend${filterParam}`;
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`
+              },
+              body: JSON.stringify([soldToId])
+            });
+            if (!response.ok) throw new Error(`Trend API error: ${response.status}`);
+            return response.json();
+          })(),
+          
+          // Grid data (details)
+          (async () => {
+            const serviceConfig = getService('providers'); // Get base URL
+            const url = `${serviceConfig.baseURL}/ccr-billableitem-service/${abbreviation}/month/${monthValue}${filterParam}`;
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`
+              },
+              body: JSON.stringify([soldToId])
+            });
+            if (!response.ok) throw new Error(`Grid API error: ${response.status}`);
+            return response.json();
+          })()
+        ]);
+        
+        // Process results
+        const consolidatedData = {
+          summaryResponse: summaryResult.status === 'fulfilled' ? { data: summaryResult.value } : { error: summaryResult.reason?.message },
+          trendResponse: trendResult.status === 'fulfilled' ? { data: trendResult.value } : { error: trendResult.reason?.message },
+          detailsResponse: gridResult.status === 'fulfilled' ? { data: gridResult.value } : { error: gridResult.reason?.message }
+        };
+        
+        console.log('✅ Consolidated fetch from APIs completed:', {
+          summarySuccess: summaryResult.status === 'fulfilled',
+          trendSuccess: trendResult.status === 'fulfilled', 
+          gridSuccess: gridResult.status === 'fulfilled'
+        });
+        
+        return consolidatedData;
+      },
+      CacheTTL.AZURE_INVOICE_DATA // 10 minutes for invoice data
+    );
+    
+    console.log('🎯 Cache HIT - returning consolidated data from cache');
+    return { error: null, data };
+    
+  } catch (error) {
+    console.error('❌ Consolidated fetch error:', error);
+    return { error: error.message, data: null };
+  }
+}
+
+/**
+ * Cached providers fetch
+ */
+export async function fetchProvidersServer(soldToId) {
+  try {
+    const cookieStore = await cookies();
+    const accessTokenCookie = cookieStore.get('access_token');
+    
+    if (!accessTokenCookie) {
+      return { error: 'Authentication required', data: null };
+    }
+    
+    // Cache providers for 30 minutes
+    const cacheKey = `invoice-providers:${soldToId}`;
+    const data = await getOrSetCached(
+      cacheKey,
+      async () => {
+        console.log('📥 Cache MISS - fetching providers from API');
+        const serviceConfig = getService('providers');
+        const result = await fetch(serviceConfig.baseURL + serviceConfig.url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessTokenCookie.value}`
+          },
+          body: JSON.stringify([soldToId])
+        });
+        
+        if (!result.ok) {
+          throw new Error(`HTTP error! status: ${result.status}`);
+        }
+        
+        return result.json();
+      },
+      CacheTTL.MEDIUM // 30 minutes
+    );
+    
+    console.log('✅ Providers fetched:', data?.length || 0, 'items');
+    return { error: null, data };
+    
+  } catch (error) {
+    console.error('❌ fetchProvidersServer error:', error);
+    return { error: error.message, data: null };
+  }
+}
+
+/**
+ * Cached invoice months fetch
+ */
+export async function fetchInvoiceMonthsServer(soldToId, provider) {
+  try {
+    const cookieStore = await cookies();
+    const accessTokenCookie = cookieStore.get('access_token');
+    
+    if (!accessTokenCookie) {
+      return { error: 'Authentication required', data: null };
+    }
+    
+    const abbreviation = typeof provider === 'string' ? provider : provider?.abbreviation;
+    
+    if (!abbreviation) {
+      return { error: 'Provider abbreviation required', data: null };
+    }
+    
+    // Cache months for 30 minutes per provider
+    const cacheKey = `invoice-months:${soldToId}:${abbreviation}`;
+    const data = await getOrSetCached(
+      cacheKey,
+      async () => {
+        console.log('📥 Cache MISS - fetching months for provider:', abbreviation);
+        
+        // Get base URL from services and construct provider-specific URL
+        const serviceConfig = getService('providers'); // Use any service to get baseURL
+        const url = `${serviceConfig.baseURL}/ccr-billableitem-service/${abbreviation}/months`;
+        
+        console.log('🔍 Constructed URL:', url);
+        const result = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessTokenCookie.value}`
+          },
+          body: JSON.stringify([soldToId])
+        });
+        
+        if (!result.ok) {
+          throw new Error(`HTTP error! status: ${result.status}`);
+        }
+        
+        return result.json();
+      },
+      CacheTTL.MEDIUM // 30 minutes
+    );
+    
+    console.log('✅ Invoice months fetched for provider', abbreviation, ':', data?.length || 0, 'items');
+    return { error: null, data };
+    
+  } catch (error) {
+    console.error('❌ fetchInvoiceMonthsServer error:', error);
+    return { error: error.message, data: null };
+  }
+}
+
+/**
+ * Legacy server actions for backward compatibility
+ * These will use the consolidated fetch internally
+ */
+export async function fetchInvoiceSummaryServer(soldToId, abbreviation, monthValue) {
+  const result = await fetchConsolidatedInvoiceData(soldToId, { abbreviation }, { value: monthValue });
+  if (result.error) {
+    return { error: result.error, data: null };
+  }
+  return { error: null, data: result.data?.summaryResponse?.data };
+}
+
+export async function fetchInvoiceTrendServer(soldToId, abbreviation) {
+  const result = await fetchConsolidatedInvoiceData(soldToId, { abbreviation }, { value: 'current' });
+  if (result.error) {
+    return { error: result.error, data: null };
+  }
+  return { error: null, data: result.data?.trendResponse?.data };
+}
+
+export async function fetchInvoiceDetailsServer(soldToId, abbreviation, monthValue) {
+  const result = await fetchConsolidatedInvoiceData(soldToId, { abbreviation }, { value: monthValue });
+  if (result.error) {
+    return { error: result.error, data: null };
+  }
+  return { error: null, data: result.data?.detailsResponse?.data };
+}
+
+/**
+ * Additional backward compatibility functions for client handlers
+ */
+export async function fetchInitialInvoiceMonths(abbreviation) {
+  try {
+    const cookieStore = await cookies();
+    const userContextCookie = cookieStore.get('user_context');
+    
+    let soldToId = null;
+    if (userContextCookie) {
+      try {
+        const userContext = JSON.parse(userContextCookie.value);
+        soldToId = userContext.soldToId;
+      } catch (error) {
+        console.error('Error parsing user context:', error);
+      }
+    }
+    
+    if (!soldToId) {
+      throw new Error('No soldToId found in user context');
+    }
+    
+    const result = await fetchInvoiceMonthsServer(soldToId, { abbreviation });
+    return result;
+  } catch (error) {
+    console.error('❌ fetchInitialInvoiceMonths error:', error);
+    return { error: error.message, data: null };
+  }
+}
+
+export async function fetchInvoiceMonth(abbreviation, monthValue) {
+  try {
+    const cookieStore = await cookies();
+    const userContextCookie = cookieStore.get('user_context');
+    
+    let soldToId = null;
+    if (userContextCookie) {
+      try {
+        const userContext = JSON.parse(userContextCookie.value);
+        soldToId = userContext.soldToId;
+      } catch (error) {
+        console.error('Error parsing user context:', error);
+      }
+    }
+    
+    if (!soldToId) {
+      throw new Error('No soldToId found in user context');
+    }
+    
+    const result = await fetchConsolidatedInvoiceData(soldToId, { abbreviation }, { value: monthValue });
+    if (result.error) {
+      return { error: result.error, data: null };
+    }
+    
+    // Extract the data we need for the client
+    const monthsData = result.data?.monthsResponse?.data || [];
+    const summaryData = result.data?.summaryResponse?.data || [];
+    const trendData = result.data?.trendResponse?.data || [];
+    const detailsData = result.data?.detailsResponse?.data || [];
+    
+    return { 
+      error: null, 
+      data: {
+        months: monthsData,
+        summary: summaryData,
+        trend: trendData,
+        details: detailsData
+      }
+    };
+  } catch (error) {
+    console.error('❌ fetchInvoiceMonth error:', error);
+    return { error: error.message, data: null };
+  }
+}

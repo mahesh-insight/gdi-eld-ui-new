@@ -113,12 +113,29 @@ export default function AuthContextInitializer({ children }) {
             try {
                 const loginResponseData = JSON.parse(userContextString);
                 console.log('📦 Using complete login response from cookies:', loginResponseData);
+                console.log('🔍 Company name analysis:', {
+                    hasSoldToName: !!loginResponseData?.userProfile?.defaultContext?.[0]?.soldToName,
+                    soldToName: loginResponseData?.userProfile?.defaultContext?.[0]?.soldToName,
+                    hasCompanyName: !!loginResponseData?.companyName,
+                    companyName: loginResponseData?.companyName,
+                    hasDefaultContext: !!loginResponseData?.userProfile?.defaultContext?.[0],
+                    defaultContext: loginResponseData?.userProfile?.defaultContext?.[0]
+                });
 
-                // FIXED: Store complete login response with proper structure
+                // Store complete login response exactly as received - no modifications needed
                 dispatch(setAuthenticated(true));
-                dispatch(setLoginResponse(loginResponseData)); // This now handles access token extraction too
                 
-                // Set user data from login response
+                // Store the original login response without any fallback modifications
+                // soldToName "ET Test Customer US" is already present in the response
+                console.log('✅ Storing login response exactly as received:', {
+                    soldToName: loginResponseData?.userProfile?.defaultContext?.[0]?.soldToName,
+                    soldToId: loginResponseData?.userProfile?.defaultContext?.[0]?.soldToId,
+                    soldTo: loginResponseData?.userProfile?.defaultContext?.[0]?.soldTo
+                });
+                
+                dispatch(setLoginResponse(loginResponseData)); // Store original response without modifications
+                
+                // Set user data from original login response
                 const userData = {
                     id: loginResponseData.id,
                     username: loginResponseData.username,
@@ -127,21 +144,22 @@ export default function AuthContextInitializer({ children }) {
                     lastName: loginResponseData.lastName,
                     persona: loginResponseData.persona,
                     soldToId: loginResponseData.userProfile?.defaultContext?.[0]?.soldToId,
+                    soldToName: loginResponseData.userProfile?.defaultContext?.[0]?.soldToName,
                     permissions: loginResponseData.permissions,
                     isInsightEmployee: loginResponseData.isInsightEmployee,
                     isInsightAdmin: loginResponseData.isInsightAdmin
                 };
                 dispatch(setUser(userData));
                 dispatch(setContextData(loginResponseData.userProfile?.defaultContext?.[0] || {}));
-                dispatch(setSoldTo(loginResponseData.soldToId));
+                dispatch(setSoldTo(loginResponseData.userProfile?.defaultContext?.[0]?.soldTo));
                 dispatch(setSalesOrg(loginResponseData.salesOrgId));
                 
                 // Legacy userSlice for backward compatibility
                 dispatch(setIsLoggedInState(true));
                 dispatch(setUserState([loginResponseData]));
                 dispatch(setSelectedAccountState([{
-                    soldToID: loginResponseData.soldToId,
-                    soldTo: loginResponseData.soldToId
+                    soldToID: loginResponseData.userProfile?.defaultContext?.[0]?.soldToId,
+                    soldTo: loginResponseData.userProfile?.defaultContext?.[0]?.soldTo
                 }]));
                 dispatch(setLoginResponseState([loginResponseData]));
                 

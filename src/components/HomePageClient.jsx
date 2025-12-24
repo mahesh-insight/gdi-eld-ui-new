@@ -226,21 +226,14 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
           document.cookie = `access_token=${bearerToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
           console.log('✅ Access token cookie set (7 days)');
           
-          // Set user context cookie for server-side soldToId extraction
-          const userContextData = {
-            soldToId: soldToId,
-            persona: response.persona,
-            firstName: response.firstName,
-            username: response.username || response.userProfile?.username,
-            lastName: response.lastName,
-            salesOrgId: finalSalesOrg || response.salesOrgId,
-            isAuthenticated: true
-          };
-          document.cookie = `user_context=${encodeURIComponent(JSON.stringify(userContextData))}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
+          // Set user context cookie - STORE COMPLETE LOGIN RESPONSE for SSR compatibility
+          // This ensures soldToName "ET Test Customer US" is available everywhere
+          document.cookie = `user_context=${encodeURIComponent(JSON.stringify(response))}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
           
           console.log('✅ Authentication cookies set successfully (7 days):', {
             accessTokenLength: bearerToken?.length,
-            userContextData
+            completeLoginResponse: 'Stored complete login response with soldToName',
+            soldToName: response?.userProfile?.defaultContext?.[0]?.soldToName
           });
           console.log('ℹ️ Primary auth storage: Redux persist (localStorage) - persists until logout');
           console.log('ℹ️ Secondary auth storage: Cookies (7 days) - for SSR compatibility');

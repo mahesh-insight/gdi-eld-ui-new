@@ -1,8 +1,9 @@
 // src/app/layout.js
 import './globals.css';
 import ClientLayout from './ClientLayout';
-import "Insight-Theme/dist/scss/index.scss"; 
 import '@progress/kendo-theme-default/dist/all.css';
+import "Insight-Theme/dist/css/insight-theme.css"; 
+import "@/styles/chart-theme.css";
 import "@/i18n";
 
 export const metadata = {
@@ -13,7 +14,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>
+      <body suppressHydrationWarning={true}>
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>

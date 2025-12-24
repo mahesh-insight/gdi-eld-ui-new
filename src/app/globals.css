@@ -142,3 +142,8 @@ a {
     padding-top: 0;
   }
 }
+
+.k-dropdownlist .k-input-inner {
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+}

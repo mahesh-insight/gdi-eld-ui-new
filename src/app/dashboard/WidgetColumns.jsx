@@ -5,6 +5,7 @@ import "./WidgetColumns.css";
 import qs from "qs";
 import { Chart } from "@progress/kendo-react-charts";
 import { BasicGroupedChart } from "../Charts/BasicGroupedChart";
+import { getInsightThemeColors } from '@/lib/chartColors';
 import { IntlProvider } from "@progress/kendo-react-intl";
 import request from "../../library/api/request";
 import { useSelector, useDispatch } from 'react-redux';
@@ -1227,6 +1228,7 @@ const WidgetColumns = () => {
                     onRefresh={handleChartRefresh}
                     onSeriesClick={onChartClick}
                     style={{ height: 220 }}
+                    seriesColors={getInsightThemeColors()}
                   >
                     <BasicGroupedChart
                       key={azureSpendTrendingChartType}
