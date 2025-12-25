@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import Header from '@/components/Header/Header';
 import ReduxProvider from '@/components/ReduxProvider';
 import AuthContextInitializer from '@/components/AuthContextInitializer';
+import CookieSync from '@/components/CookieSync';
 import { usePathname } from 'next/navigation';
 
 // Pages where header should NOT show (pre-login / error pages)
@@ -42,6 +43,7 @@ export default function ClientLayout({ children }) {
   return (
     <ReduxProvider>
       <AuthContextInitializer>
+        <CookieSync />
         <div className="App">
           {showHeader && <Header />}
 

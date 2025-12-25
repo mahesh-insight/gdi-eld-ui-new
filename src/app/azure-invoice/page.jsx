@@ -21,43 +21,65 @@ import {
 export default async function AzureInvoicePage() {
   console.log('🎯 SERVER: Rendering Azure Invoice page with SSR...');
   
-  // Get user context from server-side cookies
+  // Get authentication data from server-side cookies
   const cookieStore = await cookies();
   const userContextCookie = cookieStore.get('user_context');
+  const soldToIdCookie = cookieStore.get('soldToId');
+  const accessTokenCookie = cookieStore.get('access_token');
   
-  if (!userContextCookie) {
-    return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
-        <h2>Authentication Required</h2>
-        <p>Please log in to access the Azure Invoice dashboard.</p>
-        <a href="/" style={{ color: '#007bff' }}>Return to Login</a>
-      </div>
-    );
+  // Check if we have enough data for SSR
+  const hasSoldToId = soldToIdCookie?.value || userContextCookie?.value;
+  const hasAccessToken = accessTokenCookie?.value && accessTokenCookie.value !== '{}' && accessTokenCookie.value.length > 100;
+  
+  if (!hasSoldToId || !hasAccessToken) {
+    console.log('⚠️ SERVER: Missing authentication data - rendering client fallback', {
+      hasSoldToId: !!hasSoldToId,
+      hasAccessToken: !!hasAccessToken,
+      accessTokenLength: accessTokenCookie?.value?.length || 0
+    });
+    return <AzureInvoiceClientContent mode="client-side" />;
   }
   
-  let userContext;
-  try {
-    userContext = JSON.parse(userContextCookie.value);
-  } catch (error) {
-    console.error('❌ SERVER: Failed to parse user context:', error);
-    return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
-        <h2>Authentication Error</h2>
-        <p>Invalid user context. Please log in again.</p>
-        <a href="/" style={{ color: '#007bff' }}>Return to Login</a>
-      </div>
-    );
+  // Extract soldToId for server-side data fetching
+  let soldToId = soldToIdCookie?.value;
+  let userContext = null;
+  
+  // If no direct soldToId cookie, try to extract from user_context
+  if (!soldToId && userContextCookie) {
+    try {
+      userContext = JSON.parse(decodeURIComponent(userContextCookie.value));
+      soldToId = userContext?.userProfile?.defaultContext?.[0]?.soldToId || userContext?.soldToId;
+      console.log('🔍 SERVER: Extracted soldToId from user_context:', soldToId);
+    } catch (error) {
+      console.error('❌ SERVER: Failed to parse user_context cookie:', error);
+      return <AzureInvoiceClientContent mode="client-side" />;
+    }
+  } else if (userContextCookie && !userContext) {
+    // Parse userContext even if we have soldToId from cookie for component props
+    try {
+      userContext = JSON.parse(decodeURIComponent(userContextCookie.value));
+    } catch (error) {
+      console.warn('⚠️ SERVER: Failed to parse user_context for component props, using minimal context');
+      userContext = { soldToId };
+    }
   }
   
-  const { soldToId } = userContext;
+  // Create minimal userContext if we only have soldToId
+  if (!userContext && soldToId) {
+    userContext = { soldToId };
+  }
   
   if (!soldToId) {
+    console.log('⚠️ SERVER: No soldToId, falling back to client-side mode');
+    // Fall back to client-side mode instead of showing error
     return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
-        <h2>Missing Data</h2>
-        <p>User context incomplete. Please log in again.</p>
-        <a href="/" style={{ color: '#007bff' }}>Return to Login</a>
-      </div>
+      <AzureInvoiceClientContent 
+        mode="client-side"
+        initialData={null}
+        userContext={null}
+        ssrPerformance={null}
+        soldToId={null}
+      />
     );
   }
   

@@ -92,28 +92,67 @@ export async function callAzureInvoiceAPI(serviceName, payload, serverAccessToke
     
     if (!accessToken && typeof window !== 'undefined') {
       try {
-        // First try localStorage (more reliable)
-        accessToken = localStorage.getItem("access_token");
-        console.log('🔍 localStorage accessToken:', accessToken);
+        // First try to get from Redux persist storage
+        const persistData = localStorage.getItem('persist:ccr-auth');
+        if (persistData) {
+          const parsed = JSON.parse(persistData);
+          console.log('🔍 Redux persist keys:', Object.keys(parsed));
+          
+          // Try to get token from loginResponse.tokens.bearerToken first (most reliable)
+          if (parsed.loginResponse) {
+            try {
+              let loginResponseStr = parsed.loginResponse;
+              // Remove quotes if it's a JSON string
+              if (typeof loginResponseStr === 'string' && loginResponseStr.startsWith('"')) {
+                loginResponseStr = JSON.parse(loginResponseStr);
+              }
+              const loginResponseObj = typeof loginResponseStr === 'string' ? 
+                JSON.parse(loginResponseStr) : loginResponseStr;
+              
+              if (loginResponseObj?.tokens?.bearerToken) {
+                accessToken = loginResponseObj.tokens.bearerToken;
+                console.log('✅ Client-side token from loginResponse.tokens.bearerToken:', accessToken?.substring(0, 20) + '...');
+              }
+            } catch (e) {
+              console.log('⚠️ Failed to parse loginResponse for bearerToken:', e);
+            }
+          }
+          
+          // Fallback to direct accessToken from Redux persist
+          if (!accessToken && parsed.accessToken) {
+            let tokenFromPersist = parsed.accessToken;
+            // Remove quotes if it's a JSON string
+            if (typeof tokenFromPersist === 'string' && tokenFromPersist.startsWith('"')) {
+              tokenFromPersist = JSON.parse(tokenFromPersist);
+            }
+            if (typeof tokenFromPersist === 'string' && tokenFromPersist.length > 100) {
+              accessToken = tokenFromPersist;
+              console.log('✅ Client-side token from Redux persist accessToken:', accessToken?.substring(0, 20) + '...');
+            }
+          }
+        }
         
-        // Only try storage if localStorage doesn't have it
+        // Final fallback to direct localStorage (legacy)
         if (!accessToken) {
-          const { store } = require('@/lib/store');
-          if (store && store.getState) {
-            const state = store.getState();
-            accessToken = state?.auth?.accessToken;
-            console.log('🔍 Storage accessToken:', accessToken);
+          accessToken = localStorage.getItem("access_token");
+          console.log('🔍 Legacy localStorage accessToken:', accessToken?.substring(0, 20) + '...');
+        }
+        
+        // Last resort: try Redux store
+        if (!accessToken) {
+          try {
+            const { store } = require('@/store/store');
+            if (store && store.getState) {
+              const state = store.getState();
+              accessToken = state?.auth?.accessToken;
+              console.log('🔍 Redux store accessToken:', accessToken?.substring(0, 20) + '...');
+            }
+          } catch (e) {
+            console.log('🔍 Could not access Redux store:', e.message);
           }
         }
       } catch (error) {
         console.error('❌ Error getting access token:', error);
-        // Final fallback to localStorage only
-        try {
-          accessToken = localStorage.getItem("access_token");
-          console.log('🔍 Final fallback localStorage accessToken:', accessToken);
-        } catch (e) {
-          console.error('❌ localStorage also failed:', e);
-        }
       }
     } else {
       // Server-side: try to get token from cookies
@@ -122,36 +161,93 @@ export async function callAzureInvoiceAPI(serviceName, payload, serverAccessToke
         const cookieStore = await cookies();
         const tokenCookie = cookieStore.get('access_token');
         accessToken = tokenCookie?.value;
-        console.log('🔍 Server-side cookie accessToken:', accessToken);
-        console.log('🔍 All available cookies:', cookieStore.getAll().map(c => c.name));
-        
-        // If no access_token cookie, try to get from auth persist cookie
-        if (!accessToken) {
-          const authCookie = cookieStore.get('persist:ccr-auth');
-          if (authCookie) {
-            try {
-              const persistedState = JSON.parse(authCookie.value);
-              accessToken = persistedState.accessToken;
-              console.log('🔍 Access token from auth persist:', !!accessToken);
-            } catch (e) {
-              console.log('⚠️ Failed to parse auth persist cookie for token');
+          
+            console.log('🔍 Raw cookie value type:', typeof accessToken);
+            console.log('🔍 Raw cookie value:', accessToken);
+            
+            // If the token is stored as JSON string, parse it
+            if (typeof accessToken === 'string') {
+              try {
+                // Check if it's a JSON string (starts with quotes or braces)
+                if (accessToken.startsWith('"') && accessToken.endsWith('"')) {
+                  accessToken = JSON.parse(accessToken);
+                  console.log('🔍 Parsed quoted token:', typeof accessToken);
+                } else if (accessToken.startsWith('{') || accessToken.startsWith('[')) {
+                  // It's a JSON object/array string, but we want the raw JWT
+                  console.warn('⚠️ Token appears to be JSON object, this is incorrect');
+                  accessToken = null; // Force fallback to persist storage
+                }
+              } catch (e) {
+                console.log('🔍 Token is not JSON, using as-is (correct for JWT)');
+                // Token is not JSON, use as-is (this is correct for JWT tokens)
+              }
             }
+            
+            console.log('🔍 Final server token type:', typeof accessToken);
+            console.log('🔍 Final server token length:', accessToken?.length || 0);
+            console.log('🔍 All available cookies:', cookieStore.getAll().map(c => c.name));
+            
+            // If no valid access_token cookie, try to get from auth persist cookie
+            if (!accessToken || accessToken === '{}' || typeof accessToken !== 'string') {
+              console.log('🔍 Trying auth persist cookie...');
+              const authCookie = cookieStore.get('persist:ccr-auth');
+              if (authCookie) {
+                try {
+                  const persistedState = JSON.parse(authCookie.value);
+                  accessToken = persistedState.accessToken;
+                  
+                  // Parse the accessToken if it's stored as JSON string
+                  if (typeof accessToken === 'string' && accessToken.startsWith('"')) {
+                    accessToken = JSON.parse(accessToken);
+                  }
+                  
+                  console.log('🔍 Access token from auth persist type:', typeof accessToken);
+                  console.log('🔍 Access token from auth persist length:', accessToken?.length || 0);
+                } catch (e) {
+                  console.log('⚠️ Failed to parse auth persist cookie for token');
+                }
+              }
+            }
+          } catch (error) {
+            console.error('❌ Error getting access token from server cookies:', error);
           }
         }
-      } catch (error) {
-        console.error('❌ Error getting access token from server cookies:', error);
-      }
-    }
     
     // Build headers
     const headers = {
       'Content-Type': 'application/json',
     };
-    if (accessToken) {
+    if (accessToken && typeof accessToken === 'string') {
       headers.Authorization = `Bearer ${accessToken}`;
-      console.log('✅ Bearer token added to headers');
+      console.log('✅ Bearer token added to headers:', {
+        tokenLength: accessToken.length,
+        tokenPrefix: accessToken.substring(0, 20) + '...',
+        isValidJWT: accessToken.length > 100
+      });
     } else {
-      console.warn('⚠️ No access token found - API call will be unauthorized');
+      console.error('⚠️ No valid access token found - API call will be unauthorized');
+      console.log('🔍 Access token type:', typeof accessToken);
+      console.log('🔍 Access token value:', accessToken);
+      console.log('🔍 Is client-side:', typeof window !== 'undefined');
+      
+      // Additional debugging for client-side
+      if (typeof window !== 'undefined') {
+        console.log('🔍 Debug localStorage persist data:');
+        try {
+          const persistData = localStorage.getItem('persist:ccr-auth');
+          if (persistData) {
+            const parsed = JSON.parse(persistData);
+            console.log('🔍 Available persist keys:', Object.keys(parsed));
+            console.log('🔍 isAuthenticated:', parsed.isAuthenticated);
+            console.log('🔍 accessToken type:', typeof parsed.accessToken);
+            console.log('🔍 loginResponse type:', typeof parsed.loginResponse);
+          } else {
+            console.log('🔍 No persist data found in localStorage');
+          }
+        } catch (e) {
+          console.error('🔍 Error checking persist data:', e);
+        }
+      }
     }
     
     console.log(`🔥 DIRECT AXIOS CALL:`, {
@@ -314,6 +410,142 @@ export async function fetchInvoiceTrend({ soldToId, months, filter, accessToken 
     payload: [finalSoldToId],
     urlParam: urlParams
   }, accessToken);
+}
+
+/**
+ * Client-side combined data fetching for Azure Invoice month changes
+ * Makes a SINGLE network request to get all data (summary + credits + trend)
+ */
+export async function fetchCombinedInvoiceData({ soldToId, monthValue, accessToken }) {
+  try {
+    console.log('🎯🎯🎯 fetchCombinedInvoiceData called with:', {
+      soldToId: soldToId?.substring(0, 20) + '...',
+      monthValue: monthValue,
+      hasAccessToken: !!accessToken
+    });
+    
+    // Get access token if not provided
+    let finalAccessToken = accessToken;
+    
+    if (!finalAccessToken && typeof window !== 'undefined') {
+      try {
+        // First try to get from Redux persist storage
+        const persistData = localStorage.getItem('persist:ccr-auth');
+        if (persistData) {
+          const parsed = JSON.parse(persistData);
+          
+          // Try to get token from loginResponse.tokens.bearerToken first (most reliable)
+          if (parsed.loginResponse) {
+            try {
+              let loginResponseStr = parsed.loginResponse;
+              // Remove quotes if it's a JSON string
+              if (typeof loginResponseStr === 'string' && loginResponseStr.startsWith('"')) {
+                loginResponseStr = JSON.parse(loginResponseStr);
+              }
+              const loginResponseObj = typeof loginResponseStr === 'string' ? 
+                JSON.parse(loginResponseStr) : loginResponseStr;
+              
+              if (loginResponseObj?.tokens?.bearerToken) {
+                finalAccessToken = loginResponseObj.tokens.bearerToken;
+                console.log('✅ Combined API: Token from loginResponse.tokens.bearerToken');
+              }
+            } catch (e) {
+              console.log('⚠️ Failed to parse loginResponse for bearerToken:', e);
+            }
+          }
+          
+          // Fallback to direct accessToken from Redux persist
+          if (!finalAccessToken && parsed.accessToken) {
+            let tokenFromPersist = parsed.accessToken;
+            // Remove quotes if it's a JSON string
+            if (typeof tokenFromPersist === 'string' && tokenFromPersist.startsWith('"')) {
+              tokenFromPersist = JSON.parse(tokenFromPersist);
+            }
+            if (typeof tokenFromPersist === 'string' && tokenFromPersist.length > 100) {
+              finalAccessToken = tokenFromPersist;
+              console.log('✅ Combined API: Token from Redux persist accessToken');
+            }
+          }
+        }
+        
+        // Final fallback to direct localStorage (legacy)
+        if (!finalAccessToken) {
+          finalAccessToken = localStorage.getItem("access_token");
+          console.log('🔍 Combined API: Legacy localStorage accessToken check');
+        }
+      } catch (error) {
+        console.error('❌ Combined API: Error getting access token:', error);
+      }
+    }
+    
+    console.log('🚀 Making SINGLE combined API call for month:', monthValue);
+    console.log('🔑 Using access token:', !!finalAccessToken, finalAccessToken?.substring(0, 20) + '...');
+    
+    // Build headers with Bearer token
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (finalAccessToken && typeof finalAccessToken === 'string') {
+      headers.Authorization = `Bearer ${finalAccessToken}`;
+      console.log('✅ Combined API: Authorization header set with Bearer token');
+    } else {
+      console.error('⚠️ Combined API: No access token available - will get 401');
+    }
+    
+    // Make ONE network request to the combined endpoint
+    const response = await fetch('/api/azure-invoice', {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({
+        action: 'combinedMonthData',
+        soldToId: [soldToId], // API expects array format
+        month: monthValue
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    
+    console.log('📊 Single combined API call result:', {
+      success: result.success,
+      hasData: !!result.data,
+      summary: !!result.data?.summary,
+      credits: !!result.data?.credits,
+      trend: !!result.data?.trend,
+      invoiceDetails: !!result.data?.invoiceDetails,
+      monthlyDifference: !!result.data?.monthlyDifference
+    });
+
+    if (result.success && result.data) {
+      return {
+        success: true,
+        summary: result.data.summary,
+        credits: result.data.credits,
+        trend: result.data.trend,
+        invoiceDetails: result.data.invoiceDetails,
+        monthlyDifference: result.data.monthlyDifference,
+        monthValue: result.data.monthValue
+      };
+    } else {
+      throw new Error(result.error || 'Failed to fetch combined data');
+    }
+    
+  } catch (error) {
+    console.error(`❌ fetchCombinedInvoiceData failed:`, error.message);
+    return {
+      success: false,
+      error: error.message,
+      summary: null,
+      credits: null,
+      trend: null,
+      invoiceDetails: null,
+      monthlyDifference: null
+    };
+  }
 }
 
 /**

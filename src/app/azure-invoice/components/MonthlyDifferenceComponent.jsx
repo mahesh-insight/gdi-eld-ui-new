@@ -42,7 +42,29 @@ const MonthlyDifferenceComponent = ({ usageMonth, data, isLoading }) => {
   return (
     <div className="billable_item_grid">
       {isLoading ? (
-        <Skeleton shape="rectangle" className="azure-invoice-skeleton-table" />
+        <div className="azure-invoice-table-skeleton-container">
+          <div className="azure-invoice-skeleton-table-header">
+            {columns.map((col, index) => (
+              <div key={index} className="azure-invoice-skeleton-table-header-cell">
+                <Skeleton shape="text" className="azure-invoice-skeleton-header-text" />
+              </div>
+            ))}
+          </div>
+          <div className="azure-invoice-skeleton-table-body">
+            {Array.from({ length: 10 }, (_, rowIndex) => (
+              <div key={rowIndex} className="azure-invoice-skeleton-table-row">
+                {columns.map((col, colIndex) => (
+                  <div key={colIndex} className="azure-invoice-skeleton-table-cell">
+                    <Skeleton shape="text" className="azure-invoice-skeleton-cell-text" />
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+          <div className="azure-invoice-skeleton-table-pagination">
+            <Skeleton shape="text" className="azure-invoice-skeleton-pagination-text" />
+          </div>
+        </div>
       ) : (
         <GridTable
           name="azureMonthlyDifference"

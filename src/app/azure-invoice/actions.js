@@ -21,26 +21,53 @@ export async function fetchInvoiceMonthsServer(clientSoldToId = null) {
     
     const accessTokenCookie = cookieStore.get('access_token');
     const userContextCookie = cookieStore.get('user_context');
+    const soldToIdCookie = cookieStore.get('soldToId');
     
-    let soldToId = clientSoldToId;
+    // Fix soldToId - ensure it's a string, not an array
+    let soldToId = clientSoldToId || soldToIdCookie?.value;
+    if (Array.isArray(soldToId)) {
+      soldToId = soldToId[0]; // Extract string from array
+    }
+    
     let accessToken = null;
     
     if (accessTokenCookie) {
       accessToken = accessTokenCookie.value;
+      console.log('🔍 Raw access token from cookie:', typeof accessToken, accessToken?.length || 0);
     }
     
-    if (userContextCookie) {
+    // If no direct soldToId, try to extract from user_context  
+    if (!soldToId && userContextCookie) {
       try {
-        const userContext = JSON.parse(userContextCookie.value);
-        soldToId = userContext.soldToId || clientSoldToId;
+        const userContext = JSON.parse(decodeURIComponent(userContextCookie.value));
+        soldToId = userContext?.userProfile?.defaultContext?.[0]?.soldToId || userContext?.soldToId;
       } catch (parseError) {
         console.error('❌ Failed to parse user context cookie:', parseError);
       }
     }
     
-    if (!soldToId || !accessToken) {
+    console.log('🔑 Authentication available:', {
+      soldToId,
+      accessTokenLength: accessToken?.length || 0,
+      accessTokenPrefix: accessToken?.substring(0, 2) + '...'
+    });
+    
+    if (!soldToId || !accessToken || accessToken === '{}' || accessToken.length < 100) {
+      console.error('❌ Missing or invalid authentication:', { 
+        hasSoldToId: !!soldToId, 
+        hasAccessToken: !!accessToken,
+        accessTokenLength: accessToken?.length || 0,
+        accessTokenValue: accessToken,
+        soldToId 
+      });
       return { error: 'Authentication required for months data', data: null };
     }
+    
+    console.log('🔑 Authentication available:', { 
+      soldToId, 
+      accessTokenLength: accessToken?.length || 0,
+      accessTokenPrefix: accessToken ? accessToken.substring(0, 20) + '...' : 'None'
+    });
     
     // Use cache with 10-minute TTL
     const cacheKey = `azure-invoice-months:${soldToId}`;
@@ -220,16 +247,38 @@ export async function fetchSummaryDataServer(clientSoldToId = null, selectedMont
     // Use cache with month-specific key and 10-minute TTL
     const monthKey = monthValue || 'default';
     const cacheKey = `azure-summary:${soldToId}:${monthKey}`;
+    
+    // TEMPORARY: Clear cache to force fresh fetch for debugging summary issue
+    const { getCache } = await import('@/lib/cache/serverCache');
+    const cache = getCache();
+    console.log('🧹 Summary: Clearing cache for key:', cacheKey);
+    await cache.delete(cacheKey);
+    
     const data = await getOrSetCached(
       cacheKey,
       async () => {
-        console.log('📥 Cache MISS - fetching summary from API');
-        return await getInitialAzureInvoiceData({ soldToId, accessToken, locationState: { currentMonthObject: selectedMonth } });
+        console.log('📥 Cache MISS - fetching summary from API (forced fresh)');
+        // Create month object for API call - SAME AS CREDITS AND TRENDS
+        const monthObject = typeof selectedMonth === 'string' ? { value: selectedMonth } : selectedMonth;
+        console.log('🔧 Summary: Creating month object:', {
+          original: selectedMonth,
+          originalType: typeof selectedMonth,
+          monthObject: monthObject
+        });
+        return await getInitialAzureInvoiceData({ soldToId, accessToken, locationState: { currentMonthObject: monthObject } });
       },
       10 * 60 * 1000 // 10 minutes
     );
     
     console.log('✅ Summary data served from cache:', data._fromCache ? 'HIT' : 'MISS');
+    console.log('🔍🔍🔍 SUMMARY DEBUG - getInitialAzureInvoiceData returned:', {
+      hasData: !!data,
+      keys: data ? Object.keys(data) : 'none',
+      hasSummary: !!data?.summary,
+      summaryType: typeof data?.summary,
+      summaryValue: data?.summary,
+      pageExistsError: data?.pageExistsError
+    });
     return { 
       error: null, 
       data: data?.summary || null,

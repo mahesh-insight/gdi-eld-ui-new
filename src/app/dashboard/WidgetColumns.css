@@ -1,123 +1,227 @@
-.dashboard-page {
-  .c-panel {
-    background: #f0edec;
+/* Dashboard Container */
+.dashboard-container {
+  padding: 0;
+  margin: 0;
+}
 
-    .widget-section{
-      margin-bottom: 20px;
-    }
+.widgets-grid {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin: 0;
+}
 
-    .widget-column {
-      border-radius: 16px;
-      padding: 10px 20px;
-      background-color: #fff;
-      border-style: none;
-      display: flex;
-      flex-direction: column;
-      text-align: center;
-      box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.04);
-      height: 100%;
+/* Widget Container */
+.widget-container {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  flex: 1;
+  min-width: 400px;
+  max-width: 600px;
+  overflow: hidden;
+}
 
-      .widget-error-container{
-        .c-message{
-          border: none;
-          padding: 24px 0;
-        }
-      }
+.widget-content {
+  position: relative;
+  width: 100%;
+}
 
-      .widget-column-section {
-        text-align: left;
-        .widget-column-title{
-          margin-bottom: 10px;
-        }
-        .widget-column-content {
-          .widget-column-description {
-            display: flex;
-            justify-content: space-between;
-            .widget-column-label {
-              font-weight: bold;
-              font-size: 14px;
-            }
-            .widget-column-value {
-              color: #ae0a46;
-              font-size: 14px;
-              .currency {
-                font-weight: bold;
-              }
+.widget-header {
+  margin-bottom: 20px;
+}
 
-            }
-          }
-        }
-        .widget-column-count{
-          a{
-            color: unset;
-          }
-        }
+.widget-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+}
 
-        .widget-column-difference {
-          text-align: left;
-          margin: 5px 0;
-          .difference-section{
-            display: flex;
-          }
-          .k-icon {
-            color: #3e332d;
-            font-size: 24px;
-            opacity: 0.6;
-          }
-          .count-labels-text {
-            color: #007997;
-            font-size: 14px;
-            .currency {
-              font-weight: bold;
-            }
-            .difference{
-              color: #007997 !important;
-            }
-          }
-        }
+/* Azure Spend Widget */
+.azure-spend-widget .spend-summary {
+  margin-bottom: 30px;
+}
 
-        .widget-dataset{
-          margin: 30px 0 35px;
-          .widgetmessage{
-            color: unset;
-            margin-bottom: 5px;
-            display: block;
-          }
-          .widget-dataset-warning,
-          .widget-dataset-info,
-          .widget-dataset-error {
-            display: flex;
-            gap: 5px;
-            align-items: center;
-            font-size: 14px;
-            .widget-dataset-section {
-              font-size: 24px;
-              display: flex;
-              align-items: center;
-            }
-          }
-          .widget-dataset-info .label-text {
-            color: #222;
-          }
-          .widget-dataset-warning .label-text {
-            color: #222;
-          }
-          .widget-dataset-error .label-text {
-            color: #222;
-          }
+.spend-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.spend-item label {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+}
+
+.spend-item .amount {
+  font-size: 16px;
+  font-weight: 600;
+  color: #d63384;
+}
+
+.trend-indicator {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #eee;
+}
+
+.trend-down {
+  color: #28a745;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.trend-neutral {
+  color: #6c757d;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+}
+
+/* Microsoft Cloud Widget */
+.ms-cloud-widget .cloud-summary {
+  margin-bottom: 30px;
+}
+
+.cloud-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.cloud-item label {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+}
+
+.cloud-item .amount {
+  font-size: 16px;
+  font-weight: 600;
+  color: #d63384;
+}
+
+/* Chart Section */
+.chart-section {
+  margin-top: 20px;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.chart-header h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.chart-controls {
+  display: flex;
+  gap: 5px;
+}
+
+.chart-btn {
+  border: 1px solid #ddd;
+  background: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.chart-btn.active {
+  background: #f8f9fa;
+  border-color: #007bff;
+}
+
+.chart-btn:hover {
+  background: #f8f9fa;
+}
+
+.chart-container {
+  height: 250px;
+  margin-top: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.chart-container .k-chart {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.chart-container .k-chart-surface {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Loading and Error States */
+.loading-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  color: #666;
+}
+
+.error-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  color: #d32f2f;
+  background-color: #ffeaea;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+
+/* Trend indicators */
+.trend-up {
+  color: #28a745;
+}
+
+.trend-down {
+  color: #dc3545;
+}
+
+.trend-neutral {
+  color: #6c757d;
+}
+
+/* No widgets message */
+.no-widgets-message {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.no-widgets-message h3 {
+  margin-top: 0;
+  color: #333;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .widgets-grid {
+    flex-direction: column;
+  }
   
-          .widget-dataset-warning {
-            margin: 10px 0;
-          }
-  
-        }
-      }
-
-      .k-chart{
-        text{
-          font-size: 12px !important;
-        }
-      }
-    }
+  .widget-container {
+    min-width: auto;
+    max-width: none;
   }
 }

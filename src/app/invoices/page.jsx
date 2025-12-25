@@ -24,13 +24,8 @@ export default async function InvoicesPage() {
   const userContextCookie = cookieStore.get('user_context');
   
   if (!userContextCookie) {
-    return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
-        <h2>Authentication Required</h2>
-        <p>Please log in to access the Invoice Reporting dashboard.</p>
-        <a href="/" style={{ color: '#007bff' }}>Return to Login</a>
-      </div>
-    );
+    console.log('⚠️ SERVER: No user_context cookie found - rendering client fallback');
+    return <InvoicesClientContent mode="client-side" />;
   }
   
   let userContext;

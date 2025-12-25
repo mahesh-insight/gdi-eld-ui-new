@@ -681,32 +681,32 @@
 .azure-invoice-skeleton-kpi-large {
   max-width: 100%;
   box-sizing: border-box;
-}
-
-/* Ensure skeleton charts fill their containers completely */
-.azure-invoice-charts-section .k-skeleton,
-.azure-invoice-charts-section [class*="skeleton"] {
-  width: 100% !important;
-  max-width: none !important;
-  min-width: 100% !important;
-}
-
-/* Force carousel skeleton to use full width */
-.azure-invoice-charts-section .carousel-container .k-skeleton,
-.azure-invoice-charts-section .carousel-slide .k-skeleton {
-  width: 100% !important;
-  min-width: 100% !important;
-  max-width: none !important;
+  text-align: right;
+  padding-right: 32px;
+  min-width: 0;
+  flex-shrink: 1;
+  white-space: nowrap;
 }
 
 .azure-invoice-skeleton-kpi {
-  text-align: right;
   min-width: 120px;
 }
 
 .azure-invoice-skeleton-kpi-large {
-  text-align: right;
   min-width: 140px;
+}
+
+/* Ensure skeleton KPI cards have proper borders like real cards */
+.azure-invoice-skeleton-kpi.invoice-total {
+  border-right: 2px solid #e74c3c;
+}
+
+.azure-invoice-skeleton-kpi-large.monthly-difference {
+  border-right: 2px solid #27ae60;
+}
+
+.azure-invoice-skeleton-kpi.invoice-credits {
+  border-right: 2px solid #3498db;
 }
 
 .azure-invoice-skeleton-text-sm {
@@ -803,8 +803,93 @@
 }
 
 .azure-invoice-skeleton-filter-button {
-  width: 140px;
-  height: 38px;
+  width: 100px;
+  height: 14px;
+}
+
+/* Chart title skeleton */
+.azure-invoice-skeleton-chart-title {
+  width: 200px;
+  height: 16px;
+  margin: 0 auto 20px auto;
+}
+
+/* Detailed Table Skeleton Structure */
+.azure-invoice-table-skeleton-container {
+  width: 100%;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  overflow: hidden;
+}
+
+.azure-invoice-skeleton-table-header {
+  display: flex;
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #ddd;
+  min-height: 40px;
+}
+
+.azure-invoice-skeleton-table-header-cell {
+  flex: 1;
+  padding: 12px 8px;
+  border-right: 1px solid #ddd;
+  display: flex;
+  align-items: center;
+}
+
+.azure-invoice-skeleton-table-header-cell:last-child {
+  border-right: none;
+}
+
+.azure-invoice-skeleton-header-text {
+  width: 80% !important;
+  height: 14px !important;
+}
+
+.azure-invoice-skeleton-table-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.azure-invoice-skeleton-table-row {
+  display: flex;
+  border-bottom: 1px solid #eee;
+  min-height: 44px;
+}
+
+.azure-invoice-skeleton-table-row:hover {
+  background-color: #f8f9fa;
+}
+
+.azure-invoice-skeleton-table-cell {
+  flex: 1;
+  padding: 12px 8px;
+  border-right: 1px solid #eee;
+  display: flex;
+  align-items: center;
+}
+
+.azure-invoice-skeleton-table-cell:last-child {
+  border-right: none;
+}
+
+.azure-invoice-skeleton-cell-text {
+  width: 70% !important;
+  height: 12px !important;
+}
+
+.azure-invoice-skeleton-table-pagination {
+  padding: 12px;
+  border-top: 1px solid #ddd;
+  background-color: #f8f9fa;
+  text-align: center;
+}
+
+.azure-invoice-skeleton-pagination-text {
+  width: 150px !important;
+  height: 14px !important;
+  margin: 0 auto;
 }
 /* Responsive Design - Media Queries */
 

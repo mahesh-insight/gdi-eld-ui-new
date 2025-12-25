@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useSelector } from 'react-redux';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { DropDownList } from '@progress/kendo-react-dropdowns';
 import { Chart } from '@progress/kendo-react-charts';
@@ -12,6 +13,12 @@ import { BasicGroupedChart } from '@/common/Charts/BasicGroupedChart';
 import { BasicPieDoughnutChart } from '@/common/Charts/BasicPieDoughnutChart';
 import ChartTitleAndButtons from '@/components/ChartTitleAndButtons';
 import useRefreshChartType from '@/common/Charts/useRefreshChartType';
+import { 
+  fetchInvoiceSummary, 
+  fetchInvoiceCredits, 
+  fetchInvoiceTrend,
+  fetchCombinedInvoiceData 
+} from '@/lib/azureInvoiceApi';
 import InvoiceDetailsComponent from './components/InvoiceDetailsComponent';
 import MonthlyDifferenceComponent from './components/MonthlyDifferenceComponent';
 import { getInsightThemeColors } from '@/lib/chartColors';
@@ -20,6 +27,124 @@ import './AzureInvoice.css';
 
 export default function AzureInvoiceClientContent(props) {
   const { mode, initialData, userContext, ssrPerformance, soldToId } = props;
+  
+  // Simple Redux rehydration check
+  const [hasRehydrated, setHasRehydrated] = useState(false);
+  
+  // Get auth state from Redux for client-side mode
+  const authState = useSelector(state => state.auth);
+  const reduxUserContext = authState?.loginResponse?.userProfile?.defaultContext?.[0];
+  const reduxSoldToId = reduxUserContext?.soldToId || authState?.user?.soldToId || authState?.soldTo;
+  const accessToken = authState?.accessToken;
+  
+  // Try multiple sources for soldToId
+  const effectiveSoldToId = soldToId || 
+                          reduxSoldToId || 
+                          userContext?.soldToId || 
+                          userContext?.userProfile?.defaultContext?.[0]?.soldToId ||
+                          authState?.loginResponse?.soldToId;
+                          
+  console.log('🔍 SOLDTOID DEBUG:', {
+    fromProps: soldToId,
+    reduxSoldToId: reduxSoldToId,
+    fromUserContext: userContext?.soldToId,
+    fromUserContextDeep: userContext?.userProfile?.defaultContext?.[0]?.soldToId,
+    fromAuthStateLogin: authState?.loginResponse?.soldToId,
+    finalEffective: effectiveSoldToId,
+    authStateKeys: Object.keys(authState || {}),
+    loginResponseKeys: Object.keys(authState?.loginResponse || {}),
+    userProfileKeys: Object.keys(authState?.loginResponse?.userProfile || {}),
+    defaultContextLength: authState?.loginResponse?.userProfile?.defaultContext?.length || 0
+  });
+  const effectiveUserContext = userContext || reduxUserContext;
+  
+  // Check if Redux has rehydrated
+  useEffect(() => {
+    if (!hasRehydrated) {
+      const timer = setTimeout(() => {
+        setHasRehydrated(true);
+      }, 100); // Give Redux time to hydrate
+      return () => clearTimeout(timer);
+    }
+  }, [hasRehydrated]);
+  
+  // Debug authentication state more deeply
+  useEffect(() => {
+    console.log('=== DEEP AUTH DEBUG ===');
+    console.log('Document cookies:', document.cookie);
+    
+    console.log('🔍 Redux Auth State Full:', authState);
+    console.log('🔍 authState keys:', authState ? Object.keys(authState) : []);
+    console.log('🔍 authState.isAuthenticated:', authState?.isAuthenticated);
+    console.log('🔍 authState.accessToken:', authState?.accessToken ? `${String(authState.accessToken).substring(0, 20)}...` : 'None');
+    console.log('🔍 authState.loginResponse:', authState?.loginResponse ? 'Has data' : 'None');
+    
+    if (authState?.loginResponse) {
+      console.log('🔍 loginResponse keys:', Object.keys(authState.loginResponse));
+      console.log('🔍 loginResponse.userProfile:', authState.loginResponse.userProfile ? 'Has data' : 'None');
+      if (authState.loginResponse.userProfile?.defaultContext?.[0]) {
+        console.log('🔍 defaultContext[0]:', authState.loginResponse.userProfile.defaultContext[0]);
+        console.log('🔍 soldToId from loginResponse:', authState.loginResponse.userProfile.defaultContext[0].soldToId);
+      }
+    }
+    
+    console.log('🔍 effectiveSoldToId:', effectiveSoldToId);
+    console.log('🔍 effectiveUserContext:', effectiveUserContext);
+    
+    try {
+      const persistData = localStorage.getItem('persist:ccr-auth');
+      if (persistData) {
+        const parsed = JSON.parse(persistData);
+        console.log('LocalStorage persist data keys:', Object.keys(parsed));
+        
+        // Parse specific fields to check their validity
+        if (parsed.isAuthenticated) {
+          const isAuth = JSON.parse(parsed.isAuthenticated);
+          console.log('🔍 Is authenticated from localStorage:', isAuth);
+        }
+        
+        if (parsed.accessToken) {
+          const token = JSON.parse(parsed.accessToken);
+          console.log('🔍 Access token from localStorage:', token ? `${String(token).substring(0, 20)}...` : 'Invalid');
+          console.log('🔍 Access token length:', token?.length || 0);
+        }
+        
+        if (parsed.loginResponse) {
+          const loginResp = JSON.parse(parsed.loginResponse);
+          console.log('🔍 Login response from localStorage keys:', Object.keys(loginResp || {}));
+          console.log('🔍 SoldToId from localStorage:', loginResp?.userProfile?.defaultContext?.[0]?.soldToId);
+        }
+      } else {
+        console.log('❌ No persist data in localStorage - user needs to login');
+      }
+    } catch (e) {
+      console.error('❌ Error parsing persist data:', e);
+    }
+    console.log('=== END DEEP AUTH DEBUG ===');
+  }, [authState, effectiveSoldToId, effectiveUserContext]);
+  
+  console.log('🔍 Auth state check:', {
+    mode,
+    hasRehydrated,
+    propsSoldToId: soldToId,
+    reduxSoldToId,
+    effectiveSoldToId,
+    hasAccessToken: !!accessToken,
+    hasUserContext: !!effectiveUserContext,
+    isAuthenticated: authState?.isAuthenticated,
+    authStateKeys: authState ? Object.keys(authState) : [],
+    'authState exists': !!authState
+  });
+  
+  // Debug Redux hydration
+  console.log('🔧 Redux Store Debug:', {
+    'full authState': authState,
+    'authState.user': authState?.user,
+    'authState.loginResponse': !!authState?.loginResponse,
+    'authState.accessToken': !!authState?.accessToken,
+    'loginResponse.userProfile': !!authState?.loginResponse?.userProfile,
+    'defaultContext length': authState?.loginResponse?.userProfile?.defaultContext?.length || 0
+  });
   
   // Determine if we're in client-side loading mode
   const isClientSideMode = mode === 'client-side';
@@ -72,6 +197,17 @@ export default function AzureInvoiceClientContent(props) {
   const [chartTypeLoading, setChartTypeLoading] = useState(false);
   const [topNExpensiveProductsChartTypeLoading, setTopNExpensiveProductsChartTypeLoading] = useState(false);
   
+  // Client-side loading states
+  const [clientDataLoading, setClientDataLoading] = useState(mode === 'client-side');
+  const [loadingError, setLoadingError] = useState(null);
+  
+  // State for dynamic data that changes with month - use correct SSR data structure
+  const [currentSummaryData, setCurrentSummaryData] = useState(extractedSummaryData);
+  const [currentCreditsData, setCurrentCreditsData] = useState(extractedCreditsData);
+  const [currentTrendsData, setCurrentTrendsData] = useState(extractedTrendsData);
+  const [renderKey, setRenderKey] = useState(0);
+  const [forceUpdate, setForceUpdate] = useState(0);
+  
   // Tab-related states
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
   const tabsRef = useRef(null);
@@ -117,14 +253,6 @@ export default function AzureInvoiceClientContent(props) {
     }
   ];
   
-  // State for dynamic data that changes with month - use correct SSR data structure
-  const [currentSummaryData, setCurrentSummaryData] = useState(extractedSummaryData);
-  const [currentCreditsData, setCurrentCreditsData] = useState(extractedCreditsData);
-  const [currentTrendsData, setCurrentTrendsData] = useState(extractedTrendsData);
-  const [isLoading, setIsLoading] = useState(mode === 'ssr' ? false : true); // No loading for SSR, loading for client-side
-  const [renderKey, setRenderKey] = useState(0);
-  const [forceUpdate, setForceUpdate] = useState(0);
-
   // Monitor state changes for debugging
   useEffect(() => {
     console.log('🔄 USEEFFECT - Summary Data changed:', currentSummaryData);
@@ -146,7 +274,17 @@ export default function AzureInvoiceClientContent(props) {
 
   // Load initial data when in client-side mode or handle SSR data
   useEffect(() => {
-    console.log('🔄 useEffect - Mode:', mode, 'monthsLoaded:', monthsLoaded, 'initialData:', !!initialData);
+    console.log('🔄 MAIN useEffect triggered:', {
+      mode,
+      monthsLoaded,
+      hasInitialData: !!initialData,
+      effectiveSoldToId,
+      'authState?.isAuthenticated': authState?.isAuthenticated,
+      'authState exists': !!authState,
+      'reduxSoldToId': reduxSoldToId,
+      'propsSoldToId': soldToId,
+      'hasAccessToken': !!accessToken
+    });
     
     if (mode === 'ssr' && initialData) {
       // Handle SSR mode - use server-provided data
@@ -154,7 +292,7 @@ export default function AzureInvoiceClientContent(props) {
       
       if (initialData.monthsResponse?.error || initialData.error) {
         console.error('❌ Server-side error:', initialData.monthsResponse?.error || initialData.error);
-        setIsLoading(false);
+        setClientDataLoading(false);
         return;
       }
       
@@ -179,7 +317,7 @@ export default function AzureInvoiceClientContent(props) {
         setCurrentCreditsData(credits);
         setCurrentTrendsData(trends);
         setMonthsLoaded(true);
-        setIsLoading(false);
+        setClientDataLoading(false);
         setForceUpdate(prev => prev + 1);
         console.log('✅ SSR: Data initialized from server');
       } else if (months.length > 0) {
@@ -187,29 +325,78 @@ export default function AzureInvoiceClientContent(props) {
         console.log('⚡ SSR: Data already loaded, forcing re-render');
         setForceUpdate(prev => prev + 1);
       }
-    } else if (mode === 'client-side' && soldToId && !monthsLoaded) {
-      console.log('🔄 Client-side mode: Loading data via API');
-      loadInitialData();
+    } else if (mode === 'client-side') {
+      console.log('🔄 CLIENT-SIDE mode analysis:', {
+        hasRehydrated,
+        hasEffectiveSoldToId: !!effectiveSoldToId,
+        isAuthenticated: authState?.isAuthenticated,
+        hasAccessToken: !!authState?.accessToken,
+        accessTokenLength: authState?.accessToken?.length || 0,
+        monthsLoaded,
+        'Will call loadInitialData': hasRehydrated && !!effectiveSoldToId && !monthsLoaded && !!authState?.isAuthenticated && !!authState?.accessToken
+      });
+      
+      // Check if we have valid authentication data
+      if (hasRehydrated && (!authState?.isAuthenticated || !authState?.accessToken || !effectiveSoldToId)) {
+        console.log('❌ No valid authentication data - redirecting to login:', {
+          isAuthenticated: authState?.isAuthenticated,
+          hasAccessToken: !!authState?.accessToken,
+          hasEffectiveSoldToId: !!effectiveSoldToId
+        });
+        
+        // Clear corrupted authentication data
+        console.log('🧹 Clearing corrupted auth data...');
+        localStorage.removeItem('persist:ccr-auth');
+        document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        document.cookie = 'user_context=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        
+        // Redirect to login with parameters
+        window.location.href = '/?soldTo=123&salesOrg=1000';
+        return;
+      }
+      
+      if (hasRehydrated && effectiveSoldToId && !monthsLoaded && authState?.isAuthenticated && authState?.accessToken) {
+        console.log('🚀 CLIENT-SIDE: All conditions met, calling loadInitialData');
+        loadInitialData();
+      } else {
+        console.log('⏸️ CLIENT-SIDE: Waiting for conditions:', {
+          'Need rehydration': !hasRehydrated,
+          'Need soldToId': !effectiveSoldToId,
+          'Need auth': !authState?.isAuthenticated,
+          'Need accessToken': !authState?.accessToken,
+          'Already loaded': monthsLoaded
+        });
+      }
     }
-  }, [mode, monthsLoaded, initialData]);
+  }, [mode, monthsLoaded, initialData, effectiveSoldToId, authState?.isAuthenticated, authState?.accessToken, hasRehydrated]);
 
   const loadInitialData = async () => {
-    console.log('🚀 Loading initial data client-side for soldToId:', soldToId);
-    console.log('🚀 UserContext:', userContext);
-    setIsLoading(true);
+    console.log('🚀 Loading initial data client-side for soldToId:', effectiveSoldToId);
+    console.log('🚀 UserContext:', effectiveUserContext);
+    console.log('🍪 Current cookies before API call:', document.cookie);
+    setClientDataLoading(true);
+    setLoadingError(null);
     
     try {
       // First load months data - soldToId should be an array
-      const soldToIdValue = soldToId || userContext?.soldToId;
+      const soldToIdValue = effectiveSoldToId;
+      
+      const requestBody = { 
+        action: 'months',
+        soldToId: soldToIdValue ? [soldToIdValue] : undefined
+      };
+      
+      console.log('🚀 Azure Invoice API called with:', requestBody);
+      
       const response = await fetch('/api/azure-invoice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include', // Include cookies for authentication
-        body: JSON.stringify({ 
-          action: 'months',
-          soldToId: soldToIdValue ? [soldToIdValue] : undefined
-        })
+        body: JSON.stringify(requestBody)
       });
+      
+      console.log('📡 API Response status:', response.status, response.statusText);
+      console.log('📡 API Response headers:', Object.fromEntries(response.headers.entries()));
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -218,79 +405,240 @@ export default function AzureInvoiceClientContent(props) {
           statusText: response.statusText,
           errorText
         });
+        
+        // If 401, try to recreate cookies and retry once
+        if (response.status === 401 && authState?.accessToken) {
+          console.log('🔄 401 error detected, trying to recreate cookies and retry...');
+          
+          // Force recreate cookies
+          const accessToken = authState.accessToken;
+          const loginResponse = authState.loginResponse;
+          
+          if (accessToken && loginResponse) {
+            const maxAge = 7 * 24 * 60 * 60;
+            document.cookie = `access_token=${accessToken}; path=/; max-age=${maxAge}; SameSite=Strict`;
+            document.cookie = `user_context=${encodeURIComponent(JSON.stringify(loginResponse))}; path=/; max-age=${maxAge}; SameSite=Strict`;
+            
+            console.log('🍪 Cookies recreated, retrying API call in 1 second...');
+            
+            // Wait a moment and retry
+            setTimeout(async () => {
+              try {
+                const retryResponse = await fetch('/api/azure-invoice', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  credentials: 'include',
+                  body: JSON.stringify(requestBody)
+                });
+                
+                console.log('🔄 Retry response status:', retryResponse.status);
+                
+                if (retryResponse.ok) {
+                  const retryResult = await retryResponse.json();
+                  console.log('✅ Retry successful:', retryResult);
+                  
+                  if (retryResult?.data?.invoiceMonths?.length > 0) {
+                    const months = retryResult.data.invoiceMonths;
+                    const firstMonth = months[0];
+                    setMonthsData(months);
+                    setSelectedMonth(firstMonth);
+                    setMonthsLoaded(true);
+                    
+                    // Load data for the first month
+                    await loadMonthData(firstMonth.value);
+                  }
+                } else {
+                  const retryErrorText = await retryResponse.text();
+                  console.error('❌ Retry also failed:', retryErrorText);
+                  setClientDataLoading(false);
+                }
+              } catch (retryError) {
+                console.error('❌ Retry error:', retryError);
+                setClientDataLoading(false);
+              }
+            }, 1000);
+            
+            return; // Don't continue with error handling
+          }
+        }
+        
         throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
       
       const monthsResult = await response.json();
-      console.log('📅 Months loaded:', monthsResult);
+      console.log('📅 Full months API response:', monthsResult);
+      console.log('📅 Response structure:', {
+        hasData: !!monthsResult.data,
+        hasInvoiceMonths: !!monthsResult.data?.invoiceMonths,
+        invoiceMonthsLength: monthsResult.data?.invoiceMonths?.length || 0,
+        responseKeys: Object.keys(monthsResult || {}),
+        dataKeys: monthsResult.data ? Object.keys(monthsResult.data) : []
+      });
       
       if (monthsResult.error) {
         throw new Error(monthsResult.error);
       }
       
-      if (monthsResult?.data?.invoiceMonths?.length > 0) {
-        const months = monthsResult.data.invoiceMonths;
+      // Check different possible response structures
+      const months = monthsResult.data?.invoiceMonths || 
+                    monthsResult.data?.months || 
+                    monthsResult.invoiceMonths || 
+                    monthsResult.months ||
+                    monthsResult.data || 
+                    [];
+      
+      console.log('📅 Extracted months data:', months);
+      console.log('📅 Months count:', months?.length || 0);
+      
+      if (months && months.length > 0) {
         const firstMonth = months[0];
+        console.log('📅 First month structure:', firstMonth);
         setMonthsData(months);
         setSelectedMonth(firstMonth);
         setMonthsLoaded(true);
         
         // Load data for the first month
-        await loadMonthData(firstMonth.value);
+        await loadMonthData(firstMonth.value || firstMonth.month || firstMonth);
       } else {
-        console.log('❌ No months data available');
-        setIsLoading(false);
+        console.log('❌ No months data available - full response:', monthsResult);
+        setClientDataLoading(false);
       }
     } catch (error) {
       console.error('❌ Error loading initial data:', error);
-      setIsLoading(false);
+      setClientDataLoading(false);
     }
   };
 
-  // Consolidated function for loading all month data in a single API call
+  // Single combined API call function for loading all month data
   const loadMonthData = async (monthValue) => {
-    console.log('🚀 Loading consolidated month data for:', monthValue);
+    console.log('🚀 Loading month data with single combined call for:', monthValue);
     
     try {
-      const soldToIdValue = soldToId || userContext?.soldToId;
-      const response = await fetch('/api/azure-invoice', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ 
-          action: 'monthData', 
-          month: monthValue,
-          soldToId: soldToIdValue ? [soldToIdValue] : undefined
-        })
+      let soldToIdValue = effectiveSoldToId || userContext?.soldToId;
+      
+      // If still no soldToId, try direct localStorage as fallback
+      if (!soldToIdValue && typeof window !== 'undefined') {
+        try {
+          const persistData = localStorage.getItem('persist:ccr-auth');
+          if (persistData) {
+            const parsed = JSON.parse(persistData);
+            if (parsed.loginResponse) {
+              let loginResponseStr = parsed.loginResponse;
+              if (typeof loginResponseStr === 'string' && loginResponseStr.startsWith('"')) {
+                loginResponseStr = JSON.parse(loginResponseStr);
+              }
+              const loginResponseObj = typeof loginResponseStr === 'string' ? 
+                JSON.parse(loginResponseStr) : loginResponseStr;
+              
+              soldToIdValue = loginResponseObj?.userProfile?.defaultContext?.[0]?.soldToId || 
+                            loginResponseObj?.soldToId;
+              console.log('🔍 Fallback soldToId from localStorage:', soldToIdValue);
+            }
+          }
+        } catch (e) {
+          console.error('❌ Error extracting soldToId from localStorage:', e);
+        }
+      }
+      
+      // Ensure soldToId is a string, not an array or object
+      if (Array.isArray(soldToIdValue)) {
+        soldToIdValue = soldToIdValue[0]; // Take first element if array
+      }
+      if (typeof soldToIdValue === 'object' && soldToIdValue !== null) {
+        soldToIdValue = null; // Invalid if it's an object
+      }
+      
+      console.log('🔍 Using soldToId for month data:', {
+        original: effectiveSoldToId || userContext?.soldToId,
+        processed: soldToIdValue,
+        type: typeof soldToIdValue
       });
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Consolidated API call failed:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorText
-        });
-        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+      if (!soldToIdValue || typeof soldToIdValue !== 'string') {
+        throw new Error('Invalid or missing soldToId for API call');
       }
       
-      const result = await response.json();
-      console.log('📊 Consolidated month data loaded:', result);
+      // Make a single combined API call
+      console.log('🚀 Making single combined API call for month:', monthValue);
+      const result = await fetchCombinedInvoiceData({ 
+        soldToId: soldToIdValue, 
+        monthValue: monthValue 
+      });
       
-      if (result.error) {
-        throw new Error(result.error);
+      console.log('📊 Combined API call result:', result);
+      console.log('🔍 Invoice details in result:', {
+        hasInvoiceDetails: !!result.invoiceDetails,
+        detailsType: typeof result.invoiceDetails,
+        detailsKeys: result.invoiceDetails ? Object.keys(result.invoiceDetails) : 'none',
+        hasContent: !!result.invoiceDetails?.content,
+        contentLength: result.invoiceDetails?.content?.length || 0
+      });
+      
+      if (result.success) {
+        // Update state with the combined results
+        setCurrentSummaryData(result.summary);
+        setCurrentCreditsData(result.credits);  
+        setCurrentTrendsData(result.trend);
+        
+        // Update invoice details data from combined response
+        if (result.invoiceDetails) {
+          // Handle different possible data structures
+          let detailsContent = [];
+          if (result.invoiceDetails.content) {
+            detailsContent = result.invoiceDetails.content;
+          } else if (Array.isArray(result.invoiceDetails)) {
+            detailsContent = result.invoiceDetails;
+          } else if (result.invoiceDetails.data?.content) {
+            detailsContent = result.invoiceDetails.data.content;
+          }
+          
+          console.log('📋 Updating invoice details:', {
+            originalLength: invoiceDetailsData.length,
+            newLength: detailsContent.length,
+            newData: detailsContent.slice(0, 2) // Log first 2 items for verification
+          });
+          
+          setInvoiceDetailsData(detailsContent);
+          console.log('📋 Invoice details state updated with', detailsContent.length, 'records');
+        } else {
+          console.log('⚠️ No invoice details in combined response');
+        }
+
+        // Update monthly difference data from combined response
+        if (result.monthlyDifference) {
+          // Handle different possible data structures
+          let monthlyDiffContent = [];
+          if (result.monthlyDifference.content) {
+            monthlyDiffContent = result.monthlyDifference.content;
+          } else if (Array.isArray(result.monthlyDifference)) {
+            monthlyDiffContent = result.monthlyDifference;
+          } else if (result.monthlyDifference.data?.content) {
+            monthlyDiffContent = result.monthlyDifference.data.content;
+          }
+          
+          console.log('📊 Updating monthly difference:', {
+            originalLength: monthlyDifferenceData.length,
+            newLength: monthlyDiffContent.length,
+            newData: monthlyDiffContent.slice(0, 2) // Log first 2 items for verification
+          });
+          
+          setMonthlyDifferenceData(monthlyDiffContent);
+          console.log('📊 Monthly difference state updated with', monthlyDiffContent.length, 'records');
+        } else {
+          console.log('⚠️ No monthly difference data in combined response');
+        }
+        
+        setClientDataLoading(false);
+        setForceUpdate(prev => prev + 1);
+        console.log('✅ Month data updated successfully with all components');
+      } else {
+        console.error('❌ Combined API call failed:', result.error);
+        setClientDataLoading(false);
       }
-      
-      // Update state with all the loaded data from single response
-      setCurrentSummaryData(result.data?.summary);
-      setCurrentCreditsData(result.data?.credits);  
-      setCurrentTrendsData(result.data?.trend);
-      setIsLoading(false);
-      setForceUpdate(prev => prev + 1);
       
     } catch (error) {
-      console.error('❌ Error loading consolidated month data:', error);
-      setIsLoading(false);
+      console.error('❌ Error loading month data:', error);
+      setClientDataLoading(false);
     }
   };
 
@@ -311,7 +659,7 @@ export default function AzureInvoiceClientContent(props) {
     setCurrentTrendsData(null);
     
     setSelectedMonth(selectedMonthObj);
-    setIsLoading(true);
+    setClientDataLoading(true);
     setRenderKey(prev => prev + 1);
     
     // Use the new loadMonthData function
@@ -482,14 +830,28 @@ export default function AzureInvoiceClientContent(props) {
     console.log('🎯 User clicked tab:', tabIndex);
     setSelectedTabIndex(tabIndex);
     
-    // Load data immediately when tab is clicked
+    // Always ensure data is available when switching tabs
     if (selectedMonth?.value) {
       if (tabIndex === 0) {
-        console.log('🔄 Loading Invoice Details data');
-        loadInvoiceDetails(selectedMonth.value);
+        // Invoice Details tab
+        console.log('🔄 Switching to Invoice Details tab');
+        console.log('📊 Current invoice details data length:', invoiceDetailsData?.length || 0);
+        if (!invoiceDetailsData || invoiceDetailsData.length === 0) {
+          console.log('🔄 Invoice details not available, triggering combined data load');
+          loadMonthData(selectedMonth.value);
+        } else {
+          console.log('✅ Invoice details data available, tab switch complete');
+        }
       } else if (tabIndex === 1) {
-        console.log('🔄 Loading Monthly Differences data');
-        loadMonthlyDifference(selectedMonth.value);
+        // Monthly Differences tab
+        console.log('🔄 Switching to Monthly Differences tab');
+        console.log('📊 Current monthly difference data length:', monthlyDifferenceData?.length || 0);
+        if (!monthlyDifferenceData || monthlyDifferenceData.length === 0) {
+          console.log('🔄 Monthly difference not available, triggering combined data load');
+          loadMonthData(selectedMonth.value);
+        } else {
+          console.log('✅ Monthly difference data available, tab switch complete');
+        }
       }
     } else {
       console.warn('⚠️ No selected month available for data loading');
@@ -498,204 +860,36 @@ export default function AzureInvoiceClientContent(props) {
 
   const loadInvoiceDetails = async (monthValue) => {
     console.log('🔍 Loading invoice details for month:', monthValue);
-    console.log('🚨 API CALL STARTING - Invoice Details');
-    try {
-      const soldToIdValue = soldToId || userContext?.soldToId;
-      console.log('🔍 SoldToId values:', { soldToId, userContextSoldToId: userContext?.soldToId, final: soldToIdValue });
-      // Format month for API (2025-12 -> 202512)
-      const formattedMonth = monthValue.replace('-', '');
-      console.log('📅 Formatted month for API:', formattedMonth);
-      console.log('🔍 Full request payload:', {
-        action: 'invoiceDetails',
-        month: formattedMonth,
-        soldToId: soldToIdValue ? [soldToIdValue] : undefined
-      });
-      
-      // Get access token for authorization
-      const accessToken = localStorage.getItem('access_token');
-      console.log('🔐 Access token available:', !!accessToken);
-      
-      const headers = {
-        'Content-Type': 'application/json'
-      };
-      
-      if (accessToken) {
-        headers.Authorization = `Bearer ${accessToken}`;
-        console.log('✅ Authorization header added to request');
-      } else {
-        console.warn('⚠️ No access token found for API request');
-      }
-      
-      // Use the proper Next.js API route instead of direct backend call
-      const apiUrl = '/api/azure-invoice';
-      console.log('🌐 API URL:', apiUrl);
-      console.log('📦 Request headers:', headers);
-      console.log('🔐 Access token (first 20 chars):', accessToken ? accessToken.substring(0, 20) + '...' : 'null');
-      
-      const requestBody = { 
-        action: 'invoiceDetails',
-        month: formattedMonth,
-        soldToId: soldToIdValue ? [soldToIdValue] : undefined
-      };
-      console.log('📦 Request body:', requestBody);
-      
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: headers,
-        credentials: 'include',
-        body: JSON.stringify(requestBody)
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        console.log('🔍 FULL API RESPONSE for invoice details:', result);
-        console.log('🔍 Response type:', typeof result);
-        console.log('🔍 Response keys:', Object.keys(result || {}));
-        
-        // Check different possible response structures
-        console.log('🔍 Checking response structures:');
-        console.log('🔍 result.data:', result.data);
-        console.log('🔍 result.data?.content:', result.data?.content);
-        console.log('🔍 result.content:', result.content);
-        console.log('🔍 Direct result as array:', Array.isArray(result) ? result : 'not array');
-        
-        // Try different response structures
-        let contentData = [];
-        if (result.data?.content) {
-          contentData = result.data.content;
-          console.log('✅ Using result.data.content:', contentData.length, 'items');
-        } else if (result.content) {
-          contentData = result.content;
-          console.log('✅ Using result.content:', contentData.length, 'items');
-        } else if (Array.isArray(result)) {
-          contentData = result;
-          console.log('✅ Using result directly as array:', contentData.length, 'items');
-        } else {
-          console.log('⚠️ No recognizable data structure found');
-        }
-        
-        console.log('🗜 Setting invoice details data:', contentData);
-        setInvoiceDetailsData(contentData);
-        console.log('✅ Invoice details loaded - content length:', contentData.length);
-      } else {
-        console.error('❌ API response not ok:', response.status, response.statusText);
-        const errorText = await response.text();
-        console.error('❌ Error response:', errorText);
-      }
-    } catch (error) {
-      console.error('❌ Error loading invoice details:', error);
+    console.log('⚠️ Invoice details will be loaded from combined API response instead of separate call');
+    
+    // Invoice details data should already be available from the combined API call
+    // This function is now mainly for logging purposes since the data comes from loadMonthData
+    if (invoiceDetailsData && invoiceDetailsData.length > 0) {
+      console.log('✅ Invoice details already available:', invoiceDetailsData.length, 'records');
+      return;
     }
+    
+    // If for some reason we need to load invoice details separately, 
+    // call the combined endpoint which includes Bearer token authentication
+    console.log('🔄 Invoice details not available, triggering combined data load');
+    await loadMonthData(monthValue);
   };
 
   const loadMonthlyDifference = async (monthValue) => {
     console.log('🔍 Loading monthly difference for month:', monthValue);
-    try {
-      const soldToIdValue = soldToId || userContext?.soldToId;
-      console.log('🔍 SoldToId values:', { soldToId, userContextSoldToId: userContext?.soldToId, final: soldToIdValue });
-      // Calculate previous month for comparison
-      // Handle both formats: 2025-12 and 202512
-      if (!monthValue) {
-        console.error('❌ No monthValue provided');
-        return;
-      }
-      
-      let year, month;
-      
-      if (monthValue.includes('-')) {
-        // Format: 2025-12
-        [year, month] = monthValue.split('-');
-        console.log('📅 Split monthValue (YYYY-MM format):', { year, month, original: monthValue });
-      } else if (monthValue.length === 6) {
-        // Format: 202512
-        year = monthValue.substring(0, 4);
-        month = monthValue.substring(4, 6);
-        console.log('📅 Split monthValue (YYYYMM format):', { year, month, original: monthValue });
-      } else {
-        console.error('❌ Invalid monthValue format:', monthValue, 'Expected YYYY-MM or YYYYMM');
-        return;
-      }
-      
-      // Ensure month is properly formatted (pad with zero if needed)
-      const currentMonthStr = year + (month.length === 1 ? '0' + month : month);
-      
-      // Calculate previous month
-      let prevYear = parseInt(year);
-      let prevMonth = parseInt(month) - 1;
-      if (prevMonth < 1) {
-        prevMonth = 12;
-        prevYear -= 1;
-      }
-      const prevMonthStr = prevYear.toString() + (prevMonth < 10 ? '0' + prevMonth : prevMonth.toString());
-      
-      console.log('📅 Month calculation details:', {
-        originalMonth: monthValue,
-        currentMonthStr,
-        prevMonthStr,
-        yearNum: parseInt(year),
-        monthNum: parseInt(month),
-        prevYearNum: prevYear,
-        prevMonthNum: prevMonth
-      });
-      
-      console.log('🔍 Full request payload:', {
-        action: 'monthlyDifference',
-        currentMonth: currentMonthStr,
-        previousMonth: prevMonthStr,
-        soldToId: soldToIdValue ? [soldToIdValue] : undefined
-      });
-      
-      // Get access token for authorization
-      const accessToken = localStorage.getItem('access_token');
-      console.log('🔐 Access token available:', !!accessToken);
-      console.log('🔐 Access token (first 20 chars):', accessToken ? accessToken.substring(0, 20) + '...' : 'null');
-      
-      const headers = {
-        'Content-Type': 'application/json'
-      };
-      
-      if (accessToken) {
-        headers.Authorization = `Bearer ${accessToken}`;
-        console.log('✅ Authorization header added to monthly difference request');
-      } else {
-        console.warn('⚠️ No access token found for monthly difference API request');
-      }
-      
-      const apiUrl = '/api/azure-invoice';
-      const requestBody = { 
-        action: 'monthlyDifference', 
-        currentMonth: currentMonthStr,
-        previousMonth: prevMonthStr,
-        soldToId: soldToIdValue ? [soldToIdValue] : undefined
-      };
-      
-      console.log('🌐 Monthly Difference API URL:', apiUrl);
-      console.log('📦 Monthly Difference Request headers:', headers);
-      console.log('📦 Monthly Difference Request body:', requestBody);
-      console.log('🎯 Expected backend URL should be: /ccr-invoice-service/month/sku-difference/' + prevMonthStr + '/' + currentMonthStr + '?page=0&size=20');
-      
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: headers,
-        credentials: 'include',
-        body: JSON.stringify(requestBody)
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        console.log('🔍 FULL API RESPONSE for monthly difference:', result);
-        console.log('🔍 Response data:', result.data);
-        console.log('🔍 Content array:', result.data?.content);
-        console.log('🔍 Total elements:', result.data?.totalElements);
-        setMonthlyDifferenceData(result.data?.content || []);
-        console.log('✅ Monthly difference loaded - content length:', result.data?.content?.length || 0);
-      } else {
-        console.error('❌ API response not ok:', response.status, response.statusText);
-        const errorText = await response.text();
-        console.error('❌ Error response:', errorText);
-      }
-    } catch (error) {
-      console.error('❌ Error loading monthly difference:', error);
+    console.log('⚠️ Monthly difference will be loaded from combined API response instead of separate call');
+    
+    // Monthly difference data should already be available from the combined API call
+    // This function is now mainly for logging purposes since the data comes from loadMonthData
+    if (monthlyDifferenceData && monthlyDifferenceData.length > 0) {
+      console.log('✅ Monthly difference already available:', monthlyDifferenceData.length, 'records');
+      return;
     }
+    
+    // If for some reason we need to load monthly difference separately, 
+    // call the combined endpoint which includes Bearer token authentication
+    console.log('🔄 Monthly difference not available, triggering combined data load');
+    await loadMonthData(monthValue);
   };
 
   return (
@@ -714,19 +908,31 @@ export default function AzureInvoiceClientContent(props) {
               
               {/* KPI Cards - Right Side */}
               <div className="azure-invoice-kpi-cards">
-                {isLoading ? (
+                {clientDataLoading ? (
                   <>
-                    <div className="azure-invoice-skeleton-kpi">
-                      <Skeleton shape="text" className="azure-invoice-skeleton-text-sm" />
-                      <Skeleton shape="text" className="azure-invoice-skeleton-text-md" />
+                    <div className="azure-invoice-kpi-card invoice-total azure-invoice-skeleton-kpi">
+                      <div className="azure-invoice-kpi-label">
+                        <Skeleton shape="text" className="azure-invoice-skeleton-text-sm" />
+                      </div>
+                      <div className="azure-invoice-kpi-value">
+                        <Skeleton shape="text" className="azure-invoice-skeleton-text-md" />
+                      </div>
                     </div>
-                    <div className="azure-invoice-skeleton-kpi-large">
-                      <Skeleton shape="text" className="azure-invoice-skeleton-text-lg" />
-                      <Skeleton shape="text" className="azure-invoice-skeleton-text-xl" />
+                    <div className="azure-invoice-kpi-card monthly-difference azure-invoice-skeleton-kpi-large">
+                      <div className="azure-invoice-kpi-label">
+                        <Skeleton shape="text" className="azure-invoice-skeleton-text-lg" />
+                      </div>
+                      <div className="azure-invoice-kpi-value">
+                        <Skeleton shape="text" className="azure-invoice-skeleton-text-xl" />
+                      </div>
                     </div>
-                    <div className="azure-invoice-skeleton-kpi">
-                      <Skeleton shape="text" className="azure-invoice-skeleton-text-md" />
-                      <Skeleton shape="text" className="azure-invoice-skeleton-text-md" />
+                    <div className="azure-invoice-kpi-card invoice-credits azure-invoice-skeleton-kpi">
+                      <div className="azure-invoice-kpi-label">
+                        <Skeleton shape="text" className="azure-invoice-skeleton-text-sm" />
+                      </div>
+                      <div className="azure-invoice-kpi-value">
+                        <Skeleton shape="text" className="azure-invoice-skeleton-text-md" />
+                      </div>
                     </div>
                   </>
                 ) : (
@@ -764,13 +970,17 @@ export default function AzureInvoiceClientContent(props) {
 
             {/* Bottom Row: Invoice Month Dropdown + View Billed Usage */}
             <div className="azure-invoice-header-bottom">
-              {isLoading || !monthsLoaded ? (
+              {clientDataLoading || !monthsLoaded ? (
                 <>
                   <div className="azure-invoice-month-selector">
-                    <Skeleton shape="text" className="azure-invoice-skeleton-label" />
+                    <label className="azure-invoice-month-label">
+                      <Skeleton shape="text" className="azure-invoice-skeleton-label" />
+                    </label>
                     <Skeleton shape="rectangle" className="azure-invoice-skeleton-dropdown" />
                   </div>
-                  <Skeleton shape="text" className="azure-invoice-skeleton-link" />
+                  <a href="#" className="azure-invoice-view-usage-link">
+                    <Skeleton shape="text" className="azure-invoice-skeleton-link" />
+                  </a>
                 </>
               ) : (
                 <>
@@ -792,8 +1002,8 @@ export default function AzureInvoiceClientContent(props) {
                           console.log('❌ Invalid selection event:', e);
                         }
                       }}
-                      disabled={isLoading}
-                      className={`azure-invoice-month-dropdown ${isLoading ? 'disabled' : ''}`}
+                      disabled={clientDataLoading}
+                      className={`azure-invoice-month-dropdown ${clientDataLoading ? 'disabled' : ''}`}
                     />
                   </div>
                   
@@ -815,8 +1025,21 @@ export default function AzureInvoiceClientContent(props) {
           {/* Charts Section with Carousel */}
           <div className="o-grid o-grid--gutters azure-invoice-charts-section">
             <div className="o-grid__item u-1/1">
-              {isLoading ? (
-                <Skeleton shape="rectangle" className="azure-invoice-skeleton-chart" />
+              {clientDataLoading ? (
+                <div className="azure-invoice-chart-slide">
+                  <div className="azure-invoice-chart-container">
+                    <div className="azure-invoice-chart-box">
+                      <Skeleton shape="text" className="azure-invoice-skeleton-chart-title" />
+                      <Skeleton shape="rectangle" className="azure-invoice-skeleton-chart-content" />
+                    </div>
+                  </div>
+                  <div className="azure-invoice-chart-container">
+                    <div className="azure-invoice-chart-box">
+                      <Skeleton shape="text" className="azure-invoice-skeleton-chart-title" />
+                      <Skeleton shape="rectangle" className="azure-invoice-skeleton-chart-content" />
+                    </div>
+                  </div>
+                </div>
               ) : (
                 <Carousel
                   id="azure-invoice-carousel"
@@ -984,23 +1207,31 @@ export default function AzureInvoiceClientContent(props) {
           {/* Filter Controls */}
           <div className="azure-invoice-filter-section">
             <div className="azure-invoice-filter-row">
-              {isLoading ? (
+              {clientDataLoading ? (
                 // Skeleton loaders for filters
                 <>
                   <div className="azure-invoice-filter-group">
-                    <Skeleton shape="text" className="azure-invoice-skeleton-filter-label" />
-                    <Skeleton shape="rectangle" className="azure-invoice-skeleton-filter-dropdown" />
+                    <label className="azure-invoice-filter-label">
+                      <Skeleton shape="text" className="azure-invoice-skeleton-filter-label" />
+                    </label>
+                    <Skeleton shape="rectangle" className="azure-invoice-skeleton-filter-dropdown azure-invoice-filter-dropdown" />
                   </div>
                   <div className="azure-invoice-filter-group">
-                    <Skeleton shape="text" className="azure-invoice-skeleton-filter-label-sm" />
-                    <Skeleton shape="rectangle" className="azure-invoice-skeleton-filter-dropdown" />
+                    <label className="azure-invoice-filter-label">
+                      <Skeleton shape="text" className="azure-invoice-skeleton-filter-label-sm" />
+                    </label>
+                    <Skeleton shape="rectangle" className="azure-invoice-skeleton-filter-dropdown azure-invoice-filter-dropdown" />
                   </div>
                   <div className="azure-invoice-filter-group">
-                    <Skeleton shape="text" className="azure-invoice-skeleton-filter-label-xs" />
-                    <Skeleton shape="rectangle" className="azure-invoice-skeleton-filter-dropdown" />
+                    <label className="azure-invoice-filter-label">
+                      <Skeleton shape="text" className="azure-invoice-skeleton-filter-label-xs" />
+                    </label>
+                    <Skeleton shape="rectangle" className="azure-invoice-skeleton-filter-dropdown azure-invoice-filter-dropdown" />
                   </div>
                   <div>
-                    <Skeleton shape="rectangle" className="azure-invoice-skeleton-filter-button" />
+                    <button className="azure-invoice-apply-button" disabled>
+                      <Skeleton shape="text" className="azure-invoice-skeleton-filter-button" />
+                    </button>
                   </div>
                 </>
               ) : (
@@ -1071,16 +1302,17 @@ export default function AzureInvoiceClientContent(props) {
               >
                 <TabStripTab title="Invoice Details">
                   <InvoiceDetailsComponent 
+                    key={`invoice-details-${selectedMonth?.value}-${forceUpdate}`}
                     usageMonth={selectedMonth?.value}
                     data={invoiceDetailsData}
-                    isLoading={isLoading}
+                    isLoading={clientDataLoading}
                   />
                 </TabStripTab>
                 <TabStripTab title="Monthly Differences">
                   <MonthlyDifferenceComponent 
                     usageMonth={selectedMonth?.value}
                     data={monthlyDifferenceData}
-                    isLoading={isLoading}
+                    isLoading={clientDataLoading}
                   />
                 </TabStripTab>
               </TabStrip>
