@@ -85,6 +85,10 @@ export default function AzureInvoiceClientContent(props) {
       if (authState.loginResponse.userProfile?.defaultContext?.[0]) {
         console.log('🔍 defaultContext[0]:', authState.loginResponse.userProfile.defaultContext[0]);
         console.log('🔍 soldToId from loginResponse:', authState.loginResponse.userProfile.defaultContext[0].soldToId);
+        console.log('🔍 soldToName from loginResponse:', authState.loginResponse.userProfile.defaultContext[0].soldToName);
+        console.log('🔍 username from loginResponse:', authState.loginResponse.username);
+        console.log('🔍 firstName from loginResponse:', authState.loginResponse.firstName);
+        console.log('🔍 lastName from loginResponse:', authState.loginResponse.lastName);
       }
     }
     
@@ -200,6 +204,7 @@ export default function AzureInvoiceClientContent(props) {
   // Client-side loading states
   const [clientDataLoading, setClientDataLoading] = useState(mode === 'client-side');
   const [loadingError, setLoadingError] = useState(null);
+  const [loadingTimeout, setLoadingTimeout] = useState(null);
   
   // State for dynamic data that changes with month - use correct SSR data structure
   const [currentSummaryData, setCurrentSummaryData] = useState(extractedSummaryData);
@@ -272,6 +277,32 @@ export default function AzureInvoiceClientContent(props) {
     console.log('🔄 USEEFFECT - Trends Data changed:', currentTrendsData);
   }, [currentTrendsData]);
 
+  // Add loading timeout effect
+  useEffect(() => {
+    if (clientDataLoading && mode === 'client-side') {
+      // Set a timeout for loading - if loading takes more than 30 seconds, show error
+      const timeoutId = setTimeout(() => {
+        console.log('\u26a0\ufe0f Loading timeout reached - stopping loading state');
+        setLoadingError('Loading is taking longer than expected. Please refresh the page or try again later.');
+        setClientDataLoading(false);
+      }, 30000); // 30 seconds timeout
+      
+      setLoadingTimeout(timeoutId);
+      
+      // Cleanup function
+      return () => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          setLoadingTimeout(null);
+        }
+      };
+    } else if (loadingTimeout) {
+      // Clear timeout if loading is done
+      clearTimeout(loadingTimeout);
+      setLoadingTimeout(null);
+    }
+  }, [clientDataLoading, mode, loadingTimeout]);
+
   // Load initial data when in client-side mode or handle SSR data
   useEffect(() => {
     console.log('🔄 MAIN useEffect triggered:', {
@@ -301,12 +332,15 @@ export default function AzureInvoiceClientContent(props) {
       const summary = initialData.summaryResponse?.data || initialData.summary;
       const credits = initialData.creditsResponse?.data || initialData.credits;
       const trends = initialData.trendsResponse?.data || initialData.trends;
+      const invoiceDetails = initialData.invoiceDetailsResponse?.data?.content || initialData.invoiceDetails?.content || initialData.invoiceDetails || [];
       
       console.log('📊 SSR extracted data:', {
         monthsCount: months.length,
         hasSummary: !!summary,
         hasCredits: !!credits,
-        hasTrends: !!trends
+        hasTrends: !!trends,
+        hasInvoiceDetails: !!invoiceDetails?.length,
+        invoiceDetailsCount: invoiceDetails?.length || 0
       });
       
       // Data should already be set in useState, but ensure it's updated
@@ -316,13 +350,18 @@ export default function AzureInvoiceClientContent(props) {
         setCurrentSummaryData(summary);
         setCurrentCreditsData(credits);
         setCurrentTrendsData(trends);
+        setInvoiceDetailsData(invoiceDetails);
         setMonthsLoaded(true);
         setClientDataLoading(false);
         setForceUpdate(prev => prev + 1);
         console.log('✅ SSR: Data initialized from server');
       } else if (months.length > 0) {
-        // Data already loaded, just force re-render
-        console.log('⚡ SSR: Data already loaded, forcing re-render');
+        // Data already loaded, just update with SSR data and force re-render
+        console.log('⚡ SSR: Data already loaded, updating with SSR data and forcing re-render');
+        setCurrentSummaryData(summary);
+        setCurrentCreditsData(credits);
+        setCurrentTrendsData(trends);
+        setInvoiceDetailsData(invoiceDetails);
         setForceUpdate(prev => prev + 1);
       }
     } else if (mode === 'client-side') {
@@ -337,35 +376,40 @@ export default function AzureInvoiceClientContent(props) {
       });
       
       // Check if we have valid authentication data
-      if (hasRehydrated && (!authState?.isAuthenticated || !authState?.accessToken || !effectiveSoldToId)) {
-        console.log('❌ No valid authentication data - redirecting to login:', {
-          isAuthenticated: authState?.isAuthenticated,
-          hasAccessToken: !!authState?.accessToken,
-          hasEffectiveSoldToId: !!effectiveSoldToId
-        });
+      if (hasRehydrated) {
+        // If we don't have basic auth data, try to load anyway or provide fallback
+        if (!authState?.isAuthenticated || !authState?.accessToken || !effectiveSoldToId) {
+          console.log('⚠️ Limited authentication data, attempting fallback:', {
+            isAuthenticated: authState?.isAuthenticated,
+            hasAccessToken: !!authState?.accessToken,
+            hasEffectiveSoldToId: !!effectiveSoldToId
+          });
+          
+          // Try to fallback to SSR mode if available
+          if (mode === 'client-side' && !effectiveSoldToId && !monthsLoaded) {
+            console.log('🔄 No soldToId available, setting error state');
+            setLoadingError('Authentication data is missing. Please try refreshing the page or logging in again.');
+            setClientDataLoading(false);
+            return;
+          }
+        }
         
-        // Clear corrupted authentication data
-        console.log('🧹 Clearing corrupted auth data...');
-        localStorage.removeItem('persist:ccr-auth');
-        document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        document.cookie = 'user_context=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        
-        // Redirect to login with parameters
-        window.location.href = '/?soldTo=123&salesOrg=1000';
-        return;
-      }
-      
-      if (hasRehydrated && effectiveSoldToId && !monthsLoaded && authState?.isAuthenticated && authState?.accessToken) {
-        console.log('🚀 CLIENT-SIDE: All conditions met, calling loadInitialData');
-        loadInitialData();
-      } else {
-        console.log('⏸️ CLIENT-SIDE: Waiting for conditions:', {
-          'Need rehydration': !hasRehydrated,
-          'Need soldToId': !effectiveSoldToId,
-          'Need auth': !authState?.isAuthenticated,
-          'Need accessToken': !authState?.accessToken,
-          'Already loaded': monthsLoaded
-        });
+        if (effectiveSoldToId && !monthsLoaded && (authState?.isAuthenticated || mode === 'ssr')) {
+          console.log('🚀 CLIENT-SIDE: Conditions met, calling loadInitialData');
+          loadInitialData();
+        } else if (!effectiveSoldToId && !monthsLoaded) {
+          console.log('❌ No soldToId available after rehydration');
+          setLoadingError('Unable to determine account information. Please try refreshing the page.');
+          setClientDataLoading(false);
+        } else {
+          console.log('⏸️ CLIENT-SIDE: Waiting for conditions:', {
+            'Need rehydration': !hasRehydrated,
+            'Need soldToId': !effectiveSoldToId,
+            'Need auth': !authState?.isAuthenticated,
+            'Need accessToken': !authState?.accessToken,
+            'Already loaded': monthsLoaded
+          });
+        }
       }
     }
   }, [mode, monthsLoaded, initialData, effectiveSoldToId, authState?.isAuthenticated, authState?.accessToken, hasRehydrated]);
@@ -895,6 +939,57 @@ export default function AzureInvoiceClientContent(props) {
   return (
     <ErrorBoundary>
       <div className="azure-invoice-page">
+        {/* Error Display */}
+        {loadingError && (
+          <div style={{ 
+            padding: '20px', 
+            margin: '20px', 
+            backgroundColor: '#f8d7da', 
+            color: '#721c24', 
+            border: '1px solid #f5c6cb', 
+            borderRadius: '4px',
+            textAlign: 'center'
+          }}>
+            <h3>Loading Error</h3>
+            <p>{loadingError}</p>
+            <button 
+              onClick={() => {
+                setLoadingError(null);
+                setClientDataLoading(true);
+                if (mode === 'client-side' && effectiveSoldToId) {
+                  loadInitialData();
+                }
+              }}
+              style={{
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                marginTop: '10px'
+              }}
+            >
+              Try Again
+            </button>
+            <button 
+              onClick={() => window.location.reload()}
+              style={{
+                backgroundColor: '#6c757d',
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                marginTop: '10px',
+                marginLeft: '10px'
+              }}
+            >
+              Refresh Page
+            </button>
+          </div>
+        )}
+        
         {/* Main Container with left/right spacing */}
         <div className="azure-invoice-container">
           

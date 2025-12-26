@@ -16,12 +16,16 @@ import {
  * - HTML is sent to browser with data already populated
  * - No browser API calls on initial load
  * - Client component receives pre-fetched data as props
+ * 
+ * ⚡ CACHING STRATEGY:
+ * - Data cache: 10 minutes (actual API data caching)
+ * - Each API call is cached individually for optimal performance
  */
 
 export default async function AzureInvoicePage() {
   console.log('🎯 SERVER: Rendering Azure Invoice page with SSR...');
   
-  // Get authentication data from server-side cookies
+  // Get authentication data from server-side cookies (same pattern as invoices)
   const cookieStore = await cookies();
   const userContextCookie = cookieStore.get('user_context');
   const soldToIdCookie = cookieStore.get('soldToId');
@@ -40,7 +44,7 @@ export default async function AzureInvoicePage() {
     return <AzureInvoiceClientContent mode="client-side" />;
   }
   
-  // Extract soldToId for server-side data fetching
+  // Extract soldToId for server-side data fetching (same pattern as invoices)
   let soldToId = soldToIdCookie?.value;
   let userContext = null;
   
@@ -71,18 +75,9 @@ export default async function AzureInvoicePage() {
   
   if (!soldToId) {
     console.log('⚠️ SERVER: No soldToId, falling back to client-side mode');
-    // Fall back to client-side mode instead of showing error
-    return (
-      <AzureInvoiceClientContent 
-        mode="client-side"
-        initialData={null}
-        userContext={null}
-        ssrPerformance={null}
-        soldToId={null}
-      />
-    );
+    return <AzureInvoiceClientContent mode="client-side" />;
   }
-  
+
   // SERVER-SIDE DATA FETCHING - runs on server, not in browser
   console.log('🚀 SERVER: Starting server-side data fetch for soldToId:', soldToId);
   
@@ -90,50 +85,64 @@ export default async function AzureInvoicePage() {
   let ssrError = null;
   
   try {
-    // Fetch all data in parallel on the server
+    // Fetch all data using caching on the server
     const startTime = Date.now();
     
-    // Get first month for invoice details (assuming monthsResponse has the data)
+    // Get first month for invoice details (cached)
     const monthsData = await fetchInvoiceMonthsServer(soldToId);
-    const firstMonth = monthsData?.data?.invoiceMonths?.[0]?.value || '202512'; // Default to current month
-    console.log('📅 SERVER: Using first month for invoice details:', firstMonth);
+    if (monthsData.error) {
+      throw new Error(`Months fetch failed: ${monthsData.error}`);
+    }
     
-    const [monthsResponse, summaryResponse, creditsResponse, trendsResponse, invoiceDetailsResponse] = await Promise.all([
-      Promise.resolve(monthsData), // Already fetched above
-      fetchSummaryDataServer(soldToId, null), // null = fetch for first month
-      fetchCreditsDataServer(soldToId, null),
-      fetchTrendsDataServer(soldToId, null),
+    const firstMonth = monthsData?.data?.invoiceMonths?.[0]?.value || '202512'; // Default to current month
+    console.log('📅 SERVER: Using first month for azure invoice details:', firstMonth);
+    
+    // Fetch all azure invoice data in parallel (all cached with 10-minute TTL)
+    const [summaryData, creditsData, trendsData, detailsData] = await Promise.all([
+      fetchSummaryDataServer(soldToId, firstMonth),
+      fetchCreditsDataServer(soldToId, firstMonth),
+      fetchTrendsDataServer(soldToId, firstMonth),
       fetchInvoiceDetailsServer(soldToId, firstMonth)
     ]);
     
     const fetchTime = Date.now() - startTime;
-    console.log(`✅ SERVER: Data fetched in ${fetchTime}ms`);
+    console.log(`✅ SERVER: Azure invoice data fetched in ${fetchTime}ms`);
     
-    // Check for errors
-    if (monthsResponse.error) {
-      console.error('❌ SERVER: Months error:', monthsResponse.error);
-      ssrError = monthsResponse.error;
-    } else {
-      initialData = {
-        monthsResponse,
-        summaryResponse,
-        creditsResponse,
-        trendsResponse,
-        invoiceDetailsResponse
-      };
-      
-      console.log('✅ SERVER: Initial data prepared:', {
-        hasMonths: !!monthsResponse?.data?.invoiceMonths,
-        monthsCount: monthsResponse?.data?.invoiceMonths?.length || 0,
-        hasSummary: !!summaryResponse?.data,
-        hasCredits: !!creditsResponse?.data,
-        hasTrends: !!trendsResponse?.data,
-        hasInvoiceDetails: !!invoiceDetailsResponse?.data,
-        invoiceDetailsCount: invoiceDetailsResponse?.data?.content?.length || invoiceDetailsResponse?.data?.length || 0
-      });
-    }
+    // Log cache hit/miss status for debugging
+    console.log('📊 SERVER: Cache status:', {
+      months: monthsData._fromCache ? 'HIT' : 'MISS',
+      summary: summaryData._fromCache ? 'HIT' : 'MISS', 
+      credits: creditsData._fromCache ? 'HIT' : 'MISS',
+      trends: trendsData._fromCache ? 'HIT' : 'MISS',
+      details: detailsData._fromCache ? 'HIT' : 'MISS'
+    });
+    
+    // Check for any errors in individual responses
+    if (summaryData.error) console.warn('⚠️ Summary data error:', summaryData.error);
+    if (creditsData.error) console.warn('⚠️ Credits data error:', creditsData.error);
+    if (trendsData.error) console.warn('⚠️ Trends data error:', trendsData.error);
+    if (detailsData.error) console.warn('⚠️ Details data error:', detailsData.error);
+    
+    initialData = {
+      monthsResponse: monthsData,
+      summaryResponse: summaryData,
+      creditsResponse: creditsData,
+      trendsResponse: trendsData,
+      invoiceDetailsResponse: detailsData,
+      fetchTime
+    };
+    
+    console.log('✅ SERVER: Azure invoice initial data prepared:', {
+      hasMonths: !!monthsData?.data,
+      monthsCount: monthsData?.data?.invoiceMonths?.length || 0,
+      hasSummary: !!summaryData?.data,
+      hasCredits: !!creditsData?.data,
+      hasTrends: !!trendsData?.data,
+      hasInvoiceDetails: !!detailsData?.data,
+      invoiceDetailsCount: detailsData?.data?.content?.length || detailsData?.data?.length || 0
+    });
   } catch (error) {
-    console.error('❌ SERVER: Data fetch error:', error);
+    console.error('❌ SERVER: Azure invoice data fetch error:', error);
     ssrError = error.message;
   }
   
@@ -142,21 +151,21 @@ export default async function AzureInvoicePage() {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
         <h2>Data Fetch Error</h2>
-        <p>Failed to load invoice data: {ssrError}</p>
-        <button 
-          onClick={() => window.location.reload()} 
+        <p>Failed to load Azure invoice data: {ssrError}</p>
+        <a 
+          href="/azure-invoice"
           style={{ 
+            display: 'inline-block',
             padding: '10px 20px', 
             backgroundColor: '#007bff', 
             color: 'white', 
-            border: 'none', 
+            textDecoration: 'none',
             borderRadius: '4px',
-            cursor: 'pointer',
             marginTop: '15px'
           }}
         >
           Retry
-        </button>
+        </a>
       </div>
     );
   }
@@ -168,12 +177,13 @@ export default async function AzureInvoicePage() {
         initialData={initialData}
         userContext={userContext}
         ssrPerformance={{
-          dataFetchTime: 0,
-          totalSSRTime: 0,
-          cacheStatus: 'FRESH_SSR',
+          dataFetchTime: initialData ? initialData.fetchTime || 0 : 0,
+          totalSSRTime: initialData ? initialData.fetchTime || 0 : 0,
+          cacheStatus: 'CLEAN_SSR_WITH_10MIN_CACHE',
           cacheHitRatio: 0,
           timestamp: new Date().toLocaleTimeString()
         }}
+        soldToId={soldToId}
       />
     </div>
   );

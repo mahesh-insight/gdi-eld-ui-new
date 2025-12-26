@@ -106,78 +106,43 @@ const Header = () => {
   const loginResponse = useSelector((state) => state.auth.loginResponse);
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   
-  // FIXED: Get all data from Redux loginResponse using the actual login response structure
-  const displayFirstName = loginResponse?.firstName || 'User';
+  // Extract user data with minimal fallbacks
+  const displayFirstName = loginResponse?.firstName || '';
   const displayLastName = loginResponse?.lastName || '';
-  const displayUsername = loginResponse?.username || loginResponse?.email || '';
+  const displayUsername = loginResponse?.username || loginResponse?.email || 'Guest';
   const displayPersona = loginResponse?.persona || '';
   
-  // Extract account info from userProfile.defaultContext[0] - ONLY from Redux loginResponse
+  // Extract account info from userProfile.defaultContext[0]
   const defaultContext = loginResponse?.userProfile?.defaultContext?.[0];
-  const soldTo = defaultContext?.soldTo || '';
+  const soldTo = defaultContext?.soldTo || defaultContext?.soldToId || '';
   const soldToId = defaultContext?.soldToId || '';
+  const companyName = defaultContext?.soldToName || '';
   
-  // SIMPLIFIED: Only use soldToName from Redux loginResponse - no fallbacks
-  const companyName = defaultContext?.soldToName;
-  
-  // Store access token from tokens.bearerToken
+  // Store access token
   const accessToken = loginResponse?.tokens?.bearerToken || loginResponse?.accessToken;
   
-  console.log('🔍 Header: Redux data check (reading directly from Redux store):', {
+  console.log('🔍 Header: User Data Check:', {
     isAuthenticated,
     hasLoginResponse: !!loginResponse,
-    loginResponseKeys: loginResponse ? Object.keys(loginResponse) : [],
-    hasDefaultContext: !!defaultContext,
-    hasAccessToken: !!accessToken,
     userData: {
       firstName: displayFirstName,
       lastName: displayLastName,
-      username: displayUsername,
-      persona: displayPersona
+      username: displayUsername
     },
     accountData: {
       companyName,
       soldTo,
-      soldToId,
-      rawSoldToName: defaultContext?.soldToName, // RAW VALUE CHECK
-      companyNameSource: 'Redux loginResponse.userProfile.defaultContext[0].soldToName ONLY'
+      soldToId
     },
-    dataSource: 'Redux store (persisted until logout - no time limits)',
-    reduxHydrated: !!loginResponse,
-    
-    // DEBUGGING: Check exact login response structure
-    loginResponseStructure: loginResponse ? {
-      hasUserProfile: !!loginResponse.userProfile,
-      hasDefaultContext: !!loginResponse.userProfile?.defaultContext,
-      defaultContextLength: loginResponse.userProfile?.defaultContext?.length || 0,
-      defaultContext0: loginResponse.userProfile?.defaultContext?.[0] || 'MISSING',
-      soldToNameValue: loginResponse.userProfile?.defaultContext?.[0]?.soldToName || 'MISSING',
-      // FULL LOGIN RESPONSE DUMP to understand actual structure
-      fullLoginResponse: JSON.stringify(loginResponse, null, 2)
-    } : 'NO_LOGIN_RESPONSE'
+    rawData: {
+      defaultContext: defaultContext || 'MISSING',
+      soldToNameFromContext: defaultContext?.soldToName || ''
+    }
   });
   
   // ADDITIONAL DEBUG: Check if soldToName exists anywhere in the login response
-  if (loginResponse) {
-    console.log('🕵️ DETAILED SOLDTONAME SEARCH:', {
-      // Search for soldToName at different levels
-      rootLevel: loginResponse.soldToName || 'NOT_FOUND',
-      userProfileLevel: loginResponse.userProfile?.soldToName || 'NOT_FOUND', 
-      defaultContextLevel: loginResponse.userProfile?.defaultContext?.[0]?.soldToName || 'NOT_FOUND',
-      // Search for any property containing "soldTo" or similar
-      allPropsContainingSoldTo: Object.keys(loginResponse).filter(key => 
-        key.toLowerCase().includes('soldto') || 
-        key.toLowerCase().includes('company') ||
-        key.toLowerCase().includes('name')
-      ),
-      // Check if userProfile exists and what it contains
-      userProfileStructure: loginResponse.userProfile ? Object.keys(loginResponse.userProfile) : 'NO_USER_PROFILE',
-      // Check defaultContext array
-      defaultContextArray: loginResponse.userProfile?.defaultContext || 'NO_DEFAULT_CONTEXT',
-      // Check first item in defaultContext
-      firstContextKeys: loginResponse.userProfile?.defaultContext?.[0] ? 
-        Object.keys(loginResponse.userProfile.defaultContext[0]) : 'NO_FIRST_CONTEXT'
-    });
+  if (loginResponse && !defaultContext?.soldToName) {
+    console.log('⚠️ SOLDTONAME NOT FOUND in defaultContext - checking alternate paths');
   }
   
 // Validate Redux data availability

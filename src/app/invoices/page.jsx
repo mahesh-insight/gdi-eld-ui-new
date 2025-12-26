@@ -19,39 +19,57 @@ import {
 export default async function InvoicesPage() {
   console.log('🎯 SERVER: Rendering Invoices page with SSR...');
   
-  // Get user context from server-side cookies
+  // Get authentication data from server-side cookies (same pattern as azure-invoice)
   const cookieStore = await cookies();
   const userContextCookie = cookieStore.get('user_context');
+  const soldToIdCookie = cookieStore.get('soldToId');
+  const accessTokenCookie = cookieStore.get('access_token');
   
-  if (!userContextCookie) {
-    console.log('⚠️ SERVER: No user_context cookie found - rendering client fallback');
+  // Check if we have enough data for SSR
+  const hasSoldToId = soldToIdCookie?.value || userContextCookie?.value;
+  const hasAccessToken = accessTokenCookie?.value && accessTokenCookie.value !== '{}' && accessTokenCookie.value.length > 100;
+  
+  if (!hasSoldToId || !hasAccessToken) {
+    console.log('⚠️ SERVER: Missing authentication data - rendering client fallback', {
+      hasSoldToId: !!hasSoldToId,
+      hasAccessToken: !!hasAccessToken,
+      accessTokenLength: accessTokenCookie?.value?.length || 0
+    });
     return <InvoicesClientContent mode="client-side" />;
   }
   
-  let userContext;
-  try {
-    userContext = JSON.parse(userContextCookie.value);
-  } catch (error) {
-    console.error('❌ SERVER: Failed to parse user context:', error);
-    return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
-        <h2>Authentication Error</h2>
-        <p>Invalid user context. Please log in again.</p>
-        <a href="/" style={{ color: '#007bff' }}>Return to Login</a>
-      </div>
-    );
+  // Extract soldToId for server-side data fetching (same pattern as azure-invoice)
+  let soldToId = soldToIdCookie?.value;
+  let userContext = null;
+  
+  // If no direct soldToId cookie, try to extract from user_context
+  if (!soldToId && userContextCookie) {
+    try {
+      userContext = JSON.parse(decodeURIComponent(userContextCookie.value));
+      soldToId = userContext?.userProfile?.defaultContext?.[0]?.soldToId || userContext?.soldToId;
+      console.log('🔍 SERVER: Extracted soldToId from user_context:', soldToId);
+    } catch (error) {
+      console.error('❌ SERVER: Failed to parse user_context cookie:', error);
+      return <InvoicesClientContent mode="client-side" />;
+    }
+  } else if (userContextCookie && !userContext) {
+    // Parse userContext even if we have soldToId from cookie for component props
+    try {
+      userContext = JSON.parse(decodeURIComponent(userContextCookie.value));
+    } catch (error) {
+      console.warn('⚠️ SERVER: Failed to parse user_context for component props, using minimal context');
+      userContext = { soldToId };
+    }
   }
   
-  const { soldToId } = userContext;
+  // Create minimal userContext if we only have soldToId
+  if (!userContext && soldToId) {
+    userContext = { soldToId };
+  }
   
   if (!soldToId) {
-    return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
-        <h2>Missing Data</h2>
-        <p>User context incomplete. Please log in again.</p>
-        <a href="/" style={{ color: '#007bff' }}>Return to Login</a>
-      </div>
-    );
+    console.log('⚠️ SERVER: No soldToId, falling back to client-side mode');
+    return <InvoicesClientContent mode="client-side" />;
   }
 
   // SERVER-SIDE DATA FETCHING - runs on server, not in browser
@@ -112,7 +130,8 @@ export default async function InvoicesPage() {
       trendResponse,
       detailsResponse,
       defaultProvider,
-      firstMonth
+      firstMonth,
+      fetchTime
     };
     
     console.log('✅ SERVER: Initial data prepared:', {
@@ -161,8 +180,8 @@ export default async function InvoicesPage() {
         initialData={initialData}
         userContext={userContext}
         ssrPerformance={{
-          dataFetchTime: 0,
-          totalSSRTime: 0,
+          dataFetchTime: initialData ? initialData.fetchTime || 0 : 0,
+          totalSSRTime: initialData ? initialData.fetchTime || 0 : 0,
           cacheStatus: 'FRESH_SSR',
           cacheHitRatio: 0,
           timestamp: new Date().toLocaleTimeString()

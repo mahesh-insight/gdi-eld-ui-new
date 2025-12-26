@@ -423,3 +423,46 @@
   font-weight: 600;
   color: #2c3e50;
 }
+
+/* Skeleton Loading Styles */
+.chart-title-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+/* Ensure skeleton elements match real element structure */
+.invoices-container .k-skeleton {
+  border-radius: 4px;
+}
+
+.stat-item .k-skeleton {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.dropdown-group label .k-skeleton {
+  display: inline-block;
+  vertical-align: top;
+}
+
+/* Status content skeleton styling */
+.status-content .status-badge .k-skeleton,
+.status-content .download-pdf .k-skeleton {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Button skeleton styling */
+.apply-filters-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.apply-filters-btn .k-skeleton {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

@@ -112,7 +112,19 @@ export default function AuthContextInitializer({ children }) {
         if (userContextString && accessToken) {
             try {
                 const loginResponseData = JSON.parse(userContextString);
-                console.log('📦 Using complete login response from cookies:', loginResponseData);
+                console.log('📦 FULL LOGIN RESPONSE from cookies:', loginResponseData);
+                console.log('📦 LOGIN RESPONSE STRUCTURE:', {
+                    keys: Object.keys(loginResponseData || {}),
+                    hasUsername: !!loginResponseData?.username,
+                    hasFirstName: !!loginResponseData?.firstName,
+                    hasLastName: !!loginResponseData?.lastName,
+                    hasUserProfile: !!loginResponseData?.userProfile,
+                    userProfileKeys: loginResponseData?.userProfile ? Object.keys(loginResponseData.userProfile) : [],
+                    hasDefaultContext: !!loginResponseData?.userProfile?.defaultContext,
+                    defaultContextLength: loginResponseData?.userProfile?.defaultContext?.length || 0,
+                    firstContextItem: loginResponseData?.userProfile?.defaultContext?.[0] || 'MISSING'
+                });
+                
                 console.log('🔍 Company name analysis:', {
                     hasSoldToName: !!loginResponseData?.userProfile?.defaultContext?.[0]?.soldToName,
                     soldToName: loginResponseData?.userProfile?.defaultContext?.[0]?.soldToName,
@@ -122,18 +134,17 @@ export default function AuthContextInitializer({ children }) {
                     defaultContext: loginResponseData?.userProfile?.defaultContext?.[0]
                 });
 
-                // Store complete login response exactly as received - no modifications needed
+                // Store complete login response exactly as received
                 dispatch(setAuthenticated(true));
+                dispatch(setLoginResponse(loginResponseData)); // Store original response exactly as received
                 
-                // Store the original login response without any fallback modifications
-                // soldToName "ET Test Customer US" is already present in the response
-                console.log('✅ Storing login response exactly as received:', {
+                console.log('✅ Storing original login response:', {
+                    username: loginResponseData.username,
+                    firstName: loginResponseData.firstName,
+                    lastName: loginResponseData.lastName,
                     soldToName: loginResponseData?.userProfile?.defaultContext?.[0]?.soldToName,
-                    soldToId: loginResponseData?.userProfile?.defaultContext?.[0]?.soldToId,
-                    soldTo: loginResponseData?.userProfile?.defaultContext?.[0]?.soldTo
+                    soldToId: loginResponseData?.userProfile?.defaultContext?.[0]?.soldToId
                 });
-                
-                dispatch(setLoginResponse(loginResponseData)); // Store original response without modifications
                 
                 // Set user data from original login response
                 const userData = {

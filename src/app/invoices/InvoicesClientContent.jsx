@@ -66,9 +66,87 @@ const formatMonthValue = (monthValue) => {
 };
 
 export default function InvoicesClientContent({ mode = 'csr', initialData, userContext, ssrPerformance }) {
+  // 🎯 RENDERING MODE CONFIRMATION
+  console.log('🎯 INVOICES PAGE RENDERING:', {
+    mode,
+    hasInitialData: !!initialData,
+    behavior: mode === 'ssr' ? '✅ SSR: Using server data, no client API calls on load' : 
+              mode === 'csr' ? '⚠️ CSR: May trigger client API calls' :
+              '🟡 CLIENT-SIDE: User interactions trigger API calls'
+  });
+  
+  // 🔍 DEBUG: Log initial data structure
+  if (initialData) {
+    console.log('📦 DEBUG: Initial data received:', {
+      keys: Object.keys(initialData),
+      summaryResponse: {
+        exists: !!initialData.summaryResponse,
+        hasData: !!initialData.summaryResponse?.data,
+        dataKeys: initialData.summaryResponse?.data ? Object.keys(initialData.summaryResponse.data) : 'none'
+      },
+      trendResponse: {
+        exists: !!initialData.trendResponse,
+        hasData: !!initialData.trendResponse?.data
+      },
+      detailsResponse: {
+        exists: !!initialData.detailsResponse,
+        hasData: !!initialData.detailsResponse?.data
+      }
+    });
+  } else {
+    console.log('❌ DEBUG: No initial data provided to component');
+  }
+
   // Redux state (fallback for CSR mode)
   const loginResponse = useSelector((state) => state.auth?.loginResponse);
-  const selectedSoldToId = mode === 'ssr' ? userContext?.soldToId : loginResponse?.userProfile?.defaultContext?.soldToId;
+  
+  // Enhanced soldToId extraction with debugging and fallback
+  let selectedSoldToId;
+  if (mode === 'ssr') {
+    selectedSoldToId = userContext?.soldToId;
+  } else {
+    // Try multiple paths to find soldToId
+    selectedSoldToId = loginResponse?.userProfile?.defaultContext?.[0]?.soldToId || 
+                     loginResponse?.userProfile?.defaultContext?.soldToId ||
+                     loginResponse?.soldToId ||
+                     loginResponse?.userProfile?.soldToId;
+                     
+    // Fallback: Try to get from localStorage if Redux state is not available
+    if (!selectedSoldToId && typeof window !== 'undefined') {
+      try {
+        const persistData = localStorage.getItem('persist:ccr-auth');
+        if (persistData) {
+          const parsed = JSON.parse(persistData);
+          if (parsed.loginResponse) {
+            let loginResponseStr = parsed.loginResponse;
+            if (typeof loginResponseStr === 'string' && loginResponseStr.startsWith('"')) {
+              loginResponseStr = JSON.parse(loginResponseStr);
+            }
+            const loginResponseObj = typeof loginResponseStr === 'string' ? 
+              JSON.parse(loginResponseStr) : loginResponseStr;
+            
+            selectedSoldToId = loginResponseObj?.userProfile?.defaultContext?.[0]?.soldToId || 
+                              loginResponseObj?.userProfile?.defaultContext?.soldToId ||
+                              loginResponseObj?.soldToId;
+            console.log('🔧 Fallback soldToId from localStorage:', selectedSoldToId);
+          }
+        }
+      } catch (e) {
+        console.error('❌ Error extracting soldToId from localStorage:', e);
+      }
+    }
+  }
+  
+  // Debug logging
+  console.log('🔍 Invoices SoldToId Debug:', {
+    mode,
+    hasLoginResponse: !!loginResponse,
+    selectedSoldToId,
+    loginResponseStructure: loginResponse ? Object.keys(loginResponse) : 'none',
+    userProfileStructure: loginResponse?.userProfile ? Object.keys(loginResponse.userProfile) : 'none',
+    defaultContext: loginResponse?.userProfile?.defaultContext,
+    userContextSoldToId: userContext?.soldToId
+  });
 
   // Section-specific loading states - more granular control
   const [providerSectionLoading, setProviderSectionLoading] = useState(mode !== 'ssr');
@@ -80,8 +158,21 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
   const [filtersSectionLoading, setFiltersSectionLoading] = useState(mode !== 'ssr');
   const [chartTypeLoading, setChartTypeLoading] = useState(false);
   
+  // 🔍 DEBUG: Log initial loading states
+  console.log('🔄 DEBUG: Initial loading states:', {
+    mode,
+    providerLoading: mode !== 'ssr',
+    monthLoading: mode !== 'ssr',
+    invoiceLoading: mode !== 'ssr',
+    statsLoading: mode !== 'ssr',
+    chartsLoading: mode !== 'ssr',
+    gridLoading: mode !== 'ssr',
+    filtersLoading: mode !== 'ssr'
+  });
+  
   // Centralized section loading state manager
   const setSectionLoadingStates = (loading, excludeSections = []) => {
+    console.log(`🔄 Setting section loading states to: ${loading}, excluding:`, excludeSections);
     if (!excludeSections.includes('provider')) setProviderSectionLoading(loading);
     if (!excludeSections.includes('month')) setMonthSectionLoading(loading);
     if (!excludeSections.includes('invoice')) setInvoiceSectionLoading(loading);
@@ -222,12 +313,20 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
    * Calls /ccr-billableitem-service/provider
    */
   const fetchProviders = useCallback(async () => {
-    if (!selectedSoldToId) return;
+    console.log('🔍 fetchProviders called with selectedSoldToId:', selectedSoldToId);
+    
+    if (!selectedSoldToId) {
+      console.warn('❌ fetchProviders early return - no selectedSoldToId');
+      return;
+    }
 
     try {
+      console.log('🚀 Starting fetchProviders API call...');
       // For initial page load, show ALL section skeletons
       setSectionLoadingStates(true);
       const response = await fetchProvidersServer(selectedSoldToId);
+
+      console.log('📊 fetchProviders response:', response);
 
       if (response.error) {
         throw new Error(response.error);
@@ -239,6 +338,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       // Set default provider (first one or microsoft)
       const defaultProvider = response.data.find(p => p.abbreviation === 'microsoft') || response.data[0];
       if (defaultProvider) {
+        console.log('✅ Setting default provider:', defaultProvider);
         setSelectedProvider(defaultProvider);
         setApiEndpoint(defaultProvider.abbreviation);
         // Trigger next API call
@@ -352,9 +452,10 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
     }
   }, [selectedSoldToId, apiEndpoint]);
 
-  // Event handlers for dropdown changes
+  // Event handlers for dropdown changes - only trigger on user interaction
   const handleProviderChange = async (event) => {
     const newProvider = event.value; // Kendo uses event.value not event.target.value
+    console.log('👤 USER INTERACTION: Provider changed to:', newProvider);
     setSelectedProvider(newProvider);
     setApiEndpoint(newProvider.abbreviation);
     
@@ -370,12 +471,14 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
     // Show skeletons for ALL sections EXCEPT provider section
     setSectionLoadingStates(true, ['provider']);
 
-    // Fetch new data for selected provider
+    // Client-side API call triggered by user interaction
+    console.log('🔄 Fetching data for user-selected provider:', newProvider.abbreviation);
     await fetchInitialInvoiceMonths(newProvider.abbreviation);
   };
 
   const handleMonthChange = async (event) => {
     const newMonth = event.value; // Kendo uses event.value not event.target.value
+    console.log('👤 USER INTERACTION: Month changed to:', newMonth);
     setSelectedMonth(newMonth);
     
     // Reset dependent states
@@ -389,7 +492,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
     const abbreviation = selectedProvider?.abbreviation || apiEndpoint;
     const monthValue = formatMonthValue(newMonth?.value || newMonth);
     
-    console.log('🔄 Month change processing:', { newMonth, monthValue, abbreviation });
+    console.log('🔄 CLIENT-SIDE: Month change processing for user selection:', { newMonth, monthValue, abbreviation });
     
     // Show skeletons for ALL sections EXCEPT provider and month sections
     setSectionLoadingStates(true, ['provider', 'month']);
@@ -512,7 +615,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
 
   const handleInvoiceNumberChange = async (event) => {
     const newInvoiceNumber = event.target.value;
-    console.log('Invoice number changed to:', newInvoiceNumber);
+    console.log('👤 USER INTERACTION: Invoice number changed to:', newInvoiceNumber);
     
     if (!newInvoiceNumber || newInvoiceNumber === selectedInvoiceNumber) return;
     
@@ -525,6 +628,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
     try {
       // Make consolidated fetch with invoice number filter
       const invoiceFilter = newInvoiceNumber?.value || newInvoiceNumber;
+      console.log('🔄 CLIENT-SIDE: Fetching filtered data for user-selected invoice:', invoiceFilter);
       const consolidatedResponse = await fetchConsolidatedInvoiceData(
         selectedSoldToId,
         selectedProvider,
@@ -680,10 +784,123 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
 
   // Initialize all filter options from SSR data if available
   useEffect(() => {
+    console.log('🔍 DEBUG: SSR useEffect triggered with:', {
+      mode,
+      isSSR: mode === 'ssr',
+      hasInitialData: !!initialData,
+      hasSummaryData: !!initialData?.summaryResponse?.data,
+      condition: mode === 'ssr' && initialData?.summaryResponse?.data
+    });
+    
     if (mode === 'ssr' && initialData?.summaryResponse?.data) {
+      console.log('🏗️ SSR: Starting data population process...');
+      console.log('📦 SSR: Available initial data:', {
+        hasSummary: !!initialData.summaryResponse,
+        hasTrend: !!initialData.trendResponse,
+        hasDetails: !!initialData.detailsResponse,
+        hasProviders: !!initialData.providersResponse,
+        hasInvoiceMonths: !!initialData.invoiceMonthsResponse
+      });
+      
       const selectLists = initialData.summaryResponse.data?.selectLists || [];
       setSummarySelectLists(selectLists);
-      console.log('All selectLists from API:', selectLists);
+      console.log('🏗️ SSR: Processing server data for UI population');
+      
+      // ✅ POPULATE SUMMARY DATA FROM SSR
+      const summaryData = initialData.summaryResponse.data;
+      
+      // Check multiple possible locations for summary/chart data
+      if (summaryData.spendPeriod) {
+        setTotalSpend(summaryData.spendPeriod?.totalSpend || 0);
+        console.log('💰 SSR: Set total spend:', summaryData.spendPeriod?.totalSpend);
+      }
+      
+      // DEBUG: Check all possible chart data sources
+      console.log('📊 DEBUG: Summary data structure:', {
+        hasSpendPeriod: !!summaryData.spendPeriod,
+        hasSpendArray: !!summaryData.spendPeriod?.spend,
+        spendArrayLength: summaryData.spendPeriod?.spend?.length || 0,
+        hasChartData: !!summaryData.chartData,
+        chartDataLength: summaryData.chartData?.length || 0,
+        hasBreakdown: !!summaryData.breakdown,
+        breakdownLength: summaryData.breakdown?.length || 0,
+        hasContent: !!summaryData.content,
+        contentLength: summaryData.content?.length || 0,
+        summaryDataKeys: Object.keys(summaryData),
+        fullSummaryData: summaryData
+      });
+      
+      // Try multiple data sources for breakdown chart
+      let chartData = [];
+      if (summaryData.chartData && summaryData.chartData.length > 0) {
+        chartData = summaryData.chartData;
+        console.log('📊 Using chartData as source');
+      } else if (summaryData.breakdown && summaryData.breakdown.length > 0) {
+        chartData = summaryData.breakdown;
+        console.log('📊 Using breakdown as source');
+      } else if (summaryData.spendPeriod?.spend && summaryData.spendPeriod.spend.length > 0) {
+        chartData = summaryData.spendPeriod.spend;
+        console.log('📊 Using spendPeriod.spend as source');
+      } else if (summaryData.content && summaryData.content.length > 0) {
+        chartData = summaryData.content;
+        console.log('📊 Using content as source');
+      } else {
+        console.log('❌ No chart data found in any expected location');
+      }
+      
+      console.log('📊 DEBUG: Chart data before transformation:', {
+        originalData: chartData,
+        length: chartData.length,
+        firstItem: chartData[0]
+      });
+      
+      if (chartData && chartData.length > 0) {
+        const transformedChartData = chartData.map(item => ({
+          group: item.label || item.category || item.name || item.productCategory || 'Unknown',
+          value: item.value || item.amount || item.spend || item.totalSpend || 0,
+          label: item.label || item.category || item.name || item.productCategory || 'Unknown'
+        }));
+        
+        setBreakdownChartData(transformedChartData);
+        console.log('📊 SSR: Set breakdown chart data:', {
+          length: transformedChartData.length,
+          data: transformedChartData,
+          hasValidData: transformedChartData.length > 0 && transformedChartData.some(item => item.value > 0)
+        });
+      } else {
+        console.log('❌ No valid chart data found, setting empty array');
+        setBreakdownChartData([]);
+      }
+      
+      // ✅ POPULATE TREND DATA FROM SSR
+      if (initialData.trendResponse?.data) {
+        setTrendData(initialData.trendResponse.data?.chartData || []);
+        console.log('📈 SSR: Set trend data:', initialData.trendResponse.data?.chartData?.length, 'items');
+      }
+      
+      // ✅ POPULATE GRID DATA FROM SSR
+      if (initialData.detailsResponse?.data) {
+        const gridDataFromSSR = initialData.detailsResponse.data?.content || initialData.detailsResponse.data || [];
+        const gridTotalFromSSR = initialData.detailsResponse.data?.totalElements || initialData.detailsResponse.data?.length || 0;
+        setGridData(gridDataFromSSR);
+        setGridTotal(gridTotalFromSSR);
+        console.log('🗂️ SSR: Set grid data:', gridDataFromSSR.length, 'items, total:', gridTotalFromSSR);
+      }
+      
+      // ✅ POPULATE PROVIDERS AND MONTHS FROM SSR
+      if (initialData.providersResponse?.data) {
+        setProviders(initialData.providersResponse.data);
+        setSelectedProvider(initialData.defaultProvider);
+        setApiEndpoint(initialData.defaultProvider?.abbreviation);
+        console.log('🏢 SSR: Set providers and selected:', initialData.defaultProvider?.abbreviation);
+      }
+      
+      if (initialData.invoiceMonthsResponse?.data) {
+        setInvoiceMonths(initialData.invoiceMonthsResponse.data);
+        const firstMonth = initialData.invoiceMonthsResponse.data[0];
+        setSelectedMonth(firstMonth);
+        console.log('📅 SSR: Set months and selected first:', firstMonth);
+      }
       
       // Initialize Invoice Numbers - prioritize first actual invoice (not "All")
       const invoiceNumbersList = selectLists.find(list => list.name === 'invoicenumber');
@@ -694,77 +911,8 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
           item.value !== 'All' && item.value !== 'all'
         ) || invoiceNumbersList.items[0];
         setSelectedInvoiceNumber(defaultInvoice);
-        console.log('🏷️ SSR: Selected default invoice:', defaultInvoice);
-        
-        // If we selected an actual invoice number (not "All"), fetch filtered data
-        if (defaultInvoice && defaultInvoice.value !== 'All' && defaultInvoice.value !== 'all' && selectedSoldToId && initialData.defaultProvider) {
-          console.log('🎯 SSR: Fetching filtered data for invoice:', defaultInvoice.value);
-          
-          // Trigger filtered fetch with selected invoice number (optimized for cache)
-          setTimeout(async () => {
-            const fetchStart = Date.now();
-            try {
-              // Minimal loading states for cached responses - exclude dropdown sections for SSR
-              setSectionLoadingStates(true, ['provider', 'month', 'invoice']);
-              
-              const consolidatedResponse = await fetchConsolidatedInvoiceData(
-                selectedSoldToId,
-                initialData.defaultProvider,
-                formatMonthValue(initialData.firstMonth),
-                defaultInvoice.value
-              );
-              
-              const fetchTime = Date.now() - fetchStart;
-              console.log(`⚡ Filtered fetch completed in ${fetchTime}ms (${fetchTime < 200 ? '🟢 CACHED' : '🟡 API'})`);
-              
-              if (consolidatedResponse.error) {
-                throw new Error(consolidatedResponse.error);
-              }
-
-              const { summaryResponse, trendResponse, detailsResponse } = consolidatedResponse.data;
-              
-              // Update filtered data
-              if (summaryResponse?.data) {
-                setTotalSpend(summaryResponse.data?.spendPeriod?.totalSpend || 0);
-                const spendData = summaryResponse.data?.spendPeriod?.spend || [];
-                const chartData = summaryResponse.data?.chartData || summaryResponse.data?.breakdown || spendData;
-                
-                // Transform chart data for BasicGroupedChart component
-                const transformedChartData = chartData.map(item => ({
-                  group: item.label || item.category || 'Unknown',
-                  value: item.value || 0,
-                  label: item.label || item.category || 'Unknown'
-                }));
-                setBreakdownChartData(transformedChartData);
-              }
-              
-              if (trendResponse?.data) {
-                setTrendData(trendResponse.data?.chartData || []);
-              }
-              
-              if (detailsResponse?.data) {
-                setGridData(detailsResponse.data?.content || detailsResponse.data || []);
-                setGridTotal(detailsResponse.data?.totalElements || detailsResponse.data?.length || 0);
-              }
-              
-              // Start preloading adjacent months after main data loads
-              preloadAdjacentMonths(initialData.firstMonth);
-              
-            } catch (error) {
-              console.error('SSR filtered fetch error:', error);
-              setErrorState(exceptionHandler(error));
-            } finally {
-              // Minimal loading time for smooth UX - show loading for at least 50ms for cached data
-              const minLoadTime = 50;
-              const elapsed = Date.now() - fetchStart;
-              const remainingTime = Math.max(0, minLoadTime - elapsed);
-              
-              setTimeout(() => {
-                setSectionLoadingStates(false, ['provider', 'month', 'invoice']);
-              }, remainingTime);
-            }
-          }, 50); // Minimal delay for cached responses
-        }
+        console.log('🏷️ SSR: Selected default invoice from server data:', defaultInvoice);
+        console.log('✅ SSR: Using server-provided data only, no client API calls triggered');
       } else {
         const defaultInvoiceNumbers = [{ label: 'All Invoices', value: 'All' }];
         setInvoiceNumbers(defaultInvoiceNumbers);
@@ -810,15 +958,36 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         setSubscriptionIds([allSubscriptionOption]);
         setSelectedSubscriptionId(allSubscriptionOption);
       }
+      
+      // ✅ SSR INITIALIZATION COMPLETE
+      console.log('✅ SSR: Invoices page initialized with server data only - no client API calls triggered');
+      
+      // ✅ TURN OFF ALL LOADING STATES AFTER SSR DATA IS POPULATED
+      setSectionLoadingStates(false);
+      console.log('🔄 SSR: All loading states disabled - data is now visible');
+    } else {
+      console.log('❌ DEBUG: SSR useEffect not running because:', {
+        modeCheck: mode === 'ssr',
+        dataCheck: !!initialData?.summaryResponse?.data,
+        mode,
+        hasInitialData: !!initialData,
+        hasSummaryResponse: !!initialData?.summaryResponse,
+        hasSummaryData: !!initialData?.summaryResponse?.data
+      });
     }
   }, [mode, initialData, selectedSoldToId]);
 
-  // Initial load for CSR mode only
+  // 🛡️ SAFETY MECHANISM: Ensure loading states are off in SSR mode regardless of data format
   useEffect(() => {
-    if (mode === 'csr' && selectedSoldToId) {
-      fetchProviders();
+    if (mode === 'ssr') {
+      console.log('🛡️ SAFETY: Forcing loading states OFF for SSR mode');
+      setSectionLoadingStates(false);
     }
-  }, [mode, selectedSoldToId, fetchProviders]);
+  }, [mode]);
+
+  // ✅ SSR BEHAVIOR: No automatic API calls on initial load
+  // ✅ CSR BEHAVIOR: Only user interactions trigger client-side API calls  
+  // Note: SSR provides initial data, client-side calls only triggered by user interactions with filters
 
   // Error display
   if (errorState) {
@@ -849,29 +1018,44 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
           <div className="header-stats">
             <div className="stat-item unbilled">
               {isStatsLoading ? (
-                <Skeleton style={{ width: '150px', height: '20px' }} />
+                <a href="#" className="stat-link">
+                  <Skeleton style={{ width: '150px', height: '20px' }} />
+                </a>
               ) : (
                 <a href="#" className="stat-link">View Unbilled Usage</a>
               )}
             </div>
             <div className="stat-item invoice-total">
               <div className="stat-content">
-                <span className="stat-label">Invoice Total <span className="info-icon">ℹ️</span></span>
-                <span className="stat-value">
-                  {isStatsLoading ? (
-                    <Skeleton style={{ width: '60px', height: '20px' }} />
-                  ) : (
-                    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalSpend)
-                  )}
-                </span>
+                {isStatsLoading ? (
+                  <>
+                    <span className="stat-label">
+                      <Skeleton style={{ width: '90px', height: '16px', marginBottom: '4px' }} />
+                    </span>
+                    <span className="stat-value">
+                      <Skeleton style={{ width: '60px', height: '20px' }} />
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="stat-label">Invoice Total <span className="info-icon">ℹ️</span></span>
+                    <span className="stat-value">
+                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalSpend)}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
             <div className="stat-item monthly-diff">
               <div className="stat-content">
                 {isStatsLoading ? (
                   <>
-                    <Skeleton style={{ width: '120px', height: '16px', marginBottom: '4px' }} />
-                    <Skeleton style={{ width: '80px', height: '20px' }} />
+                    <span className="stat-label">
+                      <Skeleton style={{ width: '120px', height: '16px', marginBottom: '4px' }} />
+                    </span>
+                    <span className="stat-value">
+                      <Skeleton style={{ width: '80px', height: '20px' }} />
+                    </span>
                   </>
                 ) : (
                   <>
@@ -885,10 +1069,16 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
               <div className="stat-content">
                 {isStatsLoading ? (
                   <>
-                    <Skeleton style={{ width: '100px', height: '16px', marginBottom: '4px' }} />
+                    <span className="stat-label">
+                      <Skeleton style={{ width: '100px', height: '16px', marginBottom: '4px' }} />
+                    </span>
                     <div className="status-content">
-                      <Skeleton style={{ width: '50px', height: '24px', marginRight: '8px' }} />
-                      <Skeleton style={{ width: '100px', height: '32px' }} />
+                      <span className="status-badge">
+                        <Skeleton style={{ width: '50px', height: '24px', marginRight: '8px' }} />
+                      </span>
+                      <button className="download-pdf" disabled>
+                        <Skeleton style={{ width: '100px', height: '32px' }} />
+                      </button>
                     </div>
                   </>
                 ) : (
@@ -912,7 +1102,9 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
           <div className="primary-filters">
             <div className="dropdown-group">
               {isProviderLoading ? (
-                <Skeleton style={{ width: '60px', height: '16px', marginBottom: '4px' }} />
+                <label>
+                  <Skeleton style={{ width: '60px', height: '16px', marginBottom: '4px' }} />
+                </label>
               ) : (
                 <label>Provider</label>
               )}
@@ -931,7 +1123,9 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
 
             <div className="dropdown-group">
               {isMonthLoading ? (
-                <Skeleton style={{ width: '90px', height: '16px', marginBottom: '4px' }} />
+                <label>
+                  <Skeleton style={{ width: '90px', height: '16px', marginBottom: '4px' }} />
+                </label>
               ) : (
                 <label>Invoice Month</label>
               )}
@@ -950,7 +1144,9 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
 
             <div className="dropdown-group">
               {isInvoiceLoading ? (
-                <Skeleton style={{ width: '65px', height: '16px', marginBottom: '4px' }} />
+                <label>
+                  <Skeleton style={{ width: '65px', height: '16px', marginBottom: '4px' }} />
+                </label>
               ) : (
                 <label>Invoice #</label>
               )}
@@ -979,68 +1175,106 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       <div className="invoices-charts-row">
         {/* Invoice Breakdown Chart */}
         <div className="invoices-breakdown-chart">
-          <h3>Invoice Breakdown by Product Category</h3>
           {isChartsLoading ? (
-            <Skeleton style={{ width: '100%', height: '300px' }} />
+            <>
+              <h3>
+                <Skeleton style={{ width: '300px', height: '24px', marginBottom: '16px' }} />
+              </h3>
+              <Skeleton style={{ width: '100%', height: '300px' }} />
+            </>
           ) : (
-            <Chart onRefresh={() => {}} seriesColors={getInsightThemeColors()}>
-              <BasicGroupedChart
-                chartType="column"
-                title=""
-                subTitle=""
-                data={breakdownChartData}
-                categoryField="group"
-                valueField="value"
-                groupedByField="label"
-                categoryTitle=""
-                showCategoryLabels={true}
-                legendPosition="bottom"
-                legendTitle=""
-                legendVisible={false}
-                tooltipFormat="c2"
-                showLabels={true}
-                valueFormat="c2"
-                labelFormat="c2"
-                labelIncludeGroup={true}
-              />
-            </Chart>
+            <>
+              <h3>Invoice Breakdown by Product Category</h3>
+              {breakdownChartData && breakdownChartData.length > 0 ? (
+                <Chart onRefresh={() => {}} seriesColors={getInsightThemeColors()}>
+                  <BasicGroupedChart
+                    chartType="column"
+                    title=""
+                    subTitle=""
+                    data={breakdownChartData}
+                    categoryField="group"
+                    valueField="value"
+                    groupedByField="label"
+                    categoryTitle=""
+                    showCategoryLabels={true}
+                    legendPosition="bottom"
+                    legendTitle=""
+                    legendVisible={false}
+                    tooltipFormat="c2"
+                    showLabels={true}
+                    valueFormat="c2"
+                    labelFormat="c2"
+                    labelIncludeGroup={true}
+                  />
+                </Chart>
+              ) : (
+                <div style={{ 
+                  height: '300px', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  border: '1px solid #e0e0e0',
+                  borderRadius: '4px',
+                  backgroundColor: '#f9f9f9'
+                }}>
+                  <div style={{ textAlign: 'center', color: '#666' }}>
+                    <p>No breakdown data available</p>
+                    <small>
+                      Data items: {breakdownChartData?.length || 0}
+                      <br />
+                      Mode: {mode}
+                      <br />
+                      Has initial data: {!!initialData ? 'Yes' : 'No'}
+                    </small>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 
         {/* Trending Chart */}
         <div className="invoices-trend-chart">
-          <ChartTitleAndButtons
-            title="Trending Monthly Spend"
-            trendingChartType={trendingChartType}
-            handleChartTypeChange={handleChartTypeChange}
-            chartOptions={columnLineAreaOptions}
-            dropDownList={true}
-            apiEndPoint=""
-            pageType="invoice"
-          />
           {isChartsLoading ? (
-            <Skeleton style={{ width: '100%', height: '300px' }} />
+            <>
+              <div className="chart-title-skeleton">
+                <Skeleton style={{ width: '200px', height: '24px', marginBottom: '8px' }} />
+                <Skeleton style={{ width: '120px', height: '32px', marginBottom: '16px' }} />
+              </div>
+              <Skeleton style={{ width: '100%', height: '300px' }} />
+            </>
           ) : (
-            <Chart style={{ height: '300px' }} seriesColors={getInsightThemeColors()}>
-              <BasicGroupedChart
-                key={trendingChartType}
-                chartType={trendingChartType}
-                title=""
-                subTitle=""
-                data={formattedTrendData}
-                categoryField="group"
-                categoryTitle=""
-                categoryFormat="MMM yyyy"
-                valueField="value"
-                valueFormat="c2"
-                groupedByField="label"
-                legendPosition="bottom"
-                legendTitle=""
-                tooltipFormat="c2"
-                showLabels={false}
-                stacked={trendingChartType === 'column'}
+            <>
+              <ChartTitleAndButtons
+                title="Trending Monthly Spend"
+                trendingChartType={trendingChartType}
+                handleChartTypeChange={handleChartTypeChange}
+                chartOptions={columnLineAreaOptions}
+                dropDownList={true}
+                apiEndPoint=""
+                pageType="invoice"
               />
-            </Chart>
+              <Chart style={{ height: '300px' }} seriesColors={getInsightThemeColors()}>
+                <BasicGroupedChart
+                  key={trendingChartType}
+                  chartType={trendingChartType}
+                  title=""
+                  subTitle=""
+                  data={formattedTrendData}
+                  categoryField="group"
+                  categoryTitle=""
+                  categoryFormat="MMM yyyy"
+                  valueField="value"
+                  valueFormat="c2"
+                  groupedByField="label"
+                  legendPosition="bottom"
+                  legendTitle=""
+                  tooltipFormat="c2"
+                  showLabels={false}
+                  stacked={trendingChartType === 'column'}
+                />
+              </Chart>
+            </>
           )}
         </div>
       </div>
@@ -1050,19 +1284,27 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         {isFiltersLoading ? (
           <div className="dropdown-row">
             <div className="dropdown-group">
-              <Skeleton style={{ width: '120px', height: '16px', marginBottom: '4px' }} />
+              <label>
+                <Skeleton style={{ width: '120px', height: '16px', marginBottom: '4px' }} />
+              </label>
               <Skeleton style={{ width: '200px', height: '32px' }} />
             </div>
             <div className="dropdown-group">
-              <Skeleton style={{ width: '100px', height: '16px', marginBottom: '4px' }} />
+              <label>
+                <Skeleton style={{ width: '100px', height: '16px', marginBottom: '4px' }} />
+              </label>
               <Skeleton style={{ width: '200px', height: '32px' }} />
             </div>
             <div className="dropdown-group">
-              <Skeleton style={{ width: '110px', height: '16px', marginBottom: '4px' }} />
+              <label>
+                <Skeleton style={{ width: '110px', height: '16px', marginBottom: '4px' }} />
+              </label>
               <Skeleton style={{ width: '200px', height: '32px' }} />
             </div>
             <div className="">
-              <Skeleton style={{ width: '100px', height: '36px' }} />
+              <button className="apply-filters-btn" disabled>
+                <Skeleton style={{ width: '100px', height: '36px' }} />
+              </button>
             </div>
           </div>
         ) : (
@@ -1119,30 +1361,33 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       {/* Grid Section */}
       <div className="invoices-grid">
         {isGridLoading ? (
-          <Skeleton style={{ width: '120px', height: '24px', marginBottom: '16px' }} />
+          <>
+            <h3>
+              <Skeleton style={{ width: '120px', height: '24px', marginBottom: '16px' }} />
+            </h3>
+            <Skeleton style={{ width: '100%', height: '400px' }} />
+          </>
         ) : (
-          <h3>Invoice Details</h3>
-        )}
-        {isGridLoading ? (
-          <Skeleton style={{ width: '100%', height: '400px' }} />
-        ) : (
-          <Grid
-            data={gridData}
-            sortable={true}
-            pageable={true}
-            pageSize={20}
-            sort={initialSort}
-            style={{ height: '400px' }}
-          >
-            <GridColumn field="productName" title="Product Name" width="200px" />
-            <GridColumn field="productCategory" title="Product Category" width="150px" />
-            <GridColumn field="subscriptionId" title="Subscription ID" width="200px" />
-            <GridColumn field="resourceGroup" title="Resource Group" width="150px" />
-            <GridColumn field="quantity" title="Quantity" width="100px" />
-            <GridColumn field="unitPrice" title="Unit Price" width="120px" format="{0:c}" />
-            <GridColumn field="totalCost" title="Total Cost" width="120px" format="{0:c}" />
-            <GridColumn field="invoiceDate" title="Invoice Date" width="120px" format="{0:MM/dd/yyyy}" />
-          </Grid>
+          <>
+            <h3>Invoice Details</h3>
+            <Grid
+              data={gridData}
+              sortable={true}
+              pageable={true}
+              pageSize={20}
+              sort={initialSort}
+              style={{ height: '400px' }}
+            >
+              <GridColumn field="productName" title="Product Name" width="200px" />
+              <GridColumn field="productCategory" title="Product Category" width="150px" />
+              <GridColumn field="subscriptionId" title="Subscription ID" width="200px" />
+              <GridColumn field="resourceGroup" title="Resource Group" width="150px" />
+              <GridColumn field="quantity" title="Quantity" width="100px" />
+              <GridColumn field="unitPrice" title="Unit Price" width="120px" format="{0:c}" />
+              <GridColumn field="totalCost" title="Total Cost" width="120px" format="{0:c}" />
+              <GridColumn field="invoiceDate" title="Invoice Date" width="120px" format="{0:MM/dd/yyyy}" />
+            </Grid>
+          </>
         )}
       </div>
 
