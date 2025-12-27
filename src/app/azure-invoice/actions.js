@@ -130,7 +130,7 @@ export async function fetchInvoiceMonthsServer(clientSoldToId = null) {
     console.log('🔑 Authentication available:', { 
       soldToId, 
       accessTokenLength: accessToken?.length || 0,
-      accessTokenPrefix: accessToken ? accessToken.substring(0, 20) + '...' : 'None'
+      accessTokenPrefix: (accessToken && typeof accessToken === 'string') ? accessToken.substring(0, 20) + '...' : 'None'
     });
     
     // Use cache with 10-minute TTL

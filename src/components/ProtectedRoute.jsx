@@ -57,8 +57,8 @@ export default function ProtectedRoute({ children }) {
         rawUserContext: authCookies.userContext,
         rawAccessToken: authCookies.accessToken
       },
-      reduxAccessToken: accessToken ? `${accessToken.substring(0, 20)}...` : 'null',
-      cookieAccessToken: authCookies.accessToken ? `${authCookies.accessToken.substring(0, 20)}...` : 'null',
+      reduxAccessToken: (accessToken && typeof accessToken === 'string') ? `${accessToken.substring(0, 20)}...` : 'null',
+      cookieAccessToken: (authCookies.accessToken && typeof authCookies.accessToken === 'string') ? `${authCookies.accessToken.substring(0, 20)}...` : 'null',
       allCookies: document.cookie
     });
     
