@@ -14,15 +14,23 @@ export function syncAuthToCookies(authState) {
     return; // Server-side, cannot set cookies
   }
 
+  console.log('🍪 CookieSync: syncAuthToCookies called with state:', {
+    timestamp: new Date().toISOString(),
+    isAuthenticated: authState?.isAuthenticated,
+    hasUser: !!authState?.user,
+    hasAccessToken: !!authState?.accessToken,
+    userId: authState?.user?.soldToId
+  });
+
   const { isAuthenticated, user, accessToken } = authState;
 
   if (isAuthenticated && user && accessToken) {
     console.log('🍪 Syncing auth state to cookies...');
     
-    // Set access token cookie (24 hours)
-    document.cookie = `access_token=${accessToken}; path=/; max-age=${24 * 60 * 60}; SameSite=Strict`;
+    // Set access token cookie (no expiration - session cookie)
+    document.cookie = `access_token=${accessToken}; path=/; SameSite=Strict`;
     
-    // Set user context cookie for server-side soldToId extraction
+    // Set user context cookie for server-side soldToId extraction (no expiration - session cookie)
     const userContextData = {
       soldToId: user.soldToId,
       persona: user.persona,
@@ -30,9 +38,13 @@ export function syncAuthToCookies(authState) {
       isAuthenticated: true,
       lastSync: Date.now()
     };
-    document.cookie = `user_context=${encodeURIComponent(JSON.stringify(userContextData))}; path=/; max-age=${24 * 60 * 60}; SameSite=Strict`;
+    document.cookie = `user_context=${encodeURIComponent(JSON.stringify(userContextData))}; path=/; SameSite=Strict`;
     
-    console.log('✅ Auth cookies synced successfully');
+    console.log('✅ Auth cookies synced successfully - no expiration set', {
+      userContextSize: JSON.stringify(userContextData).length,
+      accessTokenSize: accessToken.length,
+      cookiesAfterSync: document.cookie
+    });
   } else {
     console.log('⚠️ Cannot sync auth to cookies - incomplete auth state');
   }
@@ -46,15 +58,21 @@ export function clearAuthCookies() {
     return; // Server-side, cannot clear cookies
   }
 
-  console.log('🧹 Clearing auth cookies...');
+  console.log('🧹 CookieSync: clearAuthCookies called - clearing auth cookies...', {
+    timestamp: new Date().toISOString(),
+    cookiesBeforeClear: document.cookie,
+    stackTrace: new Error().stack
+  });
   
-  // Clear access token cookie
+  // Clear access token cookie (no expiration set)
   document.cookie = 'access_token=; path=/; max-age=0; SameSite=Strict';
   
-  // Clear user context cookie
+  // Clear user context cookie (no expiration set)
   document.cookie = 'user_context=; path=/; max-age=0; SameSite=Strict';
   
-  console.log('✅ Auth cookies cleared');
+  console.log('✅ Auth cookies cleared', {
+    cookiesAfterClear: document.cookie
+  });
 }
 
 /**

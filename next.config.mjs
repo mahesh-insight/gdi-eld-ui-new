@@ -19,6 +19,50 @@ const nextConfig = {
     // Don't ignore TypeScript errors during build
     ignoreBuildErrors: false,
   },
+
+  // Page caching configuration for better performance
+  experimental: {
+    // Enable partial pre-rendering for better performance
+    ppr: false, // Keep disabled to ensure proper SSR caching
+    // Enable staleTimes for page-level caching
+    staleTimes: {
+      dynamic: 30, // 30 seconds for dynamic pages
+      static: 300, // 5 minutes for static pages
+    }
+  },
+
+  // Set headers for better caching
+  async headers() {
+    return [
+      {
+        source: '/dashboard/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'private, max-age=600, stale-while-revalidate=300', // 10 min cache
+          },
+        ],
+      },
+      {
+        source: '/invoices/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'private, max-age=600, stale-while-revalidate=300', // 10 min cache
+          },
+        ],
+      },
+      {
+        source: '/azure-invoice/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'private, max-age=600, stale-while-revalidate=300', // 10 min cache
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

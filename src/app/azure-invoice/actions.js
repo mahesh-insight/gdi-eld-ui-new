@@ -7,6 +7,70 @@ import { getOrSetCached, getCached, setCached } from '@/lib/cache/serverCache';
 import { CacheKeys, CacheTTL } from '@/lib/cache/cacheKeys';
 
 /**
+ * Consolidated Azure Invoice data fetching (SERVER ACTION)
+ * This function fetches ALL data needed for the page in one cached operation
+ * Similar to how invoices page works for consistent behavior
+ */
+export async function fetchConsolidatedAzureInvoiceData(accessToken, soldToId, selectedMonth = null) {
+  try {
+    // If no accessToken provided, try to get from cookies as fallback
+    let finalAccessToken = accessToken;
+    if (!finalAccessToken) {
+      const cookieStore = await cookies();
+      const accessTokenCookie = cookieStore.get('access_token');
+      finalAccessToken = accessTokenCookie?.value;
+    }
+    
+    if (!finalAccessToken) {
+      return {
+        error: 'Access token not found',
+        data: null,
+        cached: false
+      };
+    }
+    
+    console.log('🚀 Consolidated Azure Invoice fetch:', { soldToId, hasToken: !!finalAccessToken, selectedMonth });
+    
+    // Create cache key for consolidated data (similar to invoices page)
+    const monthValue = selectedMonth || 'current';
+    const cacheKey = `azure-consolidated:${soldToId}:${monthValue}`;
+    
+    const data = await getOrSetCached(
+      cacheKey,
+      async () => {
+        console.log('📥 Cache MISS - fetching consolidated Azure Invoice data from APIs');
+        
+        // If selectedMonth is provided, use it in locationState
+        const locationState = selectedMonth ? {
+          currentMonthObject: { value: selectedMonth }
+        } : null;
+        
+        return await getInitialAzureInvoiceData({ 
+          soldToId, 
+          accessToken: finalAccessToken,
+          locationState
+        });
+      },
+      10 * 60 * 1000 // 10 minutes cache
+    );
+    
+    console.log('✅ Consolidated Azure Invoice data served from cache:', data._fromCache ? 'HIT' : 'MISS');
+    return { 
+      error: null, 
+      data,
+      cached: data._fromCache
+    };
+  } catch (error) {
+    console.error('❌ fetchConsolidatedAzureInvoiceData error:', error);
+    return { 
+      error: error?.message || 'Failed to fetch consolidated Azure Invoice data', 
+      data: null,
+      cached: false
+    };
+  }
+}
+
+/**
  * Server action to fetch Azure Invoice data (OPTIMIZED)
  * This runs on the server and passes data to client components
  * @param {string} clientSoldToId - Optional soldToId from client-side auth

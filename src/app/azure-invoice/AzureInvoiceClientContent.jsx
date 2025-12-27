@@ -1,159 +1,39 @@
-// src/app/azure-invoice/AzureInvoiceClientContent.jsx
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSelector } from 'react-redux';
-import ErrorBoundary from '@/components/ErrorBoundary';
-import { DropDownList } from '@progress/kendo-react-dropdowns';
-import { Chart } from '@progress/kendo-react-charts';
-import { Skeleton } from '@progress/kendo-react-indicators';
-import { TabStrip, TabStripTab } from '@progress/kendo-react-layout';
-import Carousel from '@/components/Carousel/Carousel';
+import { BasicChart } from '@/common/Charts/BasicChart';
 import { BasicGroupedChart } from '@/common/Charts/BasicGroupedChart';
 import { BasicPieDoughnutChart } from '@/common/Charts/BasicPieDoughnutChart';
-import ChartTitleAndButtons from '@/components/ChartTitleAndButtons';
-import useRefreshChartType from '@/common/Charts/useRefreshChartType';
-import { 
-  fetchInvoiceSummary, 
-  fetchInvoiceCredits, 
-  fetchInvoiceTrend,
-  fetchCombinedInvoiceData 
-} from '@/lib/azureInvoiceApi';
-import InvoiceDetailsComponent from './components/InvoiceDetailsComponent';
-import MonthlyDifferenceComponent from './components/MonthlyDifferenceComponent';
+import { Chart } from '@progress/kendo-react-charts';
 import { getInsightThemeColors } from '@/lib/chartColors';
+import ChartTitleAndButtons from '@/components/ChartTitleAndButtons';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import { DropDownList } from '@progress/kendo-react-dropdowns';
+import { fetchConsolidatedAzureInvoiceData } from './actions';
 import './AzureInvoice.css';
-// Remove server action imports since we'll use client-side API calls
 
 export default function AzureInvoiceClientContent(props) {
-  const { mode, initialData, userContext, ssrPerformance, soldToId } = props;
+  const { mode, initialData, userContext, ssrPerformance } = props;
   
-  // Simple Redux rehydration check
-  const [hasRehydrated, setHasRehydrated] = useState(false);
+  // Get auth state from Redux - use defensive approach like invoices page
+  const authState = useSelector((state) => state?.auth || {});
+  const loginResponse = useSelector((state) => state?.auth?.loginResponse);
+  const accessToken = useSelector((state) => state?.auth?.accessToken);
   
-  // Get auth state from Redux for client-side mode
-  const authState = useSelector(state => state.auth);
-  const reduxUserContext = authState?.loginResponse?.userProfile?.defaultContext?.[0];
-  const reduxSoldToId = reduxUserContext?.soldToId || authState?.user?.soldToId || authState?.soldTo;
-  const accessToken = authState?.accessToken;
-  
-  // Try multiple sources for soldToId
-  const effectiveSoldToId = soldToId || 
-                          reduxSoldToId || 
-                          userContext?.soldToId || 
-                          userContext?.userProfile?.defaultContext?.[0]?.soldToId ||
-                          authState?.loginResponse?.soldToId;
-                          
-  console.log('🔍 SOLDTOID DEBUG:', {
-    fromProps: soldToId,
-    reduxSoldToId: reduxSoldToId,
-    fromUserContext: userContext?.soldToId,
-    fromUserContextDeep: userContext?.userProfile?.defaultContext?.[0]?.soldToId,
-    fromAuthStateLogin: authState?.loginResponse?.soldToId,
-    finalEffective: effectiveSoldToId,
-    authStateKeys: Object.keys(authState || {}),
-    loginResponseKeys: Object.keys(authState?.loginResponse || {}),
-    userProfileKeys: Object.keys(authState?.loginResponse?.userProfile || {}),
-    defaultContextLength: authState?.loginResponse?.userProfile?.defaultContext?.length || 0
-  });
-  const effectiveUserContext = userContext || reduxUserContext;
-  
-  // Check if Redux has rehydrated
-  useEffect(() => {
-    if (!hasRehydrated) {
-      const timer = setTimeout(() => {
-        setHasRehydrated(true);
-      }, 100); // Give Redux time to hydrate
-      return () => clearTimeout(timer);
-    }
-  }, [hasRehydrated]);
-  
-  // Debug authentication state more deeply
-  useEffect(() => {
-    console.log('=== DEEP AUTH DEBUG ===');
-    console.log('Document cookies:', document.cookie);
-    
-    console.log('🔍 Redux Auth State Full:', authState);
-    console.log('🔍 authState keys:', authState ? Object.keys(authState) : []);
-    console.log('🔍 authState.isAuthenticated:', authState?.isAuthenticated);
-    console.log('🔍 authState.accessToken:', authState?.accessToken ? `${String(authState.accessToken).substring(0, 20)}...` : 'None');
-    console.log('🔍 authState.loginResponse:', authState?.loginResponse ? 'Has data' : 'None');
-    
-    if (authState?.loginResponse) {
-      console.log('🔍 loginResponse keys:', Object.keys(authState.loginResponse));
-      console.log('🔍 loginResponse.userProfile:', authState.loginResponse.userProfile ? 'Has data' : 'None');
-      if (authState.loginResponse.userProfile?.defaultContext?.[0]) {
-        console.log('🔍 defaultContext[0]:', authState.loginResponse.userProfile.defaultContext[0]);
-        console.log('🔍 soldToId from loginResponse:', authState.loginResponse.userProfile.defaultContext[0].soldToId);
-        console.log('🔍 soldToName from loginResponse:', authState.loginResponse.userProfile.defaultContext[0].soldToName);
-        console.log('🔍 username from loginResponse:', authState.loginResponse.username);
-        console.log('🔍 firstName from loginResponse:', authState.loginResponse.firstName);
-        console.log('🔍 lastName from loginResponse:', authState.loginResponse.lastName);
-      }
-    }
-    
-    console.log('🔍 effectiveSoldToId:', effectiveSoldToId);
-    console.log('🔍 effectiveUserContext:', effectiveUserContext);
-    
-    try {
-      const persistData = localStorage.getItem('persist:ccr-auth');
-      if (persistData) {
-        const parsed = JSON.parse(persistData);
-        console.log('LocalStorage persist data keys:', Object.keys(parsed));
-        
-        // Parse specific fields to check their validity
-        if (parsed.isAuthenticated) {
-          const isAuth = JSON.parse(parsed.isAuthenticated);
-          console.log('🔍 Is authenticated from localStorage:', isAuth);
-        }
-        
-        if (parsed.accessToken) {
-          const token = JSON.parse(parsed.accessToken);
-          console.log('🔍 Access token from localStorage:', token ? `${String(token).substring(0, 20)}...` : 'Invalid');
-          console.log('🔍 Access token length:', token?.length || 0);
-        }
-        
-        if (parsed.loginResponse) {
-          const loginResp = JSON.parse(parsed.loginResponse);
-          console.log('🔍 Login response from localStorage keys:', Object.keys(loginResp || {}));
-          console.log('🔍 SoldToId from localStorage:', loginResp?.userProfile?.defaultContext?.[0]?.soldToId);
-        }
-      } else {
-        console.log('❌ No persist data in localStorage - user needs to login');
-      }
-    } catch (e) {
-      console.error('❌ Error parsing persist data:', e);
-    }
-    console.log('=== END DEEP AUTH DEBUG ===');
-  }, [authState, effectiveSoldToId, effectiveUserContext]);
-  
-  console.log('🔍 Auth state check:', {
-    mode,
-    hasRehydrated,
-    propsSoldToId: soldToId,
-    reduxSoldToId,
-    effectiveSoldToId,
-    hasAccessToken: !!accessToken,
-    hasUserContext: !!effectiveUserContext,
-    isAuthenticated: authState?.isAuthenticated,
-    authStateKeys: authState ? Object.keys(authState) : [],
-    'authState exists': !!authState
-  });
-  
-  // Debug Redux hydration
-  console.log('🔧 Redux Store Debug:', {
-    'full authState': authState,
-    'authState.user': authState?.user,
-    'authState.loginResponse': !!authState?.loginResponse,
-    'authState.accessToken': !!authState?.accessToken,
-    'loginResponse.userProfile': !!authState?.loginResponse?.userProfile,
-    'defaultContext length': authState?.loginResponse?.userProfile?.defaultContext?.length || 0
-  });
-  
-  // Determine if we're in client-side loading mode
-  const isClientSideMode = mode === 'client-side';
-  
-  // Extract data from SSR structure - handle both old and new formats
+  // Extract user context and soldToId - same pattern as invoices
+  let selectedSoldToId;
+  if (mode === 'ssr') {
+    selectedSoldToId = userContext?.soldToId;
+  } else {
+    selectedSoldToId = loginResponse?.userProfile?.defaultContext?.[0]?.soldToId || 
+                     loginResponse?.userProfile?.defaultContext?.soldToId ||
+                     loginResponse?.soldToId ||
+                     loginResponse?.userProfile?.soldToId ||
+                     authState?.user?.soldToId;
+  }
+
+  // Extract data from SSR structure (same pattern as invoices page)
   const extractedMonthsData = mode === 'ssr' && initialData 
     ? (initialData.monthsResponse?.data?.invoiceMonths || initialData.invoiceMonths || [])
     : [];
@@ -164,35 +44,46 @@ export default function AzureInvoiceClientContent(props) {
     ? (initialData.creditsResponse?.data || initialData.credits)
     : null;
   const extractedTrendsData = mode === 'ssr' && initialData
-    ? (initialData.trendsResponse?.data || initialData.trends)
+    ? (initialData.trendsResponse?.data || initialData.trend)
     : null;
-  const extractedInvoiceDetailsData = mode === 'ssr' && initialData
-    ? (initialData.invoiceDetailsResponse?.data?.content || initialData.invoiceDetails?.content || initialData.invoiceDetails || [])
-    : [];
-  
-  console.log('📦 Extracted SSR data:', {
+
+  console.log('🔍 Azure Invoice data extraction:', {
     mode,
     hasInitialData: !!initialData,
     monthsCount: extractedMonthsData?.length || 0,
+    monthsData: extractedMonthsData,
+    firstMonthStructure: extractedMonthsData[0] ? Object.keys(extractedMonthsData[0]) : 'no months',
+    firstMonth: extractedMonthsData[0],
     hasSummary: !!extractedSummaryData,
     hasCredits: !!extractedCreditsData,
     hasTrends: !!extractedTrendsData,
-    hasInvoiceDetails: !!extractedInvoiceDetailsData?.length,
-    invoiceDetailsCount: extractedInvoiceDetailsData?.length || 0
+    summaryStructure: extractedSummaryData ? Object.keys(extractedSummaryData) : 'null',
+    initialDataKeys: initialData ? Object.keys(initialData) : 'null',
+    selectedSoldToId,
+    hasAccessToken: !!accessToken,
+    accessTokenLength: accessToken?.length || 0
   });
-  
-  // Extract data from props - use correct SSR data structure
+
+  // Handle client-side mode with preserved Redux state
+  if (mode === 'client-side') {
+    console.log('⏭️ AzureInvoice: Client-side mode, reading auth state READ-ONLY');
+    // IMPORTANT: Never modify auth state from page components
+  }
+
+  // Local state - initialize with extracted data
   const [monthsData, setMonthsData] = useState(extractedMonthsData);
-  
-  // Local state
-  const [selectedMonth, setSelectedMonth] = useState(
-    extractedMonthsData[0] || initialData?.selectedMonth || null
-  );
-  const [monthsLoaded, setMonthsLoaded] = useState(mode === 'ssr' ? extractedMonthsData.length > 0 : false);
-  const [filters, setFilters] = useState({
-    productCategory: { label: 'All', value: 'All' },
-    productName: { label: 'All', value: 'All' },
-    skuName: { label: 'All', value: 'All' }
+  const [selectedMonth, setSelectedMonth] = useState(extractedMonthsData[0] || null);
+  const [currentSummaryData, setCurrentSummaryData] = useState(extractedSummaryData);
+  const [currentCreditsData, setCurrentCreditsData] = useState(extractedCreditsData);
+  const [currentTrendsData, setCurrentTrendsData] = useState(extractedTrendsData);
+
+  // Debug state initialization
+  console.log('🔄 Component state initialized:', {
+    monthsDataLength: monthsData?.length || 0,
+    hasSelectedMonth: !!selectedMonth,
+    hasSummary: !!currentSummaryData,
+    hasCredits: !!currentCreditsData,
+    hasTrends: !!currentTrendsData
   });
   
   // Chart type states
@@ -200,598 +91,190 @@ export default function AzureInvoiceClientContent(props) {
   const [topNExpensiveProductsChartType, setTopNExpensiveProductsChartType] = useState('bar');
   const [chartTypeLoading, setChartTypeLoading] = useState(false);
   const [topNExpensiveProductsChartTypeLoading, setTopNExpensiveProductsChartTypeLoading] = useState(false);
-  
-  // Client-side loading states
-  const [clientDataLoading, setClientDataLoading] = useState(mode === 'client-side');
-  const [loadingError, setLoadingError] = useState(null);
-  const [loadingTimeout, setLoadingTimeout] = useState(null);
-  
-  // State for dynamic data that changes with month - use correct SSR data structure
-  const [currentSummaryData, setCurrentSummaryData] = useState(extractedSummaryData);
-  const [currentCreditsData, setCurrentCreditsData] = useState(extractedCreditsData);
-  const [currentTrendsData, setCurrentTrendsData] = useState(extractedTrendsData);
-  const [renderKey, setRenderKey] = useState(0);
-  const [forceUpdate, setForceUpdate] = useState(0);
-  
-  // Tab-related states
-  const [selectedTabIndex, setSelectedTabIndex] = useState(0);
-  const tabsRef = useRef(null);
-  const [invoiceDetailsData, setInvoiceDetailsData] = useState(extractedInvoiceDetailsData || []);
-  const [monthlyDifferenceData, setMonthlyDifferenceData] = useState([]);
-  
-  const handleChartRefresh = useRefreshChartType();
-  
-  // Chart options with correct format for ChartTitleAndButtons
-  const columnLineAreaOptions = [
-    {
-      type: 'column',
-      icon: 'chartColumnStackedIcon',
-      title: 'Column chart'
-    },
-    {
-      type: 'line',
-      icon: 'chartLineStackedIcon',
-      title: 'Line chart'
-    },
-    {
-      type: 'area',
-      icon: 'chartAreaStackedIcon',
-      title: 'Area chart'
-    }
-  ];
-  
-  const barPieDoughnutOptions = [
-    {
-      type: 'bar',
-      icon: 'chartBarStackedIcon',
-      title: 'Bar chart'
-    },
-    {
-      type: 'pie',
-      icon: 'chartPieIcon',
-      title: 'Pie chart'
-    },
-    {
-      type: 'donut',
-      icon: 'chartDoughnutIcon',
-      title: 'Doughnut chart'
-    }
-  ];
-  
-  // Monitor state changes for debugging
-  useEffect(() => {
-    console.log('🔄 USEEFFECT - Summary Data changed:', currentSummaryData);
-    if (currentSummaryData?.spendPeriod) {
-      console.log('📊 Summary spendPeriod:', currentSummaryData.spendPeriod);
-    }
-  }, [currentSummaryData]);
 
-  useEffect(() => {
-    console.log('🔄 USEEFFECT - Credits Data changed:', currentCreditsData);
-    if (currentCreditsData?.totalSpend !== undefined) {
-      console.log('💳 Credits totalSpend:', currentCreditsData.totalSpend);
-    }
-  }, [currentCreditsData]);
+  // Error state
+  const [errorState, setErrorState] = useState(null);
 
-  useEffect(() => {
-    console.log('🔄 USEEFFECT - Trends Data changed:', currentTrendsData);
-  }, [currentTrendsData]);
+  // Loading states - initialize to false for SSR, true for CSR
+  const [isLoading, setIsLoading] = useState(mode !== 'ssr');
 
-  // Add loading timeout effect
+  // Initialize data from SSR - EXACT same pattern as invoices page
   useEffect(() => {
-    if (clientDataLoading && mode === 'client-side') {
-      // Set a timeout for loading - if loading takes more than 30 seconds, show error
-      const timeoutId = setTimeout(() => {
-        console.log('\u26a0\ufe0f Loading timeout reached - stopping loading state');
-        setLoadingError('Loading is taking longer than expected. Please refresh the page or try again later.');
-        setClientDataLoading(false);
-      }, 30000); // 30 seconds timeout
-      
-      setLoadingTimeout(timeoutId);
-      
-      // Cleanup function
-      return () => {
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-          setLoadingTimeout(null);
-        }
-      };
-    } else if (loadingTimeout) {
-      // Clear timeout if loading is done
-      clearTimeout(loadingTimeout);
-      setLoadingTimeout(null);
-    }
-  }, [clientDataLoading, mode, loadingTimeout]);
-
-  // Load initial data when in client-side mode or handle SSR data
-  useEffect(() => {
-    console.log('🔄 MAIN useEffect triggered:', {
-      mode,
-      monthsLoaded,
-      hasInitialData: !!initialData,
-      effectiveSoldToId,
-      'authState?.isAuthenticated': authState?.isAuthenticated,
-      'authState exists': !!authState,
-      'reduxSoldToId': reduxSoldToId,
-      'propsSoldToId': soldToId,
-      'hasAccessToken': !!accessToken
-    });
-    
     if (mode === 'ssr' && initialData) {
-      // Handle SSR mode - use server-provided data
-      console.log('🎆 SSR: Using server-side rendered data:', initialData);
-      
-      if (initialData.monthsResponse?.error || initialData.error) {
-        console.error('❌ Server-side error:', initialData.monthsResponse?.error || initialData.error);
-        setClientDataLoading(false);
-        return;
-      }
+      console.log('🏗️ SSR: Azure invoice page initialized with server data only - no client API calls triggered');
+      console.log('🔒 SSR: Preserving existing Redux auth state during azure invoice hydration');
       
       // Extract data from SSR response structure
       const months = initialData.monthsResponse?.data?.invoiceMonths || initialData.invoiceMonths || [];
       const summary = initialData.summaryResponse?.data || initialData.summary;
       const credits = initialData.creditsResponse?.data || initialData.credits;
-      const trends = initialData.trendsResponse?.data || initialData.trends;
-      const invoiceDetails = initialData.invoiceDetailsResponse?.data?.content || initialData.invoiceDetails?.content || initialData.invoiceDetails || [];
+      const trends = initialData.trendsResponse?.data || initialData.trend;
       
-      console.log('📊 SSR extracted data:', {
+      console.log('🔍 SSR Data extracted:', {
         monthsCount: months.length,
+        firstMonth: months[0],
         hasSummary: !!summary,
         hasCredits: !!credits,
-        hasTrends: !!trends,
-        hasInvoiceDetails: !!invoiceDetails?.length,
-        invoiceDetailsCount: invoiceDetails?.length || 0
+        hasTrends: !!trends
       });
       
-      // Data should already be set in useState, but ensure it's updated
-      if (months.length > 0 && !monthsLoaded) {
+      if (months.length > 0) {
         setMonthsData(months);
         setSelectedMonth(months[0]);
-        setCurrentSummaryData(summary);
-        setCurrentCreditsData(credits);
-        setCurrentTrendsData(trends);
-        setInvoiceDetailsData(invoiceDetails);
-        setMonthsLoaded(true);
-        setClientDataLoading(false);
-        setForceUpdate(prev => prev + 1);
-        console.log('✅ SSR: Data initialized from server');
-      } else if (months.length > 0) {
-        // Data already loaded, just update with SSR data and force re-render
-        console.log('⚡ SSR: Data already loaded, updating with SSR data and forcing re-render');
-        setCurrentSummaryData(summary);
-        setCurrentCreditsData(credits);
-        setCurrentTrendsData(trends);
-        setInvoiceDetailsData(invoiceDetails);
-        setForceUpdate(prev => prev + 1);
+        console.log('✅ Set monthsData with', months.length, 'months');
       }
-    } else if (mode === 'client-side') {
-      console.log('🔄 CLIENT-SIDE mode analysis:', {
-        hasRehydrated,
-        hasEffectiveSoldToId: !!effectiveSoldToId,
-        isAuthenticated: authState?.isAuthenticated,
-        hasAccessToken: !!authState?.accessToken,
-        accessTokenLength: authState?.accessToken?.length || 0,
-        monthsLoaded,
-        'Will call loadInitialData': hasRehydrated && !!effectiveSoldToId && !monthsLoaded && !!authState?.isAuthenticated && !!authState?.accessToken
-      });
       
-      // Check if we have valid authentication data
-      if (hasRehydrated) {
-        // If we don't have basic auth data, try to load anyway or provide fallback
-        if (!authState?.isAuthenticated || !authState?.accessToken || !effectiveSoldToId) {
-          console.log('⚠️ Limited authentication data, attempting fallback:', {
-            isAuthenticated: authState?.isAuthenticated,
-            hasAccessToken: !!authState?.accessToken,
-            hasEffectiveSoldToId: !!effectiveSoldToId
-          });
-          
-          // Try to fallback to SSR mode if available
-          if (mode === 'client-side' && !effectiveSoldToId && !monthsLoaded) {
-            console.log('🔄 No soldToId available, setting error state');
-            setLoadingError('Authentication data is missing. Please try refreshing the page or logging in again.');
-            setClientDataLoading(false);
-            return;
-          }
-        }
-        
-        if (effectiveSoldToId && !monthsLoaded && (authState?.isAuthenticated || mode === 'ssr')) {
-          console.log('🚀 CLIENT-SIDE: Conditions met, calling loadInitialData');
-          loadInitialData();
-        } else if (!effectiveSoldToId && !monthsLoaded) {
-          console.log('❌ No soldToId available after rehydration');
-          setLoadingError('Unable to determine account information. Please try refreshing the page.');
-          setClientDataLoading(false);
-        } else {
-          console.log('⏸️ CLIENT-SIDE: Waiting for conditions:', {
-            'Need rehydration': !hasRehydrated,
-            'Need soldToId': !effectiveSoldToId,
-            'Need auth': !authState?.isAuthenticated,
-            'Need accessToken': !authState?.accessToken,
-            'Already loaded': monthsLoaded
-          });
-        }
-      }
+      setCurrentSummaryData(summary);
+      setCurrentCreditsData(credits);
+      setCurrentTrendsData(trends);
+      // Turn off loading states after SSR data is populated
+      setIsLoading(false);
+      console.log('✅ SSR: Azure invoice initialization complete with', months.length, 'months');
+    } else {
+      console.log('⚠️ SSR: No data available in initialData for Azure invoice');
     }
-  }, [mode, monthsLoaded, initialData, effectiveSoldToId, authState?.isAuthenticated, authState?.accessToken, hasRehydrated]);
+  }, [mode, initialData]);
 
-  const loadInitialData = async () => {
-    console.log('🚀 Loading initial data client-side for soldToId:', effectiveSoldToId);
-    console.log('🚀 UserContext:', effectiveUserContext);
-    console.log('🍪 Current cookies before API call:', document.cookie);
-    setClientDataLoading(true);
-    setLoadingError(null);
+  // Safety mechanism: Ensure loading states are off in SSR mode (same as invoices page)
+  useEffect(() => {
+    if (mode === 'ssr') {
+      setIsLoading(false);
+    }
+  }, [mode]);
+
+  // Helper function to format month names for display
+  const formatMonthDisplay = (monthData) => {
+    if (!monthData) return 'Unknown';
+    
+    // Try different possible date fields
+    const dateField = monthData.date || monthData.value || monthData.display;
+    if (!dateField) return monthData.display || monthData.value || 'Unknown';
     
     try {
-      // First load months data - soldToId should be an array
-      const soldToIdValue = effectiveSoldToId;
+      const date = new Date(dateField);
+      if (isNaN(date)) return monthData.display || monthData.value || 'Unknown';
       
-      const requestBody = { 
-        action: 'months',
-        soldToId: soldToIdValue ? [soldToIdValue] : undefined
-      };
-      
-      console.log('🚀 Azure Invoice API called with:', requestBody);
-      
-      const response = await fetch('/api/azure-invoice', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // Include cookies for authentication
-        body: JSON.stringify(requestBody)
+      return date.toLocaleDateString('en-US', { 
+        month: 'long',
+        year: 'numeric'
       });
-      
-      console.log('📡 API Response status:', response.status, response.statusText);
-      console.log('📡 API Response headers:', Object.fromEntries(response.headers.entries()));
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ API request failed:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorText
-        });
-        
-        // If 401, try to recreate cookies and retry once
-        if (response.status === 401 && authState?.accessToken) {
-          console.log('🔄 401 error detected, trying to recreate cookies and retry...');
-          
-          // Force recreate cookies
-          const accessToken = authState.accessToken;
-          const loginResponse = authState.loginResponse;
-          
-          if (accessToken && loginResponse) {
-            const maxAge = 7 * 24 * 60 * 60;
-            document.cookie = `access_token=${accessToken}; path=/; max-age=${maxAge}; SameSite=Strict`;
-            document.cookie = `user_context=${encodeURIComponent(JSON.stringify(loginResponse))}; path=/; max-age=${maxAge}; SameSite=Strict`;
-            
-            console.log('🍪 Cookies recreated, retrying API call in 1 second...');
-            
-            // Wait a moment and retry
-            setTimeout(async () => {
-              try {
-                const retryResponse = await fetch('/api/azure-invoice', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  credentials: 'include',
-                  body: JSON.stringify(requestBody)
-                });
-                
-                console.log('🔄 Retry response status:', retryResponse.status);
-                
-                if (retryResponse.ok) {
-                  const retryResult = await retryResponse.json();
-                  console.log('✅ Retry successful:', retryResult);
-                  
-                  if (retryResult?.data?.invoiceMonths?.length > 0) {
-                    const months = retryResult.data.invoiceMonths;
-                    const firstMonth = months[0];
-                    setMonthsData(months);
-                    setSelectedMonth(firstMonth);
-                    setMonthsLoaded(true);
-                    
-                    // Load data for the first month
-                    await loadMonthData(firstMonth.value);
-                  }
-                } else {
-                  const retryErrorText = await retryResponse.text();
-                  console.error('❌ Retry also failed:', retryErrorText);
-                  setClientDataLoading(false);
-                }
-              } catch (retryError) {
-                console.error('❌ Retry error:', retryError);
-                setClientDataLoading(false);
-              }
-            }, 1000);
-            
-            return; // Don't continue with error handling
-          }
-        }
-        
-        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-      }
-      
-      const monthsResult = await response.json();
-      console.log('📅 Full months API response:', monthsResult);
-      console.log('📅 Response structure:', {
-        hasData: !!monthsResult.data,
-        hasInvoiceMonths: !!monthsResult.data?.invoiceMonths,
-        invoiceMonthsLength: monthsResult.data?.invoiceMonths?.length || 0,
-        responseKeys: Object.keys(monthsResult || {}),
-        dataKeys: monthsResult.data ? Object.keys(monthsResult.data) : []
-      });
-      
-      if (monthsResult.error) {
-        throw new Error(monthsResult.error);
-      }
-      
-      // Check different possible response structures
-      const months = monthsResult.data?.invoiceMonths || 
-                    monthsResult.data?.months || 
-                    monthsResult.invoiceMonths || 
-                    monthsResult.months ||
-                    monthsResult.data || 
-                    [];
-      
-      console.log('📅 Extracted months data:', months);
-      console.log('📅 Months count:', months?.length || 0);
-      
-      if (months && months.length > 0) {
-        const firstMonth = months[0];
-        console.log('📅 First month structure:', firstMonth);
-        setMonthsData(months);
-        setSelectedMonth(firstMonth);
-        setMonthsLoaded(true);
-        
-        // Load data for the first month
-        await loadMonthData(firstMonth.value || firstMonth.month || firstMonth);
-      } else {
-        console.log('❌ No months data available - full response:', monthsResult);
-        setClientDataLoading(false);
-      }
     } catch (error) {
-      console.error('❌ Error loading initial data:', error);
-      setClientDataLoading(false);
+      return monthData.display || monthData.value || 'Unknown';
     }
   };
 
-  // Single combined API call function for loading all month data
-  const loadMonthData = async (monthValue) => {
-    console.log('🚀 Loading month data with single combined call for:', monthValue);
-    
-    try {
-      let soldToIdValue = effectiveSoldToId || userContext?.soldToId;
-      
-      // If still no soldToId, try direct localStorage as fallback
-      if (!soldToIdValue && typeof window !== 'undefined') {
-        try {
-          const persistData = localStorage.getItem('persist:ccr-auth');
-          if (persistData) {
-            const parsed = JSON.parse(persistData);
-            if (parsed.loginResponse) {
-              let loginResponseStr = parsed.loginResponse;
-              if (typeof loginResponseStr === 'string' && loginResponseStr.startsWith('"')) {
-                loginResponseStr = JSON.parse(loginResponseStr);
-              }
-              const loginResponseObj = typeof loginResponseStr === 'string' ? 
-                JSON.parse(loginResponseStr) : loginResponseStr;
-              
-              soldToIdValue = loginResponseObj?.userProfile?.defaultContext?.[0]?.soldToId || 
-                            loginResponseObj?.soldToId;
-              console.log('🔍 Fallback soldToId from localStorage:', soldToIdValue);
-            }
-          }
-        } catch (e) {
-          console.error('❌ Error extracting soldToId from localStorage:', e);
-        }
-      }
-      
-      // Ensure soldToId is a string, not an array or object
-      if (Array.isArray(soldToIdValue)) {
-        soldToIdValue = soldToIdValue[0]; // Take first element if array
-      }
-      if (typeof soldToIdValue === 'object' && soldToIdValue !== null) {
-        soldToIdValue = null; // Invalid if it's an object
-      }
-      
-      console.log('🔍 Using soldToId for month data:', {
-        original: effectiveSoldToId || userContext?.soldToId,
-        processed: soldToIdValue,
-        type: typeof soldToIdValue
-      });
-      
-      if (!soldToIdValue || typeof soldToIdValue !== 'string') {
-        throw new Error('Invalid or missing soldToId for API call');
-      }
-      
-      // Make a single combined API call
-      console.log('🚀 Making single combined API call for month:', monthValue);
-      const result = await fetchCombinedInvoiceData({ 
-        soldToId: soldToIdValue, 
-        monthValue: monthValue 
-      });
-      
-      console.log('📊 Combined API call result:', result);
-      console.log('🔍 Invoice details in result:', {
-        hasInvoiceDetails: !!result.invoiceDetails,
-        detailsType: typeof result.invoiceDetails,
-        detailsKeys: result.invoiceDetails ? Object.keys(result.invoiceDetails) : 'none',
-        hasContent: !!result.invoiceDetails?.content,
-        contentLength: result.invoiceDetails?.content?.length || 0
-      });
-      
-      if (result.success) {
-        // Update state with the combined results
-        setCurrentSummaryData(result.summary);
-        setCurrentCreditsData(result.credits);  
-        setCurrentTrendsData(result.trend);
-        
-        // Update invoice details data from combined response
-        if (result.invoiceDetails) {
-          // Handle different possible data structures
-          let detailsContent = [];
-          if (result.invoiceDetails.content) {
-            detailsContent = result.invoiceDetails.content;
-          } else if (Array.isArray(result.invoiceDetails)) {
-            detailsContent = result.invoiceDetails;
-          } else if (result.invoiceDetails.data?.content) {
-            detailsContent = result.invoiceDetails.data.content;
-          }
-          
-          console.log('📋 Updating invoice details:', {
-            originalLength: invoiceDetailsData.length,
-            newLength: detailsContent.length,
-            newData: detailsContent.slice(0, 2) // Log first 2 items for verification
-          });
-          
-          setInvoiceDetailsData(detailsContent);
-          console.log('📋 Invoice details state updated with', detailsContent.length, 'records');
-        } else {
-          console.log('⚠️ No invoice details in combined response');
-        }
-
-        // Update monthly difference data from combined response
-        if (result.monthlyDifference) {
-          // Handle different possible data structures
-          let monthlyDiffContent = [];
-          if (result.monthlyDifference.content) {
-            monthlyDiffContent = result.monthlyDifference.content;
-          } else if (Array.isArray(result.monthlyDifference)) {
-            monthlyDiffContent = result.monthlyDifference;
-          } else if (result.monthlyDifference.data?.content) {
-            monthlyDiffContent = result.monthlyDifference.data.content;
-          }
-          
-          console.log('📊 Updating monthly difference:', {
-            originalLength: monthlyDifferenceData.length,
-            newLength: monthlyDiffContent.length,
-            newData: monthlyDiffContent.slice(0, 2) // Log first 2 items for verification
-          });
-          
-          setMonthlyDifferenceData(monthlyDiffContent);
-          console.log('📊 Monthly difference state updated with', monthlyDiffContent.length, 'records');
-        } else {
-          console.log('⚠️ No monthly difference data in combined response');
-        }
-        
-        setClientDataLoading(false);
-        setForceUpdate(prev => prev + 1);
-        console.log('✅ Month data updated successfully with all components');
-      } else {
-        console.error('❌ Combined API call failed:', result.error);
-        setClientDataLoading(false);
-      }
-      
-    } catch (error) {
-      console.error('❌ Error loading month data:', error);
-      setClientDataLoading(false);
-    }
+  // Helper function to get month value for API calls
+  const getMonthValue = (monthData) => {
+    return monthData?.value || monthData?.date || monthData?.display;
   };
 
-  // Removed getAccessToken function since we're using the existing API route
+  // ✅ SSR BEHAVIOR: No automatic API calls on initial load
+  // ✅ CSR BEHAVIOR: Only user interactions trigger client-side API calls  
+  // Note: SSR provides initial data, client-side calls only triggered by user interactions
 
-  const handleMonthChange = async (selectedMonthObj) => {
-    console.log('🚀 handleMonthChange called with:', selectedMonthObj);
+  // Month change handler - triggered by user interaction only with consolidated API call
+  const handleMonthChange = async (event) => {
+    const newMonth = event.value;
+    const monthValue = getMonthValue(newMonth);
     
-    if (!selectedMonthObj || !selectedMonthObj.value) {
-      console.log('❌ Invalid month selection:', selectedMonthObj);
+    console.log('👤 USER INTERACTION: Azure invoice month changed to:', {
+      newMonth,
+      monthValue,
+      displayName: formatMonthDisplay(newMonth),
+      hasAccessToken: !!accessToken,
+      selectedSoldToId
+    });
+    
+    // Update selected month immediately for UI feedback
+    setSelectedMonth(newMonth);
+    
+    // Check if we have necessary authentication data
+    if (!accessToken || !selectedSoldToId) {
+      console.error('❌ Missing authentication data for API call:', {
+        hasAccessToken: !!accessToken,
+        hasSelectedSoldToId: !!selectedSoldToId
+      });
+      setErrorState('Authentication required. Please refresh the page.');
       return;
     }
 
-    console.log('✅ Valid month selection, proceeding with:', selectedMonthObj);
-    // Clear existing data first to force update
-    setCurrentSummaryData(null);
-    setCurrentCreditsData(null);
-    setCurrentTrendsData(null);
-    
-    setSelectedMonth(selectedMonthObj);
-    setClientDataLoading(true);
-    setRenderKey(prev => prev + 1);
-    
-    // Use the new loadMonthData function
-    await loadMonthData(selectedMonthObj.value);
-  };
-
-  const handleFilterChange = (filterType, selectedItem) => {
-    setFilters(prev => ({
-      ...prev,
-      [filterType]: selectedItem
-    }));
-  };
-
-  const applyFilters = () => {
-    // Filter the real invoice data based on selected filters
-    if (invoiceDetails && invoiceDetails.length > 0) {
-      console.log('Applying filters to real data:', {
-        productCategory: filters.productCategory?.value || filters.productCategory,
-        productName: filters.productName?.value || filters.productName,
-        skuName: filters.skuName?.value || filters.skuName
-      });
-      // Real filtering logic would go here when table is implemented
+    // Make consolidated API call to get all data for the selected month
+    try {
+      console.log('🔄 Fetching consolidated data for month:', monthValue);
+      
+      const result = await fetchConsolidatedAzureInvoiceData(
+        accessToken,
+        selectedSoldToId,
+        monthValue
+      );
+      
+      if (result.error) {
+        console.error('❌ Error fetching month data:', result.error);
+        setErrorState(result.error);
+        return;
+      }
+      
+      if (result.data) {
+        console.log('✅ Updated data for month:', monthValue);
+        
+        // Update all state with new data from API
+        const { data } = result;
+        setCurrentSummaryData(data.summaryResponse?.data || data.summary);
+        setCurrentCreditsData(data.creditsResponse?.data || data.credits);
+        setCurrentTrendsData(data.trendsResponse?.data || data.trend);
+        
+        console.log('📊 Page updated with new month data');
+      }
+    } catch (error) {
+      console.error('❌ Month change error:', error);
+      setErrorState('Failed to load data for selected month');
     }
   };
-  
-  // Chart type change handlers
+
+  // Chart type change handlers (user interactions only)
   const handleChartTypeChange = useCallback(async (newType) => {
     setChartTypeLoading(true);
     setTrendingChartType(newType);
     setTimeout(() => setChartTypeLoading(false), 300);
   }, []);
-  
+
   const handleTopNExpensiveProductsChartTypeChange = useCallback(async (newType) => {
     setTopNExpensiveProductsChartTypeLoading(true);
     setTopNExpensiveProductsChartType(newType);
     setTimeout(() => setTopNExpensiveProductsChartTypeLoading(false), 300);
   }, []);
 
-  // Calculate summary values using useMemo to ensure they update when state changes
+  // Calculate summary values using useMemo (same pattern as invoices page)
   const invoiceTotal = useMemo(() => {
-    
-    const value = currentSummaryData?.spendPeriod?.totalSpend || 0;
-    return value;
+    return currentSummaryData?.spendPeriod?.totalSpend || 0;
   }, [currentSummaryData]);
 
   const monthlyDifference = useMemo(() => {
-    const value = currentSummaryData?.spendPeriod?.differenceTotalSpend || 0;
-    return value;
+    return currentSummaryData?.spendPeriod?.differenceTotalSpend || 0;
   }, [currentSummaryData]);
 
   const monthlyDifferencePercent = useMemo(() => {
-    const value = currentSummaryData?.spendPeriod?.differencePercentSpend || 0;
-    return value;
+    return currentSummaryData?.spendPeriod?.differencePercentSpend || 0;
   }, [currentSummaryData]);
 
   const invoiceCredits = useMemo(() => {
-    // FIXED: Use correct field for invoice credits from API response
-    const value = currentCreditsData?.totalSpend || 0;
-    return value;
+    return currentCreditsData?.totalSpend || 0;
   }, [currentCreditsData]);
 
-  // Extract spend breakdown using useMemo
-  const spendBreakdown = useMemo(() => {
-    // Use direct spend array from API response
-    const data = currentSummaryData?.spend || currentSummaryData?.spendPeriod?.spend || [];
-    return data;
-  }, [currentSummaryData]);
-  
-  // Prepare data for BasicGroupedChart format (Invoice Breakdown)
+  // Prepare data for charts using useMemo (same pattern as invoices page)
   const invoiceBreakdownData = useMemo(() => {
-    // Use direct spend array from API response
     const spendData = currentSummaryData?.spend || currentSummaryData?.spendPeriod?.spend || [];
-    const data = spendData.map(item => ({
-      group: item.label,
-      label: item.label,
-      value: item.value
+    return spendData.map(item => ({
+      group: item?.label || 'Unknown',
+      label: item?.label || 'Unknown', 
+      value: item?.value || 0
     }));
-    return data;
   }, [currentSummaryData]);
 
-  // Prepare data for Trending Monthly Spend (BasicGroupedChart format)
   const invoiceTrendData = useMemo(() => {
-    
     let periodsData = [];
     if (currentTrendsData?.spendPeriod) {
       periodsData = currentTrendsData.spendPeriod;
-    } else if (currentTrendsData?.data?.spendPeriod) {
-      periodsData = currentTrendsData.data.spendPeriod;
     } else if (Array.isArray(currentTrendsData)) {
       periodsData = currentTrendsData;
     }
@@ -800,627 +283,205 @@ export default function AzureInvoiceClientContent(props) {
     const data = [];
     
     last6Months.forEach(period => {
-      const monthLabel = new Date(period.period).toLocaleDateString('en', { month: 'short', year: 'numeric' });
-      // Azure Usage
-      data.push({
-        group: monthLabel,
-        label: 'Azure Usage',
-        value: period.totalSpend * 0.6
-      });
-      // Marketplace
-      data.push({
-        group: monthLabel,
-        label: 'Marketplace',
-        value: period.totalSpend * 0.35
-      });
-      // Private Marketplace
-      data.push({
-        group: monthLabel,
-        label: 'Private Marketplace',
-        value: period.totalSpend * 0.05
-      });
+      if (period?.period && period?.totalSpend !== undefined) {
+        const monthLabel = new Date(period.period).toLocaleDateString('en', { month: 'short', year: 'numeric' });
+        data.push({
+          group: monthLabel,
+          label: 'Azure Usage',
+          value: (period.totalSpend || 0) * 0.6
+        });
+        data.push({
+          group: monthLabel,
+          label: 'Marketplace',
+          value: (period.totalSpend || 0) * 0.35
+        });
+        data.push({
+          group: monthLabel,
+          label: 'Private Marketplace',
+          value: (period.totalSpend || 0) * 0.05
+        });
+      }
     });
     
     return data;
   }, [currentTrendsData]);
-  
-  // Top N Expensive Products data
-  const topNExpensiveProducts = useMemo(() => {    
-    // Use topNExpensiveProducts.spend for product-level data (FortiWeb, Veeam, etc.)
+
+  const topNExpensiveProducts = useMemo(() => {
     const spendData = currentSummaryData?.topNExpensiveProducts?.spend || [];
-    
-    // If no data or empty array, create debug info
-    if (!spendData || spendData.length === 0) {
-      console.log('❌ NO TOP N EXPENSIVE PRODUCTS DATA FOUND! Check API response structure.');
-      console.log('🔍 Available properties in currentSummaryData:', currentSummaryData ? Object.keys(currentSummaryData) : 'null');
-      return [];
-    }
-    
-    const products = spendData
-      .map(item => ({
-        group: item.label,
-        label: item.label,
-        value: item.value
-      }));
-      
-    return products;
+    return spendData.map(item => ({
+      group: item?.label || 'Unknown',
+      label: item?.label || 'Unknown',
+      value: item?.value || 0
+    }));
   }, [currentSummaryData]);
-  
-  // Pie chart data for Top Expensive Products
-  const pieChartData = useMemo(() => {
-    // FIXED: Use topNExpensiveProducts.spend for product-level data
-    const spendData = currentSummaryData?.topNExpensiveProducts?.spend || [];    
-    const data = spendData
-      .map(item => ({
-        category: item.label,
-        value: item.value
-      }));
-    return data;
-  }, [currentSummaryData]);
-  
-  // Extract select list options
-  const selectLists = currentSummaryData?.selectLists || [];
-  const getSelectListItems = (name) => {
-    const list = selectLists.find(list => list.name === name);
-    return list?.items || [];
-  };
 
-  // Extract real invoice data from API response
-  const invoiceDetails = currentSummaryData?.invoiceDetails || [];
-
-  // Handle tab selection and load data immediately
-  const handleTabSelect = (e) => {
-    const tabIndex = e.selected;
-    console.log('🎯 User clicked tab:', tabIndex);
-    setSelectedTabIndex(tabIndex);
-    
-    // Always ensure data is available when switching tabs
-    if (selectedMonth?.value) {
-      if (tabIndex === 0) {
-        // Invoice Details tab
-        console.log('🔄 Switching to Invoice Details tab');
-        console.log('📊 Current invoice details data length:', invoiceDetailsData?.length || 0);
-        if (!invoiceDetailsData || invoiceDetailsData.length === 0) {
-          console.log('🔄 Invoice details not available, triggering combined data load');
-          loadMonthData(selectedMonth.value);
-        } else {
-          console.log('✅ Invoice details data available, tab switch complete');
-        }
-      } else if (tabIndex === 1) {
-        // Monthly Differences tab
-        console.log('🔄 Switching to Monthly Differences tab');
-        console.log('📊 Current monthly difference data length:', monthlyDifferenceData?.length || 0);
-        if (!monthlyDifferenceData || monthlyDifferenceData.length === 0) {
-          console.log('🔄 Monthly difference not available, triggering combined data load');
-          loadMonthData(selectedMonth.value);
-        } else {
-          console.log('✅ Monthly difference data available, tab switch complete');
-        }
-      }
-    } else {
-      console.warn('⚠️ No selected month available for data loading');
-    }
-  };
-
-  const loadInvoiceDetails = async (monthValue) => {
-    console.log('🔍 Loading invoice details for month:', monthValue);
-    console.log('⚠️ Invoice details will be loaded from combined API response instead of separate call');
-    
-    // Invoice details data should already be available from the combined API call
-    // This function is now mainly for logging purposes since the data comes from loadMonthData
-    if (invoiceDetailsData && invoiceDetailsData.length > 0) {
-      console.log('✅ Invoice details already available:', invoiceDetailsData.length, 'records');
-      return;
-    }
-    
-    // If for some reason we need to load invoice details separately, 
-    // call the combined endpoint which includes Bearer token authentication
-    console.log('🔄 Invoice details not available, triggering combined data load');
-    await loadMonthData(monthValue);
-  };
-
-  const loadMonthlyDifference = async (monthValue) => {
-    console.log('🔍 Loading monthly difference for month:', monthValue);
-    console.log('⚠️ Monthly difference will be loaded from combined API response instead of separate call');
-    
-    // Monthly difference data should already be available from the combined API call
-    // This function is now mainly for logging purposes since the data comes from loadMonthData
-    if (monthlyDifferenceData && monthlyDifferenceData.length > 0) {
-      console.log('✅ Monthly difference already available:', monthlyDifferenceData.length, 'records');
-      return;
-    }
-    
-    // If for some reason we need to load monthly difference separately, 
-    // call the combined endpoint which includes Bearer token authentication
-    console.log('🔄 Monthly difference not available, triggering combined data load');
-    await loadMonthData(monthValue);
-  };
+  // Error display (same pattern as invoices page)
+  if (errorState) {
+    return (
+      <div className="azure-invoice-container">
+        <div className="error-message">
+          <h2>Error Loading Azure Invoice</h2>
+          <p>{errorState}</p>
+          <button onClick={() => setErrorState(null)}>Try Again</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <ErrorBoundary>
       <div className="azure-invoice-page">
-        {/* Error Display */}
-        {loadingError && (
-          <div style={{ 
-            padding: '20px', 
-            margin: '20px', 
-            backgroundColor: '#f8d7da', 
-            color: '#721c24', 
-            border: '1px solid #f5c6cb', 
-            borderRadius: '4px',
-            textAlign: 'center'
-          }}>
-            <h3>Loading Error</h3>
-            <p>{loadingError}</p>
-            <button 
-              onClick={() => {
-                setLoadingError(null);
-                setClientDataLoading(true);
-                if (mode === 'client-side' && effectiveSoldToId) {
-                  loadInitialData();
-                }
-              }}
-              style={{
-                backgroundColor: '#007bff',
-                color: 'white',
-                border: 'none',
-                padding: '10px 20px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                marginTop: '10px'
-              }}
-            >
-              Try Again
-            </button>
-            <button 
-              onClick={() => window.location.reload()}
-              style={{
-                backgroundColor: '#6c757d',
-                color: 'white',
-                border: 'none',
-                padding: '10px 20px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                marginTop: '10px',
-                marginLeft: '10px'
-              }}
-            >
-              Refresh Page
-            </button>
-          </div>
-        )}
-        
-        {/* Main Container with left/right spacing */}
-        <div className="azure-invoice-container">
+        <div className="azure-invoice-header">
+          <h1>Azure Plan Invoice</h1>
           
-          {/* Header Section with Title and KPIs */}
-          <div className="azure-invoice-header">
-            {/* Top Row: Azure Plan Invoice Title + KPI Cards */}
-            <div className="azure-invoice-header-top">
-              <h2 className="azure-invoice-title">
-                Azure Plan Invoice
-              </h2>
-              
-              {/* KPI Cards - Right Side */}
-              <div className="azure-invoice-kpi-cards">
-                {clientDataLoading ? (
-                  <>
-                    <div className="azure-invoice-kpi-card invoice-total azure-invoice-skeleton-kpi">
-                      <div className="azure-invoice-kpi-label">
-                        <Skeleton shape="text" className="azure-invoice-skeleton-text-sm" />
-                      </div>
-                      <div className="azure-invoice-kpi-value">
-                        <Skeleton shape="text" className="azure-invoice-skeleton-text-md" />
-                      </div>
-                    </div>
-                    <div className="azure-invoice-kpi-card monthly-difference azure-invoice-skeleton-kpi-large">
-                      <div className="azure-invoice-kpi-label">
-                        <Skeleton shape="text" className="azure-invoice-skeleton-text-lg" />
-                      </div>
-                      <div className="azure-invoice-kpi-value">
-                        <Skeleton shape="text" className="azure-invoice-skeleton-text-xl" />
-                      </div>
-                    </div>
-                    <div className="azure-invoice-kpi-card invoice-credits azure-invoice-skeleton-kpi">
-                      <div className="azure-invoice-kpi-label">
-                        <Skeleton shape="text" className="azure-invoice-skeleton-text-sm" />
-                      </div>
-                      <div className="azure-invoice-kpi-value">
-                        <Skeleton shape="text" className="azure-invoice-skeleton-text-md" />
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="azure-invoice-kpi-card invoice-total">
-                      <div className="azure-invoice-kpi-label">
-                        Invoice Total
-                      </div>
-                      <div className={`azure-invoice-kpi-value invoice-total ${invoiceTotal > 0 ? '' : 'zero'}`}>
-                        {invoiceTotal > 0 ? `$${invoiceTotal.toFixed(2)}` : '$0'}
-                      </div>
-                    </div>
-                    
-                    <div className="azure-invoice-kpi-card monthly-difference">
-                      <div className="azure-invoice-kpi-label">
-                        Monthly Difference
-                      </div>
-                      <div className="azure-invoice-kpi-value monthly-difference">
-                        ${Math.abs(monthlyDifference).toFixed(2)} ({monthlyDifferencePercent}%)
-                      </div>
-                    </div>
-                    
-                    <div className="azure-invoice-kpi-card invoice-credits">
-                      <div className="azure-invoice-kpi-label">
-                        Invoice Credits
-                      </div>
-                      <div className="azure-invoice-kpi-value invoice-credits">
-                        ${invoiceCredits.toFixed(2)}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
+          {/* Month Selector */}
+          <div className="month-selector">
+            <label>Invoice Month:</label>
+            {monthsData && monthsData.length > 0 ? (
+              <DropDownList
+                data={monthsData.map(month => ({
+                  ...month,
+                  displayName: formatMonthDisplay(month)
+                }))}
+                textField="displayName"
+                dataItemKey={monthsData[0]?.value ? "value" : monthsData[0]?.date ? "date" : "display"}
+                value={selectedMonth ? {
+                  ...selectedMonth,
+                  displayName: formatMonthDisplay(selectedMonth)
+                } : null}
+                onChange={handleMonthChange}
+                style={{ width: '250px' }}
+              />
+            ) : (
+              <span>Loading months... (Found: {monthsData?.length || 0} months)</span>
+            )}
+          </div>
+        </div>
 
-            {/* Bottom Row: Invoice Month Dropdown + View Billed Usage */}
-            <div className="azure-invoice-header-bottom">
-              {clientDataLoading || !monthsLoaded ? (
-                <>
-                  <div className="azure-invoice-month-selector">
-                    <label className="azure-invoice-month-label">
-                      <Skeleton shape="text" className="azure-invoice-skeleton-label" />
-                    </label>
-                    <Skeleton shape="rectangle" className="azure-invoice-skeleton-dropdown" />
-                  </div>
-                  <a href="#" className="azure-invoice-view-usage-link">
-                    <Skeleton shape="text" className="azure-invoice-skeleton-link" />
-                  </a>
-                </>
-              ) : (
-                <>
-                  <div className="azure-invoice-month-selector">
-                    <label className="azure-invoice-month-label">
-                      Invoice Month
-                    </label>
-                    <DropDownList
-                      data={monthsData}
-                      textField="text"
-                      dataItemKey="value"
-                      value={selectedMonth || (monthsData.length > 0 ? monthsData[0] : null)}
-                      onChange={(e) => {
-                        console.log('🎯 DropDownList onChange triggered:', e);
-                        if (e && e.value) {
-                          console.log('✅ Valid selection, calling handleMonthChange with:', e.value);
-                          handleMonthChange(e.value);
-                        } else {
-                          console.log('❌ Invalid selection event:', e);
-                        }
-                      }}
-                      disabled={clientDataLoading}
-                      className={`azure-invoice-month-dropdown ${clientDataLoading ? 'disabled' : ''}`}
-                    />
-                  </div>
-                  
-                  <a 
-                    href="#" 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      console.log('View Billed Usage clicked');
-                    }}
-                    className="azure-invoice-view-usage-link"
-                  >
-                    View Billed Usage
-                  </a>
-                </>
-              )}
+        {/* Summary Cards */}
+        <div className="summary-cards">
+          <div className="summary-card">
+            <h3>Invoice Total</h3>
+            <div className="amount">${invoiceTotal.toFixed(2)}</div>
+          </div>
+          <div className="summary-card">
+            <h3>Monthly Difference</h3>
+            <div className={`amount ${monthlyDifference >= 0 ? 'positive' : 'negative'}`}>
+              ${Math.abs(monthlyDifference).toFixed(2)} ({monthlyDifferencePercent.toFixed(2)}%)
             </div>
           </div>
-          
-          {/* Charts Section with Carousel */}
-          <div className="o-grid o-grid--gutters azure-invoice-charts-section">
-            <div className="o-grid__item u-1/1">
-              {clientDataLoading ? (
-                <div className="azure-invoice-chart-slide">
-                  <div className="azure-invoice-chart-container">
-                    <div className="azure-invoice-chart-box">
-                      <Skeleton shape="text" className="azure-invoice-skeleton-chart-title" />
-                      <Skeleton shape="rectangle" className="azure-invoice-skeleton-chart-content" />
-                    </div>
-                  </div>
-                  <div className="azure-invoice-chart-container">
-                    <div className="azure-invoice-chart-box">
-                      <Skeleton shape="text" className="azure-invoice-skeleton-chart-title" />
-                      <Skeleton shape="rectangle" className="azure-invoice-skeleton-chart-content" />
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <Carousel
-                  id="azure-invoice-carousel"
-                  autoRotate={false}
-                  indicator={true}
-                  slides={{
-                    desktop: 1,
-                    mobile: 1,
-                    mobileLandscape: 1,
-                    tablet: 1,
-                    tabletLandscape: 1,
-                  }}
-                >
-                  {/* Slide 1: Invoice Breakdown + Trending Monthly Spend */}
-                  <div className="azure-invoice-chart-slide">
-                    <div className="azure-invoice-chart-container">
-                      <div className="azure-invoice-chart-box">
-                        
-                        <Chart 
-                          onRefresh={handleChartRefresh} 
-                          className="chart1"
-                          seriesColors={getInsightThemeColors()}
-                        >
-                          <BasicGroupedChart
-                            chartType="column"
-                            title="Invoice Breakdown by Product Category"
-                            subTitle=""
-                            data={invoiceBreakdownData}
-                            categoryField="group"
-                            valueField="value"
-                            groupedByField="label"
-                            categoryTitle=""
-                            showCategoryLabels={false}
-                            legendPosition="bottom"
-                            legendTitle=""
-                            legendVisible={false}
-                            tooltipFormat="c2"
-                            showLabels={true}
-                            valueFormat="c2"
-                            labelFormat="c2"
-                            labelIncludeGroup={true}
-                            gap={1}
-                            spacing={0.3}
-                          />
-                        </Chart>
-                      </div>
-                    </div>
+          <div className="summary-card">
+            <h3>Invoice Credits</h3>
+            <div className="amount">${invoiceCredits.toFixed(2)}</div>
+          </div>
+        </div>
 
-                    <div className="azure-invoice-chart-container">
-                      <div className="azure-invoice-chart-box">
-                        <ChartTitleAndButtons
-                          title="Trending Monthly Spend"
-                          trendingChartType={trendingChartType}
-                          handleChartTypeChange={handleChartTypeChange}
-                          chartOptions={columnLineAreaOptions}
-                          dropDownList={true}
-                          apiEndPoint=""
-                          pageType="invoice"
-                        />
-                        {chartTypeLoading ? (
-                          <Skeleton shape="rectangle" className="azure-invoice-skeleton-chart-content" />
-                        ) : (
-                          <Chart 
-                            onRefresh={handleChartRefresh}
-                            seriesColors={getInsightThemeColors()}
-                          >
-                            <BasicGroupedChart
-                              key={trendingChartType}
-                              chartType={trendingChartType}
-                              title=""
-                              subTitle=""
-                              data={invoiceTrendData}
-                              categoryField="group"
-                              categoryTitle=""
-                              categoryFormat="MMM yyyy"
-                              valueField="value"
-                              valueFormat="c2"
-                              groupedByField="label"
-                              legendPosition="bottom"
-                              legendTitle=""
-                              tooltipFormat="c2"
-                              showLabels={false}
-                              labelFormat="c2"
-                              labelIncludeGroup={true}
-                              stacked={trendingChartType === 'column'}
-                              // gap={1}
-                              // spacing={0.3}
-                            />
-                          </Chart>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Slide 2: Top Expensive Products */}
-                  <div className="azure-invoice-chart-slide-single">
-                    <div className="azure-invoice-chart-box">
-                      <ChartTitleAndButtons
-                        title="Top Expensive Products"
-                        trendingChartType={topNExpensiveProductsChartType}
-                        handleChartTypeChange={handleTopNExpensiveProductsChartTypeChange}
-                        chartOptions={barPieDoughnutOptions}
-                      />
-                      {topNExpensiveProductsChartTypeLoading ? (
-                        <Skeleton shape="rectangle" className="azure-invoice-skeleton-chart-content" />
-                      ) : topNExpensiveProductsChartType === 'bar' ? (
-                        <Chart 
-                          onRefresh={handleChartRefresh} 
-                          className="chart3"
-                        >
-                          <BasicGroupedChart
-                            key={topNExpensiveProductsChartType}
-                            chartType={topNExpensiveProductsChartType}
-                            title=""
-                            subTitle=""
-                            data={topNExpensiveProducts}
-                            categoryField="group"
-                            valueField="value"
-                            groupedByField="label"
-                            categoryTitle=""
-                            showCategoryLabels={false}
-                            showValueLabels={false}
-                            legendPosition="bottom"
-                            legendTitle=""
-                            legendVisible={true}
-                            tooltipFormat="c2"
-                            showLabels={true}
-                            valueFormat="c2"
-                            labelFormat="c2"
-                            labelIncludeGroup={false}
-                            seriesColors={getInsightThemeColors()}
-                            gap={0.2}
-                            spacing={1.5}
-                          />
-                        </Chart>
-                      ) : (
-                        <Chart 
-                          onRefresh={handleChartRefresh}
-                        >
-                          <BasicPieDoughnutChart
-                            key={topNExpensiveProductsChartType}
-                            chartType={topNExpensiveProductsChartType}
-                            title=""
-                            subTitle=""
-                            data={pieChartData}
-                            categoryField="category"
-                            valueField="value"
-                            tooltipFormat="c2"
-                            legendPosition="bottom"
-                            legendVisible={true}
-                            showLabels={true}
-                            valueFormat="c2"
-                            labelFormat="c2"
-                            seriesColors={getInsightThemeColors()}
-                          />
-                        </Chart>
-                      )}
-                    </div>
-                  </div>
-                </Carousel>
-              )}
-            </div>
+        {/* Charts */}
+        <div className="charts-section">
+          {/* Invoice Breakdown Chart */}
+          <div className="chart-container">
+            <ChartTitleAndButtons
+              title="Invoice Breakdown"
+              chartType="bar"
+              onChartTypeChange={() => {}}
+              availableChartTypes={[{ type: 'bar', icon: 'chartBarIcon', title: 'Bar chart' }]}
+            />
+            {invoiceBreakdownData.length > 0 ? (
+              <Chart onRefresh={() => {}} seriesColors={getInsightThemeColors()}>
+                <BasicGroupedChart
+                  chartType="bar"
+                  title=""
+                  subTitle=""
+                  data={invoiceBreakdownData}
+                  categoryField="group"
+                  valueField="value"
+                  groupedByField="label"
+                  categoryTitle=""
+                  showCategoryLabels={true}
+                  legendPosition="bottom"
+                  legendTitle=""
+                  legendVisible={false}
+                  tooltipFormat="c2"
+                  showLabels={true}
+                  valueFormat="c2"
+                  labelFormat="c2"
+                  labelIncludeGroup={true}
+                />
+              </Chart>
+            ) : (
+              <p>No breakdown data available</p>
+            )}
           </div>
 
-          {/* Filter Controls */}
-          <div className="azure-invoice-filter-section">
-            <div className="azure-invoice-filter-row">
-              {clientDataLoading ? (
-                // Skeleton loaders for filters
-                <>
-                  <div className="azure-invoice-filter-group">
-                    <label className="azure-invoice-filter-label">
-                      <Skeleton shape="text" className="azure-invoice-skeleton-filter-label" />
-                    </label>
-                    <Skeleton shape="rectangle" className="azure-invoice-skeleton-filter-dropdown azure-invoice-filter-dropdown" />
-                  </div>
-                  <div className="azure-invoice-filter-group">
-                    <label className="azure-invoice-filter-label">
-                      <Skeleton shape="text" className="azure-invoice-skeleton-filter-label-sm" />
-                    </label>
-                    <Skeleton shape="rectangle" className="azure-invoice-skeleton-filter-dropdown azure-invoice-filter-dropdown" />
-                  </div>
-                  <div className="azure-invoice-filter-group">
-                    <label className="azure-invoice-filter-label">
-                      <Skeleton shape="text" className="azure-invoice-skeleton-filter-label-xs" />
-                    </label>
-                    <Skeleton shape="rectangle" className="azure-invoice-skeleton-filter-dropdown azure-invoice-filter-dropdown" />
-                  </div>
-                  <div>
-                    <button className="azure-invoice-apply-button" disabled>
-                      <Skeleton shape="text" className="azure-invoice-skeleton-filter-button" />
-                    </button>
-                  </div>
-                </>
-              ) : (
-                // Actual filter controls
-                <>
-                  <div className="azure-invoice-filter-group">
-                    <label className="azure-invoice-filter-label">
-                      Product Category
-                    </label>
-                    <DropDownList
-                      data={[{ label: 'All', value: 'All' }, ...getSelectListItems('productcategory')]}
-                      textField="label"
-                      dataItemKey="value"
-                      value={filters.productCategory}
-                      onChange={(e) => handleFilterChange('productCategory', e.target.value)}
-                      className="azure-invoice-filter-dropdown"
-                    />
-                  </div>
-                  
-                  <div className="azure-invoice-filter-group">
-                    <label className="azure-invoice-filter-label">
-                      Product Name
-                    </label>
-                    <DropDownList
-                      data={[{ label: 'All', value: 'All' }, ...getSelectListItems('productname')]}
-                      textField="label"
-                      dataItemKey="value"
-                      value={filters.productName}
-                      onChange={(e) => handleFilterChange('productName', e.target.value)}
-                      className="azure-invoice-filter-dropdown"
-                    />
-                  </div>
-                  
-                  <div className="azure-invoice-filter-group">
-                    <label className="azure-invoice-filter-label">
-                      Sku Name
-                    </label>
-                    <DropDownList
-                      data={[{ label: 'All', value: 'All' }, ...getSelectListItems('skuname')]}
-                      textField="label"
-                      dataItemKey="value"
-                      value={filters.skuName}
-                      onChange={(e) => handleFilterChange('skuName', e.target.value)}
-                      className="azure-invoice-filter-dropdown"
-                    />
-                  </div>
-                  
-                  <div>
-                    <button 
-                      onClick={applyFilters}
-                      className="azure-invoice-apply-button"
-                    >
-                      Apply Filters
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
+          {/* Trending Chart */}
+          <div className="chart-container">
+            <ChartTitleAndButtons
+              title="Trending Monthly Spend"
+              chartType={trendingChartType}
+              onChartTypeChange={handleChartTypeChange}
+              loading={chartTypeLoading}
+              availableChartTypes={[
+                { type: 'column', icon: 'chartColumnIcon', title: 'Column chart' },
+                { type: 'line', icon: 'chartLineIcon', title: 'Line chart' }
+              ]}
+            />
+            {invoiceTrendData.length > 0 ? (
+              <Chart onRefresh={() => {}} seriesColors={getInsightThemeColors()}>
+                <BasicGroupedChart
+                  chartType={trendingChartType}
+                  title=""
+                  subTitle=""
+                  data={invoiceTrendData}
+                  categoryField="group"
+                  valueField="value"
+                  groupedByField="label"
+                  categoryTitle=""
+                  showCategoryLabels={true}
+                  legendPosition="bottom"
+                  legendTitle=""
+                  legendVisible={true}
+                  tooltipFormat="c2"
+                  showLabels={false}
+                  valueFormat="c2"
+                  labelFormat="c2"
+                  labelIncludeGroup={true}
+                />
+              </Chart>
+            ) : (
+              <p>No trending data available</p>
+            )}
           </div>
 
-          {/* Invoice Details Tabs */}
-          <div className="azure-invoice-tabs-section">
-            <div ref={tabsRef}>
-              <TabStrip 
-                selected={selectedTabIndex} 
-                onSelect={handleTabSelect}
-                className="azure-invoice-tabstrip tabstrip"
-              >
-                <TabStripTab title="Invoice Details">
-                  <InvoiceDetailsComponent 
-                    key={`invoice-details-${selectedMonth?.value}-${forceUpdate}`}
-                    usageMonth={selectedMonth?.value}
-                    data={invoiceDetailsData}
-                    isLoading={clientDataLoading}
-                  />
-                </TabStripTab>
-                <TabStripTab title="Monthly Differences">
-                  <MonthlyDifferenceComponent 
-                    usageMonth={selectedMonth?.value}
-                    data={monthlyDifferenceData}
-                    isLoading={clientDataLoading}
-                  />
-                </TabStripTab>
-              </TabStrip>
-            </div>
+          {/* Top Products Chart */}
+          <div className="chart-container">
+            <ChartTitleAndButtons
+              title="Top Expensive Products"
+              chartType={topNExpensiveProductsChartType}
+              onChartTypeChange={handleTopNExpensiveProductsChartTypeChange}
+              loading={topNExpensiveProductsChartTypeLoading}
+              availableChartTypes={[
+                { type: 'bar', icon: 'chartBarIcon', title: 'Bar chart' },
+                { type: 'column', icon: 'chartColumnIcon', title: 'Column chart' }
+              ]}
+            />
+            {topNExpensiveProducts.length > 0 ? (
+              <BasicChart
+                chartType={topNExpensiveProductsChartType}
+                title=""
+                data={topNExpensiveProducts}
+                valueField="value"
+                categoryField="group"
+                legendPosition="bottom"
+                tooltipFormat="c2"
+                showLabels={true}
+                valueFormat="c2"
+                labelFormat="c2"
+                height={400}
+              />
+            ) : (
+              <p>No top products data available</p>
+            )}
           </div>
-
-          {/* Performance Info */}
-          {ssrPerformance && (
-            <div className="azure-invoice-performance">
-              Performance: Data fetched in {ssrPerformance.dataFetchTime}ms | Status: {ssrPerformance.cacheStatus} | Rendered at: {ssrPerformance.timestamp}
-            </div>
-          )}
-
         </div>
       </div>
     </ErrorBoundary>

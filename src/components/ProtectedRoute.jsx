@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useAuth } from '../hooks/useAuth';
+import Cookies from 'js-cookie'; // Add cookie detection
 
 /**
- * Protected route wrapper component
- * Shows content immediately while handling authentication in background
+ * Protected route wrapper component  
+ * Debug version to track auth state changes
  */
 export default function ProtectedRoute({ children }) {
   const { isAuthenticated, isLoading, user, accessToken, redirectToLogin } = useAuth();
@@ -29,22 +30,49 @@ export default function ProtectedRoute({ children }) {
   }, []);
 
   useEffect(() => {
+    // DEBUG: Track authentication state changes in real-time
+    const authCookies = {
+      userContext: Cookies.get('user_context'),
+      accessToken: Cookies.get('access_token')
+    };
+    
+    console.log('🔍 ProtectedRoute: DEBUGGING AUTH STATE:', {
+      timestamp: new Date().toISOString(),
+      mounted,
+      isLoading,
+      isAuthenticated,
+      hasUser: !!user,
+      hasAccessToken: !!accessToken,
+      hasRedirected,
+      authState: {
+        isRehydrating: authState?._persist?.rehydrated === false,
+        persistRehydrated: authState?._persist?.rehydrated,
+        fullAuthState: authState
+      },
+      cookies: {
+        hasUserContext: !!authCookies.userContext,
+        hasAccessToken: !!authCookies.accessToken,
+        userContextLength: authCookies.userContext?.length || 0,
+        accessTokenLength: authCookies.accessToken?.length || 0,
+        rawUserContext: authCookies.userContext,
+        rawAccessToken: authCookies.accessToken
+      },
+      reduxAccessToken: accessToken ? `${accessToken.substring(0, 20)}...` : 'null',
+      cookieAccessToken: authCookies.accessToken ? `${authCookies.accessToken.substring(0, 20)}...` : 'null',
+      allCookies: document.cookie
+    });
+    
     // Handle authentication checks in background after mount and rehydration
     if (mounted && !isLoading) {
-      // Check if Redux persist is still rehydrating
       const isRehydrating = authState?._persist?.rehydrated === false;
       const hasCompleteAuth = isAuthenticated && user && accessToken;
+      const hasCookieAuth = authCookies.userContext && authCookies.accessToken;
       
-      console.log('🛡️ ProtectedRoute: Auth check:', {
-        mounted,
-        isLoading,
-        isAuthenticated,
-        hasUser: !!user,
-        hasAccessToken: !!accessToken,
-        hasCompleteAuth,
-        hasRedirected,
+      console.log('🛡️ ProtectedRoute: Auth decision logic:', {
         isRehydrating,
-        persistRehydrated: authState?._persist?.rehydrated
+        hasCompleteAuth,
+        hasCookieAuth,
+        willRedirect: !hasCompleteAuth && !hasCookieAuth && !hasRedirected
       });
       
       // Don't redirect while still rehydrating
@@ -53,14 +81,28 @@ export default function ProtectedRoute({ children }) {
         return;
       }
       
-      if (!hasCompleteAuth && !hasRedirected) {
-        console.log('🛡️ ProtectedRoute: Triggering authentication...');
+      // If we have auth cookies but missing Redux state, give AuthContextInitializer time to work
+      if (hasCookieAuth && !hasCompleteAuth) {
+        console.log('🛡️ ProtectedRoute: Auth cookies found but Redux state incomplete - giving AuthContextInitializer time to sync');
+        return;
+      }
+      
+      // Only redirect if we have NO auth anywhere
+      if (!hasCompleteAuth && !hasCookieAuth && !hasRedirected) {
+        console.log('❌ ProtectedRoute: NO AUTH FOUND ANYWHERE - triggering redirect');
+        console.log('🔍 ProtectedRoute: Final debug before redirect:', {
+          completeAuthCheck: { isAuthenticated, hasUser: !!user, hasAccessToken: !!accessToken },
+          cookieAuthCheck: { hasUserContext: !!authCookies.userContext, hasAccessToken: !!authCookies.accessToken },
+          allCookies: document.cookie.split(';').map(c => c.trim()),
+          reduxPersistState: authState?._persist
+        });
+        
         setHasRedirected(true);
-        // Small delay to prevent flash during navigation
         setTimeout(() => {
-          console.log('🛡️ ProtectedRoute: Calling redirectToLogin...');
           redirectToLogin();
         }, 100);
+      } else if (hasCompleteAuth) {
+        console.log('✅ ProtectedRoute: Complete auth found - user is properly authenticated');
       }
     }
   }, [mounted, isLoading, isAuthenticated, user, accessToken, hasRedirected, redirectToLogin, authState]);

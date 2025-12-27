@@ -23,13 +23,15 @@ export const useAuth = () => {
 
   // DEBUGGING: Log what we're actually getting from Redux
   console.log('🔍 useAuth: Current auth state:', {
+    timestamp: new Date().toISOString(),
     isAuthenticated: auth?.isAuthenticated,
     hasUser: !!auth?.user,
     hasAccessToken: !!auth?.accessToken,
     hasLoginResponse: !!auth?.loginResponse,
     userKeys: auth?.user ? Object.keys(auth.user) : [],
     authKeys: Object.keys(auth || {}),
-    authStateRaw: auth
+    authStateRaw: auth,
+    reduxPersistState: auth?._persist
   });
 
   const login = (loginData) => {

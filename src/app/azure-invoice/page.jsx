@@ -2,11 +2,7 @@
 import { cookies } from 'next/headers';
 import AzureInvoiceClientContent from './AzureInvoiceClientContent';
 import { 
-  fetchInvoiceMonthsServer, 
-  fetchSummaryDataServer, 
-  fetchCreditsDataServer, 
-  fetchTrendsDataServer,
-  fetchInvoiceDetailsServer
+  fetchConsolidatedAzureInvoiceData
 } from './actions';
 
 /**
@@ -43,26 +39,24 @@ export default async function AzureInvoicePage() {
     });
     return <AzureInvoiceClientContent mode="client-side" />;
   }
-  
-  // Extract soldToId for server-side data fetching (same pattern as invoices)
+
+  // Extract soldToId from cookies
   let soldToId = soldToIdCookie?.value;
   let userContext = null;
   
-  // If no direct soldToId cookie, try to extract from user_context
-  if (!soldToId && userContextCookie) {
+  // If we have user_context, extract data for component props
+  if (userContextCookie?.value) {
     try {
-      userContext = JSON.parse(decodeURIComponent(userContextCookie.value));
-      soldToId = userContext?.userProfile?.defaultContext?.[0]?.soldToId || userContext?.soldToId;
-      console.log('🔍 SERVER: Extracted soldToId from user_context:', soldToId);
-    } catch (error) {
-      console.error('❌ SERVER: Failed to parse user_context cookie:', error);
-      return <AzureInvoiceClientContent mode="client-side" />;
-    }
-  } else if (userContextCookie && !userContext) {
-    // Parse userContext even if we have soldToId from cookie for component props
-    try {
-      userContext = JSON.parse(decodeURIComponent(userContextCookie.value));
-    } catch (error) {
+      const parsedUserContext = JSON.parse(userContextCookie.value);
+      soldToId = soldToId || parsedUserContext?.userProfile?.defaultContext?.[0]?.soldToId;
+      userContext = {
+        soldToId,
+        firstName: parsedUserContext?.firstName,
+        lastName: parsedUserContext?.lastName,
+        username: parsedUserContext?.username,
+        companyName: parsedUserContext?.userProfile?.defaultContext?.[0]?.soldToName
+      };
+    } catch (e) {
       console.warn('⚠️ SERVER: Failed to parse user_context for component props, using minimal context');
       userContext = { soldToId };
     }
@@ -79,96 +73,76 @@ export default async function AzureInvoicePage() {
   }
 
   // SERVER-SIDE DATA FETCHING - runs on server, not in browser
-  console.log('🚀 SERVER: Starting server-side data fetch for soldToId:', soldToId);
+  console.log('🚀 SERVER: Starting server-side data fetch for Azure Invoice, soldToId:', soldToId);
   
   let initialData = null;
   let ssrError = null;
   
   try {
-    // Fetch all data using caching on the server
     const startTime = Date.now();
     
-    // Get first month for invoice details (cached)
-    const monthsData = await fetchInvoiceMonthsServer(soldToId);
-    if (monthsData.error) {
-      throw new Error(`Months fetch failed: ${monthsData.error}`);
+    // Fetch ALL data using single consolidated call (cached)
+    console.log('🔍 SERVER: Fetching consolidated Azure Invoice data with soldToId:', soldToId);
+    const consolidatedResult = await fetchConsolidatedAzureInvoiceData(accessTokenCookie.value, soldToId);
+
+    const fetchTime = Date.now() - startTime;
+    
+    // Check for errors
+    if (consolidatedResult.error) {
+      throw new Error(`Consolidated fetch failed: ${consolidatedResult.error}`);
     }
     
-    const firstMonth = monthsData?.data?.invoiceMonths?.[0]?.value || '202512'; // Default to current month
-    console.log('📅 SERVER: Using first month for azure invoice details:', firstMonth);
-    
-    // Fetch all azure invoice data in parallel (all cached with 10-minute TTL)
-    const [summaryData, creditsData, trendsData, detailsData] = await Promise.all([
-      fetchSummaryDataServer(soldToId, firstMonth),
-      fetchCreditsDataServer(soldToId, firstMonth),
-      fetchTrendsDataServer(soldToId, firstMonth),
-      fetchInvoiceDetailsServer(soldToId, firstMonth)
-    ]);
-    
-    const fetchTime = Date.now() - startTime;
-    console.log(`✅ SERVER: Azure invoice data fetched in ${fetchTime}ms`);
-    
-    // Log cache hit/miss status for debugging
-    console.log('📊 SERVER: Cache status:', {
-      months: monthsData._fromCache ? 'HIT' : 'MISS',
-      summary: summaryData._fromCache ? 'HIT' : 'MISS', 
-      credits: creditsData._fromCache ? 'HIT' : 'MISS',
-      trends: trendsData._fromCache ? 'HIT' : 'MISS',
-      details: detailsData._fromCache ? 'HIT' : 'MISS'
-    });
-    
-    // Check for any errors in individual responses
-    if (summaryData.error) console.warn('⚠️ Summary data error:', summaryData.error);
-    if (creditsData.error) console.warn('⚠️ Credits data error:', creditsData.error);
-    if (trendsData.error) console.warn('⚠️ Trends data error:', trendsData.error);
-    if (detailsData.error) console.warn('⚠️ Details data error:', detailsData.error);
+    const data = consolidatedResult.data;
     
     initialData = {
-      monthsResponse: monthsData,
-      summaryResponse: summaryData,
-      creditsResponse: creditsData,
-      trendsResponse: trendsData,
-      invoiceDetailsResponse: detailsData,
-      fetchTime
+      // Provide data in both formats for compatibility
+      monthsResponse: { 
+        data: { invoiceMonths: data?.invoiceMonths || [] },
+        cached: consolidatedResult.cached
+      },
+      summaryResponse: { 
+        data: data?.summary || null,
+        cached: consolidatedResult.cached
+      },
+      creditsResponse: { 
+        data: data?.credits || null,
+        cached: consolidatedResult.cached
+      },
+      trendsResponse: { 
+        data: data?.trend || null,
+        cached: consolidatedResult.cached
+      },
+      // Direct properties for fallback
+      invoiceMonths: data?.invoiceMonths || [],
+      summary: data?.summary || null,
+      credits: data?.credits || null,
+      trend: data?.trend || null,
+      fetchTime,
+      timestamp: new Date().toISOString(),
+      cacheInfo: {
+        consolidatedCached: consolidatedResult.cached,
+        allFromSameCache: true // All data from single consolidated cache
+      }
     };
-    
-    console.log('✅ SERVER: Azure invoice initial data prepared:', {
-      hasMonths: !!monthsData?.data,
-      monthsCount: monthsData?.data?.invoiceMonths?.length || 0,
-      hasSummary: !!summaryData?.data,
-      hasCredits: !!creditsData?.data,
-      hasTrends: !!trendsData?.data,
-      hasInvoiceDetails: !!detailsData?.data,
-      invoiceDetailsCount: detailsData?.data?.content?.length || detailsData?.data?.length || 0
+
+    console.log('✅ SERVER: Successfully pre-fetched Azure Invoice data', {
+      monthsCount: data?.invoiceMonths?.length || 0,
+      hasSummary: !!data?.summary,
+      hasCredits: !!data?.credits,
+      hasTrends: !!data?.trend,
+      fetchTime: `${fetchTime}ms`,
+      cacheHit: consolidatedResult.cached
     });
+
   } catch (error) {
-    console.error('❌ SERVER: Azure invoice data fetch error:', error);
+    console.error('❌ SERVER: Azure Invoice SSR failed, falling back to client-side:', error);
     ssrError = error.message;
+    // Fall back to client-side mode on server error
+    return <AzureInvoiceClientContent mode="client-side" error={ssrError} />;
   }
-  
-  // Error state
-  if (ssrError) {
-    return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
-        <h2>Data Fetch Error</h2>
-        <p>Failed to load Azure invoice data: {ssrError}</p>
-        <a 
-          href="/azure-invoice"
-          style={{ 
-            display: 'inline-block',
-            padding: '10px 20px', 
-            backgroundColor: '#007bff', 
-            color: 'white', 
-            textDecoration: 'none',
-            borderRadius: '4px',
-            marginTop: '15px'
-          }}
-        >
-          Retry
-        </a>
-      </div>
-    );
-  }
+
+  // SUCCESS: Return server-rendered content with pre-fetched data
+  console.log('🎯 SERVER: Rendering Azure Invoice with pre-fetched data');
   
   return (
     <div>
@@ -179,12 +153,14 @@ export default async function AzureInvoicePage() {
         ssrPerformance={{
           dataFetchTime: initialData ? initialData.fetchTime || 0 : 0,
           totalSSRTime: initialData ? initialData.fetchTime || 0 : 0,
-          cacheStatus: 'CLEAN_SSR_WITH_10MIN_CACHE',
-          cacheHitRatio: 0,
+          cacheStatus: 'FRESH_SSR',
+          cacheHitRatio: initialData?.cacheInfo?.consolidatedCached ? 1 : 0,
           timestamp: new Date().toLocaleTimeString()
         }}
-        soldToId={soldToId}
       />
     </div>
   );
 }
+
+// Enable Next.js caching for this page
+export const revalidate = 600; // 10 minutes cache

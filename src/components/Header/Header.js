@@ -121,35 +121,6 @@ const Header = () => {
   // Store access token
   const accessToken = loginResponse?.tokens?.bearerToken || loginResponse?.accessToken;
   
-  console.log('🔍 Header: User Data Check:', {
-    isAuthenticated,
-    hasLoginResponse: !!loginResponse,
-    userData: {
-      firstName: displayFirstName,
-      lastName: displayLastName,
-      username: displayUsername
-    },
-    accountData: {
-      companyName,
-      soldTo,
-      soldToId
-    },
-    rawData: {
-      defaultContext: defaultContext || 'MISSING',
-      soldToNameFromContext: defaultContext?.soldToName || ''
-    }
-  });
-  
-  // ADDITIONAL DEBUG: Check if soldToName exists anywhere in the login response
-  if (loginResponse && !defaultContext?.soldToName) {
-    console.log('⚠️ SOLDTONAME NOT FOUND in defaultContext - checking alternate paths');
-  }
-  
-// Validate Redux data availability
-  if (isAuthenticated && !loginResponse) {
-    console.warn('⚠️ Header: Authenticated but no loginResponse in Redux - store may be hydrating');
-  }
-  
   if (isAuthenticated && loginResponse) {
     console.log('✅ Header: Reading soldToName from Redux store ONLY:', {
       userDisplay: `${displayLastName ? displayLastName + ', ' : ''}${displayFirstName}`,

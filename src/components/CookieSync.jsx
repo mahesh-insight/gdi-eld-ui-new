@@ -7,7 +7,15 @@ export default function CookieSync() {
     const authState = useSelector(state => state.auth);
     
     useEffect(() => {
-        console.log('🔄 CookieSync: Starting authentication check...');
+        console.log('🔄 CookieSync: AUTONOMOUS cookie sync - preserving existing auth');
+        
+        // Only sync TO cookies if we have valid auth, never clear auth
+        const hasValidAuth = authState?.isAuthenticated && authState?.accessToken && authState?.loginResponse;
+        
+        if (!hasValidAuth) {
+            console.log('⚠️ CookieSync: No valid auth state to sync - doing nothing');
+            return;
+        }
         
         let accessToken = null;
         let soldToId = null;
@@ -85,25 +93,21 @@ export default function CookieSync() {
             
             const maxAge = 7 * 24 * 60 * 60;
             
+            // Clear existing cookies first
             document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
             document.cookie = 'user_context=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
             document.cookie = 'soldToId=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
             
+            // Set new cookies
             document.cookie = `access_token=${accessToken}; path=/; max-age=${maxAge}; SameSite=Strict`;
-            document.cookie = `user_context=${encodeURIComponent(JSON.stringify(loginResponse))}; path=/; max-age=${maxAge}; SameSite=Strict`;
+            
+            // CRITICAL: Set user_context cookie with the complete loginResponse as JSON string
+            const userContextValue = encodeURIComponent(JSON.stringify(loginResponse));
+            document.cookie = `user_context=${userContextValue}; path=/; max-age=${maxAge}; SameSite=Strict`;
+            
             document.cookie = `soldToId=${soldToId}; path=/; max-age=${maxAge}; SameSite=Strict`;
             
-            console.log('✅ CookieSync: Authentication cookies set successfully:', {
-                accessTokenLength: accessToken.length,
-                accessTokenPrefix: accessToken.substring(0, 20) + '...',
-                soldToId: soldToId
-            });
-        } else {
-            console.log('⚠️ CookieSync: Cannot set cookies - invalid authentication data:', {
-                hasValidToken: isValidToken,
-                hasValidSoldToId: isValidSoldToId,
-                hasLoginResponse: !!loginResponse
-            });
+            console.log('✅ CookieSync: Auth cookies synced successfully');
         }
     }, [authState?.isAuthenticated]);
     

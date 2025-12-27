@@ -190,3 +190,6 @@ export default async function InvoicesPage() {
     </div>
   );
 }
+
+// Enable Next.js caching for this page
+export const revalidate = 600; // 10 minutes cache

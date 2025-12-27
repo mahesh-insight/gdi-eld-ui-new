@@ -22,8 +22,8 @@ export const BasicChart = (props) => {
   const title = props.title; // chart title
   const subTitle = props.subTitle; //chart subtitle
   const data = props.data; //chart data
-  const valueField = props.valueField; // field for values (y axis)
-  const categoryField = props.categoryField; // field for categories (x axis)
+  const valueField = props.valueField || 'value'; // field for values (y axis)
+  const categoryField = props.categoryField || 'group'; // field for categories (x axis)
   const labelFormat = props.labelFormat; // format for labels (ex c2 for currency with decimals, n0 for number, no decimals)
   const showLabels = props.showLabels ?? false; //shows or hides value labels
   const legendPosition = props.legendPosition; //position of the legend, top, right, bottom, etc
@@ -33,9 +33,10 @@ export const BasicChart = (props) => {
   const showValueLabels = props.showValueLabels ?? true;
   const valueFormat = props.valueFormat;
   const labelIncludeGroup = props.labelIncludeGroup ?? false;
+  const height = props.height;
 
   return (
-    <>
+    <Chart style={height ? { height: `${height}px` } : {}}>
       <ChartArea margin={{ top: 15 }} /> 
       <ChartLegend visible={true} position={legendPosition}>
         <ChartLegendTitle text={legendTitle}></ChartLegendTitle>
@@ -63,6 +64,6 @@ export const BasicChart = (props) => {
         />
       </ChartSeries>
       <ChartTooltip format={tooltipFormat} />
-    </>
+    </Chart>
   );
 };
