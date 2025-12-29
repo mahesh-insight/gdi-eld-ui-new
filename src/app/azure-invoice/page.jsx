@@ -112,11 +112,21 @@ export default async function AzureInvoicePage() {
         data: data?.trend || null,
         cached: consolidatedResult.cached
       },
+      monthDetailResponse: {
+        data: data?.monthDetail || null,
+        cached: consolidatedResult.cached
+      },
+      monthlyDifferenceResponse: {
+        data: data?.monthlyDifference || null,
+        cached: consolidatedResult.cached
+      },
       // Direct properties for fallback
       invoiceMonths: data?.invoiceMonths || [],
       summary: data?.summary || null,
       credits: data?.credits || null,
       trend: data?.trend || null,
+      monthDetail: data?.monthDetail || null,
+      monthlyDifference: data?.monthlyDifference || null,
       fetchTime,
       timestamp: new Date().toISOString(),
       cacheInfo: {
@@ -130,6 +140,10 @@ export default async function AzureInvoicePage() {
       hasSummary: !!data?.summary,
       hasCredits: !!data?.credits,
       hasTrends: !!data?.trend,
+      hasMonthDetail: !!data?.monthDetail,
+      hasMonthlyDifference: !!data?.monthlyDifference,
+      monthDetailLength: data?.monthDetail?.length || 0,
+      monthlyDifferenceLength: data?.monthlyDifference?.length || 0,
       fetchTime: `${fetchTime}ms`,
       cacheHit: consolidatedResult.cached
     });

@@ -1,0 +1,25 @@
+{
+  "common": {
+    "invoice": "Invoice",
+    "applyFilters": "Apply Filters",
+    "noData": "No Data Available",
+    "invoiceDate": "Invoice Date",
+    "customerName": "Customer Name",
+    "tenantId": "Tenant ID",
+    "subscriptionId": "Subscription ID",
+    "subscriptionName": "Subscription Name",
+    "productCategory": "Product Category",
+    "productId": "Product ID",
+    "productName": "Product Name",
+    "sku": "SKU Name",
+    "unitPrice": "Unit Price",
+    "quantity": "Quantity",
+    "total": "Total",
+    "startMonth": "Start Month",
+    "endMonth": "End Month",
+    "publisherName": "Publisher",
+    "costDifference": "Cost Difference",
+    "currency": "Currency",
+    "changeType": "Change Type"
+  }
+}

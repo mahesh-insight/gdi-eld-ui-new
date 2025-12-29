@@ -37,8 +37,6 @@ export const BasicGroupedChart = (props) => {
   const labelIncludeGroup = props.labelIncludeGroup ?? false;
   const categoryFormat = props.categoryFormat;
   const yAxisLabelStep = props.yAxisLabelStep;
-  const gap = props.gap ?? 1.5;
-  const spacing = props.spacing ?? 0.5;
 
   let minValue = Infinity;
   let maxValue = -Infinity;
@@ -96,8 +94,6 @@ export const BasicGroupedChart = (props) => {
         format: labelIncludeGroup ? item.value + " \n {0:" + labelFormat + "}" : labelFormat,
       }}
       stack={stacked}
-      gap={gap}
-      spacing={spacing}
     >
       <ChartSeriesItemTooltip format={item.value + " - " + "{0:" + tooltipFormat + "}"} />
     </ChartSeriesItem>

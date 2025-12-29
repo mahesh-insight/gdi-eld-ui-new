@@ -3,6 +3,23 @@
   box-sizing: border-box;
 }
 
+/* Skeleton Loader Styles */
+.skeleton-loader {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 /* Override o-grid to prevent overflow */
 .azure-invoice-charts-section.o-grid,
 .azure-invoice-charts-section .o-grid__item {
@@ -182,11 +199,26 @@
   box-sizing: border-box;
 }
 
+/* Ensure charts display side by side on desktop */
+.azure-invoice-chart-slide.o-grid .o-grid__item.u-1\/2\@desktop {
+  display: inline-block;
+  float: left;
+  width: 50%;
+  box-sizing: border-box;
+}
+
+/* Force horizontal layout for charts */
+.azure-invoice-chart-slide .azure-invoice-chart-container {
+  width: 100%;
+  min-height: 400px;
+}
+
 .azure-invoice-chart-container {
   flex: 1;
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
+  width: 100%;
 }
 
 .azure-invoice-chart-box {
@@ -197,6 +229,178 @@
   height: 100%;
   box-sizing: border-box;
   overflow: hidden;
+  min-height: 400px;
+}
+
+/* Filter Section Styling */
+.azure-invoice-filters-section {
+  margin: 24px 0;
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.azure-invoice-filters-row {
+  align-items: flex-end;
+}
+
+.filter-item {
+  margin-bottom: 16px;
+}
+
+.filter-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+/* Carousel Styles */
+.chart-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.chart-section-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.chart-navigation {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chart-nav-button {
+  background: #14a2b8;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.chart-nav-button:hover {
+  background: #0f8ca0;
+}
+
+.chart-nav-indicator {
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.carousel-container {
+  overflow: hidden;
+  width: 100%;
+  position: relative;
+}
+
+.carousel-slides {
+  display: flex;
+  transition: transform 0.3s ease;
+  width: 200%;
+}
+
+.carousel-slide {
+  min-width: 50%;
+  flex-shrink: 0;
+  width: 50%;
+  box-sizing: border-box;
+}
+
+.azure-invoice-chart-slide {
+  display: flex;
+  gap: 24px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0 10px;
+}
+
+.azure-invoice-chart-container {
+  flex: 1;
+  min-width: 0;
+  max-width: 50%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.azure-invoice-chart-container.full-width {
+  max-width: 100%;
+}
+
+.full-width {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Ensure both charts are visible side by side in slide 1 */
+.carousel-slide .azure-invoice-chart-slide .azure-invoice-chart-container {
+  width: calc(50% - 12px);
+  min-width: calc(50% - 12px);
+  flex: 0 0 calc(50% - 12px);
+}
+
+/* Chart specific styles for proper horizontal layout */
+.invoiceBreakdown,
+.trending6MonthSpend {
+  padding: 0 10px;
+}
+
+.chart1,
+.chart3,
+.clickableChart {
+  width: 100%;
+  min-height: 300px;
+}
+
+/* Force Kendo Charts to be responsive */
+.azure-invoice-chart-box .k-chart-surface,
+.azure-invoice-chart-box .k-chart {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Chart bars center alignment and width */
+.azure-invoice-chart-box .k-chart-surface {
+  display: block !important;
+  margin: 0 auto !important;
+}
+
+/* Make chart bars wider by scaling them */
+.azure-invoice-chart-box .k-chart-pane rect[fill]:not([fill="none"]) {
+  transform: scaleX(1.8) !important;
+  transform-origin: center !important;
+}
+
+/* Center align bars within their groups */
+.azure-invoice-chart-box g[clip-path] {
+  transform: translateX(0) !important;
+}
+
+/* Trending Chart Header */
+.trending-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.trending-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.trending-period-dropdown {
+  min-width: 150px;
 }
 
 .azure-invoice-chart-title {
@@ -209,6 +413,75 @@
 
 .azure-invoice-filters-section {
   margin-bottom: 24px;
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.filters-row {
+  display: flex;
+  gap: 20px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  flex: 1;
+  min-width: 180px;
+  max-width: 250px;
+}
+
+.filter-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.filter-dropdown {
+  width: 100%;
+  min-width: 180px;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.apply-filters-button {
+  padding: 10px 28px;
+  height: 36px;
+}
+
+.download-button {
+  padding: 8px 12px;
+  height: 36px;
+  min-width: 40px;
+}
+
+/* No data message styling */
+.no-data-message {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6c757d;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.no-data-message p {
+  font-size: 16px;
+  margin-bottom: 10px;
+  color: #495057;
+}
+
+.no-data-message small {
+  font-size: 12px;
+  line-height: 1.4;
+  opacity: 0.7;
 }
 
 .azure-invoice-filter-row {

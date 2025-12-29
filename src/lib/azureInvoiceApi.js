@@ -43,6 +43,10 @@ export async function callAzureInvoiceAPI(serviceName, payload, serverAccessToke
   console.log(`🔥 API PAYLOAD:`, payload);
   console.log(`🔥 SERVER TOKEN PROVIDED:`, !!serverAccessToken);
   
+  // Declare variables that will be used in catch block
+  let soldToArray;
+  let fullUrl;
+  
   try {
     // Import axios directly to bypass the request wrapper's data handling
     const axios = (await import('axios')).default;
@@ -52,7 +56,7 @@ export async function callAzureInvoiceAPI(serviceName, payload, serverAccessToke
     const serviceConfig = services.getService(serviceName);
     console.log('🔍 Service Config:', serviceConfig);
     
-    let soldToArray;
+    soldToArray = null;
     let urlParams = '';
     
     // Add null/undefined check first
@@ -76,7 +80,7 @@ export async function callAzureInvoiceAPI(serviceName, payload, serverAccessToke
     // Build the complete URL
     console.log('🔍 Base URL:', serviceConfig.baseURL);
     console.log('🔍 Service URL:', serviceConfig.url);
-    let fullUrl = `${serviceConfig.baseURL}${serviceConfig.url}`;
+    fullUrl = `${serviceConfig.baseURL}${serviceConfig.url}`;
     if (urlParams) {
       if (urlParams.startsWith('?')) {
         fullUrl += urlParams;
@@ -87,12 +91,13 @@ export async function callAzureInvoiceAPI(serviceName, payload, serverAccessToke
     console.log('🌐🌐🌐 FULL API REQUEST URL:', fullUrl);
     console.log('📦 Request Payload:', JSON.stringify(soldToArray, null, 2));
     
-    // Get access token for authorization - prioritize server-provided token
+    // Get access token for authorization - prioritize passed token
     let accessToken = serverAccessToken;
     
+    // Only try to get token from other sources if not provided
     if (!accessToken && typeof window !== 'undefined') {
       try {
-        // First try to get from Redux persist storage
+        // Client-side: First try to get from Redux persist storage
         const persistData = localStorage.getItem('persist:ccr-auth');
         if (persistData) {
           const parsed = JSON.parse(persistData);
@@ -154,64 +159,7 @@ export async function callAzureInvoiceAPI(serviceName, payload, serverAccessToke
       } catch (error) {
         console.error('❌ Error getting access token:', error);
       }
-    } else {
-      // Server-side: try to get token from cookies
-      try {
-        const { cookies } = await import('next/headers');
-        const cookieStore = await cookies();
-        const tokenCookie = cookieStore.get('access_token');
-        accessToken = tokenCookie?.value;
-          
-            console.log('🔍 Raw cookie value type:', typeof accessToken);
-            console.log('🔍 Raw cookie value:', accessToken);
-            
-            // If the token is stored as JSON string, parse it
-            if (typeof accessToken === 'string') {
-              try {
-                // Check if it's a JSON string (starts with quotes or braces)
-                if (accessToken.startsWith('"') && accessToken.endsWith('"')) {
-                  accessToken = JSON.parse(accessToken);
-                  console.log('🔍 Parsed quoted token:', typeof accessToken);
-                } else if (accessToken.startsWith('{') || accessToken.startsWith('[')) {
-                  // It's a JSON object/array string, but we want the raw JWT
-                  console.warn('⚠️ Token appears to be JSON object, this is incorrect');
-                  accessToken = null; // Force fallback to persist storage
-                }
-              } catch (e) {
-                console.log('🔍 Token is not JSON, using as-is (correct for JWT)');
-                // Token is not JSON, use as-is (this is correct for JWT tokens)
-              }
-            }
-            
-            console.log('🔍 Final server token type:', typeof accessToken);
-            console.log('🔍 Final server token length:', accessToken?.length || 0);
-            console.log('🔍 All available cookies:', cookieStore.getAll().map(c => c.name));
-            
-            // If no valid access_token cookie, try to get from auth persist cookie
-            if (!accessToken || accessToken === '{}' || typeof accessToken !== 'string') {
-              console.log('🔍 Trying auth persist cookie...');
-              const authCookie = cookieStore.get('persist:ccr-auth');
-              if (authCookie) {
-                try {
-                  const persistedState = JSON.parse(authCookie.value);
-                  accessToken = persistedState.accessToken;
-                  
-                  // Parse the accessToken if it's stored as JSON string
-                  if (typeof accessToken === 'string' && accessToken.startsWith('"')) {
-                    accessToken = JSON.parse(accessToken);
-                  }
-                  
-                  console.log('🔍 Access token from auth persist type:', typeof accessToken);
-                  console.log('🔍 Access token from auth persist length:', accessToken?.length || 0);
-                } catch (e) {
-                  console.log('⚠️ Failed to parse auth persist cookie for token');
-                }
-              }
-            }
-          } catch (error) {
-            console.error('❌ Error getting access token from server cookies:', error);
-          }
-        }
+    }
     
     // Build headers
     const headers = {
@@ -412,6 +360,33 @@ export async function fetchInvoiceTrend({ soldToId, months, filter, accessToken 
   }, accessToken);
 }
 
+export async function fetchInvoiceMonthlyDifferenceDetail({
+  soldToId,
+  value,
+  filter,
+  accessToken
+} = {}) {
+  const finalSoldToId = soldToId || getSoldToIdFromRedux();
+  if (!finalSoldToId) {
+    console.error('❌ fetchInvoiceMonthlyDifferenceDetail: No soldToId available');
+    return { error: 'No soldToId available' };
+  }
+  
+  const serviceName = "invoiceMonthlyDifferenceDetail";
+
+  // Build URL params: month/sku-difference/{value}?filter={filter}
+  let urlParams = value;
+  if (filter && filter.length > 0) {
+    const filterParam = Array.isArray(filter) ? filter.join(',') : filter;
+    urlParams = `${value}?filter=${encodeURIComponent(filterParam)}`;
+  }
+
+  return callAzureInvoiceAPI(serviceName, {
+    payload: [finalSoldToId],
+    urlParam: urlParams
+  }, accessToken);
+}
+
 /**
  * Client-side combined data fetching for Azure Invoice month changes
  * Makes a SINGLE network request to get all data (summary + credits + trend)
@@ -588,11 +563,13 @@ export async function getInitialAzureInvoiceData({ soldToId, locationState, acce
     const filterQuery = [];
     const trendFilter = "";
 
-    // Parallel API calls
-    const [summary, credits, trend] = await Promise.allSettled([
+    // Parallel API calls - including month detail and monthly difference for tabs
+    const [summary, credits, trend, monthDetail, monthlyDifference] = await Promise.allSettled([
       fetchInvoiceSummary({ soldToId, value: currentMonthValue, filter: filterQuery, accessToken }),
       fetchInvoiceCredits({ soldToId, value: currentMonthValue, filter: filterQuery, accessToken }),
       fetchInvoiceTrend({ soldToId, months: 6, filter: trendFilter, accessToken }),
+      fetchInvoiceMonthDetail({ soldToId, value: `${currentMonthValue}?page=0&size=20`, filter: filterQuery, accessToken }),
+      fetchInvoiceMonthlyDifferenceDetail({ soldToId, value: `${prevMonth}/${currentMonthValue}?page=0&size=20`, filter: filterQuery, accessToken })
     ]);
 
     return {
@@ -604,12 +581,68 @@ export async function getInitialAzureInvoiceData({ soldToId, locationState, acce
       summary: summary.status === 'fulfilled' ? summary.value : null,
       credits: credits.status === 'fulfilled' ? credits.value : null,
       trend: trend.status === 'fulfilled' ? trend.value : null,
+      monthDetail: monthDetail.status === 'fulfilled' ? monthDetail.value : null,
+      monthlyDifference: monthlyDifference.status === 'fulfilled' ? monthlyDifference.value : null,
     };
   } catch (error) {
     console.error(`❌ getInitialAzureInvoiceData failed:`, error.message);
     return {
       pageExistsError: true,
       invoiceMonths: [],
+      error: error.message,
+    };
+  }
+}
+
+/**
+ * Fetch Azure Invoice data for month change (without fetching invoiceMonths again)
+ * This is used when user changes month - we already have the months list
+ */
+export async function getAzureInvoiceDataForMonth({ soldToId, currentMonthObject, accessToken }) {
+  try {
+    console.log('🔄 getAzureInvoiceDataForMonth called for month change:', {
+      soldToId: soldToId?.substring(0, 20) + '...',
+      currentMonthObject,
+      hasAccessToken: !!accessToken
+    });
+
+    const currentMonthValue = currentMonthObject.value;
+    
+    console.log('📅 MONTH VALUE BEING USED FOR API CALLS:', currentMonthValue);
+
+    // Build 2-month string for monthly difference
+    const moment = (await import("moment")).default;
+    const date = new Date(currentMonthObject.date);
+    const prevMonth = moment(date).subtract(1, "month").format("YYYYMM");
+    const usageMonthDifference = `${prevMonth}/${currentMonthValue}`;
+
+    const filterQuery = [];
+    const trendFilter = "";
+
+    // Parallel API calls - NO invoiceMonths call on month change
+    const [summary, credits, trend, monthDetail, monthlyDifference] = await Promise.allSettled([
+      fetchInvoiceSummary({ soldToId, value: currentMonthValue, filter: filterQuery, accessToken }),
+      fetchInvoiceCredits({ soldToId, value: currentMonthValue, filter: filterQuery, accessToken }),
+      fetchInvoiceTrend({ soldToId, months: 6, filter: trendFilter, accessToken }),
+      fetchInvoiceMonthDetail({ soldToId, value: `${currentMonthValue}?page=0&size=20`, filter: filterQuery, accessToken }),
+      fetchInvoiceMonthlyDifferenceDetail({ soldToId, value: `${prevMonth}/${currentMonthValue}?page=0&size=20`, filter: filterQuery, accessToken })
+    ]);
+
+    return {
+      pageExistsError: false,
+      currentMonthObject,
+      usageMonth: currentMonthValue,
+      usageMonthDifference,
+      summary: summary.status === 'fulfilled' ? summary.value : null,
+      credits: credits.status === 'fulfilled' ? credits.value : null,
+      trend: trend.status === 'fulfilled' ? trend.value : null,
+      monthDetail: monthDetail.status === 'fulfilled' ? monthDetail.value : null,
+      monthlyDifference: monthlyDifference.status === 'fulfilled' ? monthlyDifference.value : null,
+    };
+  } catch (error) {
+    console.error(`❌ getAzureInvoiceDataForMonth failed:`, error.message);
+    return {
+      pageExistsError: true,
       error: error.message,
     };
   }
