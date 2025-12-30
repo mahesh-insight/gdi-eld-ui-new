@@ -175,45 +175,7 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
           userProfileKeys: userProfile ? Object.keys(userProfile) : 'no userProfile'
         });
         
-        setProcessingMessage('Fetching user context...');
-        
-        // First store the token so the interceptor can use it
-        dispatch(initializeAuth({
-          isAuthenticated: false, // Temporary state
-          user: null,
-          loginResponse: response,
-          accessToken: bearerToken,
-          contextData: null,
-          soldTo: finalSoldTo,
-          salesOrg: finalSalesOrg
-        }));
-        
-        let contextResponse = null;
-        
-        console.log('🔍 DEBUG - About to call mpsaStatus API with soldToId:', soldToId);
-        console.log('🔍 DEBUG - Bearer token available:', !!bearerToken);
-        
-        if (soldToId) {
-          try {
-            // Call mpsaStatus API with soldToId as path parameter - token will be added automatically by interceptor
-            console.log('🚀 Calling mpsaStatus API with path parameter:', soldToId);
-            
-            contextResponse = await request.get('mpsaStatus', {
-              pathParam: soldToId
-            });
-            console.log('✅ contextResponse received:', contextResponse);
-          } catch (contextError) {
-            console.error('❌ Context API failed:', {
-              error: contextError.message,
-              status: contextError?.response?.status,
-              statusText: contextError?.response?.statusText,
-              finalUrl: `/ccr-dashboard-service/context/${soldToId}`
-            });
-            // Continue with authentication even if context fails
-          }
-        } else {
-          console.warn('⚠️ No soldToId available, skipping mpsaStatus API call');
-        }
+        setProcessingMessage('Preparing to redirect...');
         
         // Set HTTP cookies for server-side access (so SSR can detect authentication)
         // Note: Cookies are now secondary to Redux persist storage
@@ -222,7 +184,6 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
         
         try {
           // Set access token cookie with longer expiration (7 days to match typical session length)
-          // Using session cookie (no max-age) so it clears when browser closes, but Redux persist will maintain the session
           document.cookie = `access_token=${bearerToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
           console.log('✅ Access token cookie set (7 days)');
           
@@ -242,16 +203,9 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
           console.log('ℹ️ Continuing with Redux persist storage only');
         }
 
-        // Final dispatch to Redux store with complete auth data including context
-        // Use safe property access to prevent undefined errors
+        // Dispatch auth data to Redux store (without mpsaStatus context data)
+        // mpsaStatus will be called from the dashboard page itself
         const safeResponse = response || {};
-        
-        // Extract only serializable data from contextResponse (avoid AxiosHeaders)
-        const serializableContextData = contextResponse ? {
-          data: contextResponse.data,
-          status: contextResponse.status,
-          statusText: contextResponse.statusText
-        } : null;
         
         // Ensure soldToId is included in user object for Header component
         const authPayload = {
@@ -265,7 +219,7 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
           },
           loginResponse: safeResponse,
           accessToken: bearerToken || null,
-          contextData: serializableContextData,
+          contextData: null, // Will be fetched in dashboard page
           soldTo: finalSoldTo || soldToId || null,
           salesOrg: finalSalesOrg || null
         };
@@ -279,7 +233,7 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
           accessTokenLength: authPayload.accessToken?.length,
           hasLoginResponse: !!authPayload.loginResponse,
           loginResponseKeys: authPayload.loginResponse ? Object.keys(authPayload.loginResponse).length : 0,
-          hasContextData: !!authPayload.contextData
+          contextData: 'Will be fetched in dashboard'
         });
         
         try {
@@ -290,11 +244,9 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
         }
         
         setProcessingMessage('Authentication successful! Redirecting to dashboard...');
-        console.log('🚀 Scheduling redirect to dashboard in 1 second...');
-        setTimeout(() => {
-          console.log('🔄 Executing redirect to dashboard...');
-          router.replace('/dashboard');
-        }, 1000);
+        console.log('🚀 Redirecting to dashboard immediately - mpsaStatus will be called from dashboard page');
+        console.log('🔄 Executing redirect to dashboard...');
+        router.replace('/dashboard');
       } else {
         console.error('❌ Auth response validation failed:', {
           hasResponse: !!response,
