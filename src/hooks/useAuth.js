@@ -48,6 +48,16 @@ export const useAuth = () => {
     // Clear Redux state (this clears all sensitive data from memory)
     dispatch(clearAuth());
     
+    // Clear dashboard data
+    import('@/store/dashboardSlice').then((module) => {
+      if (module.clearDashboardData) {
+        dispatch(module.clearDashboardData());
+        console.log('✅ Auth: Cleared dashboard state');
+      }
+    }).catch(err => {
+      console.warn('⚠️ Auth: Could not clear dashboard state:', err);
+    });
+    
     // FIXED: Also clear the userSlice state to prevent stale user data
     import('@/lib/store/slices/userSlice').then((module) => {
       if (module.clearUserState) {
@@ -74,6 +84,7 @@ export const useAuth = () => {
         // Clear all localStorage including Redux persist
         localStorage.removeItem('persist:ccr-auth');
         localStorage.removeItem('persist:ccr-azure-invoice');
+        localStorage.removeItem('persist:ccr-dashboard');
         localStorage.removeItem('persist:ccr-user'); // Also clear user slice persist
         console.log('✅ Auth: Cleared localStorage persist data');
       } catch (err) {

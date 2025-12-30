@@ -26,6 +26,7 @@ import azureInvoiceSlice from './azureInvoiceSlice';
 import pageSlice from './pageSlice';
 import userSlice from '../lib/store/slices/userSlice';
 import gridSlice from './gridSlice';
+import dashboardSlice from './dashboardSlice';
 
 // Import recovery utilities (dev tools)
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
@@ -219,11 +220,70 @@ const azureInvoicePersistConfig = {
   ]
 };
 
+// Persist configuration for dashboard slice - widget flags
+const dashboardPersistConfig = {
+  key: 'ccr-dashboard',
+  storage,
+  whitelist: ['mpsaStatusData', 'widgetFlags', 'salesOrganizationCountryCode'],
+  transforms: [
+    {
+      in: (inboundState, key) => {
+        try {
+          if (!inboundState || typeof inboundState !== 'object') {
+            return {};
+          }
+          
+          // Clean undefined values
+          const cleanState = {};
+          Object.keys(inboundState).forEach(k => {
+            if (inboundState[k] !== undefined) {
+              cleanState[k] = inboundState[k];
+            }
+          });
+          
+          return cleanState;
+        } catch (error) {
+          console.error('🚨 Dashboard transform in error:', error);
+          return {};
+        }
+      },
+      out: (outboundState, key) => {
+        try {
+          if (!outboundState || typeof outboundState !== 'object') {
+            return {};
+          }
+          
+          // Sanitize mpsaStatusData to remove non-serializable Axios properties
+          if (outboundState.mpsaStatusData) {
+            const sanitized = {
+              data: outboundState.mpsaStatusData.data || null,
+              status: outboundState.mpsaStatusData.status || null,
+              statusText: outboundState.mpsaStatusData.statusText || ''
+            };
+            
+            // Remove any Axios-specific properties (headers, config, request, etc.)
+            return {
+              ...outboundState,
+              mpsaStatusData: sanitized
+            };
+          }
+          
+          return outboundState;
+        } catch (error) {
+          console.error('🚨 Dashboard transform out error:', error);
+          return {};
+        }
+      }
+    }
+  ]
+};
+
 // Root reducer combining all slices with persistence
 const rootReducer = combineReducers({
   auth: persistReducer(authPersistConfig, authSlice),
   ui: uiSlice,
   azureInvoice: persistReducer(azureInvoicePersistConfig, azureInvoiceSlice),
+  dashboard: persistReducer(dashboardPersistConfig, dashboardSlice),
   page: pageSlice,
   user: userSlice,
   grid: gridSlice,

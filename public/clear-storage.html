@@ -79,6 +79,7 @@
             try {
                 localStorage.removeItem('persist:ccr-auth');
                 localStorage.removeItem('persist:ccr-azure-invoice');
+                localStorage.removeItem('persist:ccr-dashboard');
                 showMessage('✅ Redux Persist data cleared successfully! Please refresh the dashboard.', 'success');
             } catch (error) {
                 showMessage('❌ Error clearing data: ' + error.message, 'error');
@@ -98,7 +99,7 @@
         }
         
         function goBack() {
-            window.location.href = '/azure-invoice';
+            window.location.href = '/dashboard';
         }
     </script>
 </body>

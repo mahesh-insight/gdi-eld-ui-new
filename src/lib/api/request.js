@@ -175,8 +175,21 @@ const instance = (serviceName, configuration = {}) => {
             // First try to get from Redux store
             if (window.__REDUX_STORE__) {
               const state = window.__REDUX_STORE__.getState();
-              accessToken = state?.auth?.accessToken;
-              console.log('🔍 Got token from Redux store:', !!accessToken);
+              let tokenFromRedux = state?.auth?.accessToken;
+              
+              // Handle case where accessToken might be an object or nested in loginResponse
+              if (tokenFromRedux && typeof tokenFromRedux === 'object') {
+                console.warn('⚠️ accessToken is an object, extracting bearerToken from loginResponse');
+                tokenFromRedux = state?.auth?.loginResponse?.bearerToken;
+              }
+              
+              // If still not found, try loginResponse.bearerToken
+              if (!tokenFromRedux || typeof tokenFromRedux !== 'string') {
+                tokenFromRedux = state?.auth?.loginResponse?.bearerToken;
+              }
+              
+              accessToken = tokenFromRedux;
+              console.log('🔍 Got token from Redux store:', !!accessToken, '- Type:', typeof accessToken);
             }
           } catch (error) {
             console.warn('⚠️ Redux store access failed:', error.message);
