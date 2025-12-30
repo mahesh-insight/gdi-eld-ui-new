@@ -27,6 +27,13 @@ import pageSlice from './pageSlice';
 import userSlice from '../lib/store/slices/userSlice';
 import gridSlice from './gridSlice';
 
+// Import recovery utilities (dev tools)
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  import('./persistRecovery').catch(err => 
+    console.warn('⚠️ Failed to load persist recovery tools:', err)
+  );
+}
+
 // Persist configuration for auth slice - loginResponse included for header data
 const authPersistConfig = {
   key: 'ccr-auth', 
@@ -39,30 +46,103 @@ const authPersistConfig = {
         try {
           // Ensure state is valid before persisting
           if (!inboundState || typeof inboundState !== 'object') {
+            console.warn('⚠️ Auth persist IN: Invalid state type, returning empty object');
             return {};
           }
-          // Remove undefined values
+          
+          // Remove undefined values and non-serializable data
           const cleanState = {};
           Object.keys(inboundState).forEach(k => {
-            if (inboundState[k] !== undefined) {
-              cleanState[k] = inboundState[k];
+            const value = inboundState[k];
+            
+            // Skip undefined, functions, symbols
+            if (value === undefined || typeof value === 'function' || typeof value === 'symbol') {
+              console.warn(`⚠️ Auth persist IN: Skipping non-serializable field "${k}"`, typeof value);
+              return;
             }
+            
+            // Convert Date objects to ISO strings
+            if (value instanceof Date) {
+              cleanState[k] = value.toISOString();
+              console.log(`📅 Auth persist IN: Converted Date field "${k}" to ISO string`);
+              return;
+            }
+            
+            cleanState[k] = value;
           });
+          
+          // Create backup in a separate key (safety net)
+          if (typeof window !== 'undefined' && cleanState.accessToken) {
+            try {
+              localStorage.setItem('ccr-auth-backup', JSON.stringify({
+                accessToken: cleanState.accessToken,
+                soldTo: cleanState.soldTo,
+                timestamp: new Date().toISOString()
+              }));
+            } catch (backupError) {
+              console.warn('⚠️ Failed to create auth backup:', backupError);
+            }
+          }
+          
           return cleanState;
         } catch (error) {
-          console.error('🚨 Auth transform in error:', error);
-          return {};
+          console.error('🚨 Auth transform IN error:', error);
+          // Don't return empty - try to preserve critical fields
+          const safeFallback = {};
+          if (inboundState?.accessToken) safeFallback.accessToken = inboundState.accessToken;
+          if (inboundState?.soldTo) safeFallback.soldTo = inboundState.soldTo;
+          if (inboundState?.isAuthenticated) safeFallback.isAuthenticated = inboundState.isAuthenticated;
+          return safeFallback;
         }
       },
       out: (outboundState, key) => {
         try {
           // Ensure rehydrated state is valid
           if (!outboundState || typeof outboundState !== 'object') {
+            console.warn('⚠️ Auth persist OUT: Invalid state type, attempting recovery');
+            
+            // Try to recover from backup
+            if (typeof window !== 'undefined') {
+              try {
+                const backup = localStorage.getItem('ccr-auth-backup');
+                if (backup) {
+                  const parsed = JSON.parse(backup);
+                  console.log('✅ Auth persist OUT: Recovered from backup', {
+                    hasToken: !!parsed.accessToken,
+                    timestamp: parsed.timestamp
+                  });
+                  return parsed;
+                }
+              } catch (recoveryError) {
+                console.error('❌ Auth persist OUT: Backup recovery failed:', recoveryError);
+              }
+            }
+            
             return {};
           }
+          
+          console.log('✅ Auth persist OUT: Successfully rehydrated auth state', {
+            hasToken: !!outboundState.accessToken,
+            hasUser: !!outboundState.user,
+            isAuthenticated: outboundState.isAuthenticated
+          });
+          
           return outboundState;
         } catch (error) {
-          console.error('🚨 Auth transform out error:', error);
+          console.error('🚨 Auth transform OUT error:', error);
+          
+          // Last resort: try backup recovery
+          if (typeof window !== 'undefined') {
+            try {
+              const backup = localStorage.getItem('ccr-auth-backup');
+              if (backup) {
+                const parsed = JSON.parse(backup);
+                console.log('✅ Auth persist OUT: Emergency backup recovery successful');
+                return parsed;
+              }
+            } catch {}
+          }
+          
           return {};
         }
       }
@@ -193,7 +273,32 @@ export const store = configureStore({
         
         // Fix undefined payload for any action
         if ('payload' in action && action.payload === undefined) {
+          console.warn('⚠️ Fixing undefined payload for action:', action.type);
           return next({ ...action, payload: null });
+        }
+        
+        // ============================================
+        // DEVELOPMENT SAFETY: Log critical auth actions
+        // ============================================
+        if (process.env.NODE_ENV === 'development') {
+          if (action.type?.includes('auth/') && action.type !== 'auth/setLoading') {
+            console.log('🔐 Auth Action:', {
+              type: action.type,
+              hasPayload: !!action.payload,
+              payloadType: typeof action.payload,
+              payloadKeys: action.payload && typeof action.payload === 'object' 
+                ? Object.keys(action.payload) 
+                : 'N/A'
+            });
+            
+            // Validate critical auth actions
+            if (action.type === 'auth/setLoginResponse' && action.payload) {
+              const hasToken = action.payload?.tokens?.bearerToken || action.payload?.accessToken;
+              if (!hasToken) {
+                console.warn('⚠️ WARNING: setLoginResponse without accessToken!');
+              }
+            }
+          }
         }
         
         return next(action);
@@ -209,15 +314,143 @@ export const store = configureStore({
 // Create persistor for the store with error handling
 export const persistor = persistStore(store, null, (err) => {
   if (err) {
-    console.error('🚨 Redux Persist: Rehydration error:', err);
-    // Clear corrupted data and reload
+    console.error('🚨 Redux Persist: Rehydration error detected:', err);
+    console.error('📊 Error details:', {
+      message: err.message,
+      stack: err.stack,
+      name: err.name
+    });
+    
+    // DON'T immediately clear - try recovery first!
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('persist:ccr-auth');
-      localStorage.removeItem('persist:ccr-azure-invoice');
-      console.log('🧹 Cleared corrupted persist data, please refresh');
+      let recoveredAuth = false;
+      let recoveredAzure = false;
+      
+      // ============================================
+      // STEP 1: Try to recover auth data
+      // ============================================
+      try {
+        console.log('🔧 Attempting to recover auth data...');
+        
+        // Try backup first
+        const backup = localStorage.getItem('ccr-auth-backup');
+        if (backup) {
+          const parsed = JSON.parse(backup);
+          if (parsed.accessToken) {
+            console.log('✅ Recovered auth from backup:', {
+              hasToken: true,
+              tokenPreview: parsed.accessToken.substring(0, 20) + '...',
+              backupTimestamp: parsed.timestamp
+            });
+            
+            // Manually restore to Redux store
+            const { setAccessToken, setSoldTo, setAuthenticated } = require('./authSlice');
+            store.dispatch(setAccessToken(parsed.accessToken));
+            if (parsed.soldTo) store.dispatch(setSoldTo(parsed.soldTo));
+            store.dispatch(setAuthenticated(true));
+            
+            recoveredAuth = true;
+          }
+        }
+        
+        // If backup failed, try parsing the corrupted main storage
+        if (!recoveredAuth) {
+          const rawAuth = localStorage.getItem('persist:ccr-auth');
+          if (rawAuth) {
+            console.log('🔧 Attempting manual parse of corrupted auth data...');
+            
+            // Try to extract token even from malformed JSON
+            const tokenMatch = rawAuth.match(/"accessToken":"([^"]+)"/);
+            const soldToMatch = rawAuth.match(/"soldTo":"([^"]+)"/);
+            
+            if (tokenMatch && tokenMatch[1]) {
+              console.log('✅ Extracted accessToken from corrupted data');
+              const { setAccessToken, setSoldTo, setAuthenticated } = require('./authSlice');
+              store.dispatch(setAccessToken(tokenMatch[1]));
+              if (soldToMatch && soldToMatch[1]) {
+                store.dispatch(setSoldTo(soldToMatch[1]));
+              }
+              store.dispatch(setAuthenticated(true));
+              recoveredAuth = true;
+            }
+          }
+        }
+      } catch (authRecoveryError) {
+        console.error('❌ Auth recovery failed:', authRecoveryError);
+      }
+      
+      // ============================================
+      // STEP 2: Try to recover Azure Invoice data
+      // ============================================
+      try {
+        const rawAzure = localStorage.getItem('persist:ccr-azure-invoice');
+        if (rawAzure) {
+          console.log('🔧 Attempting to recover Azure Invoice data...');
+          const parsed = JSON.parse(rawAzure);
+          // Validate it's not corrupted
+          if (parsed && typeof parsed === 'object') {
+            console.log('✅ Azure Invoice data appears valid');
+            recoveredAzure = true;
+          }
+        }
+      } catch (azureRecoveryError) {
+        console.error('❌ Azure Invoice recovery failed:', azureRecoveryError);
+      }
+      
+      // ============================================
+      // STEP 3: Clear only if recovery failed
+      // ============================================
+      if (!recoveredAuth) {
+        console.warn('⚠️ Could not recover auth data - clearing persist:ccr-auth');
+        console.warn('⚠️ User will need to log in again');
+        localStorage.removeItem('persist:ccr-auth');
+        localStorage.removeItem('ccr-auth-backup');
+      } else {
+        console.log('🎉 Auth data recovered successfully! User stays logged in.');
+        // Write the recovered data back to storage in clean format
+        try {
+          const currentState = store.getState();
+          if (currentState.auth?.accessToken) {
+            const cleanAuth = {
+              isAuthenticated: currentState.auth.isAuthenticated,
+              accessToken: currentState.auth.accessToken,
+              soldTo: currentState.auth.soldTo,
+              user: currentState.auth.user,
+              loginResponse: currentState.auth.loginResponse
+            };
+            localStorage.setItem('persist:ccr-auth', JSON.stringify(cleanAuth));
+            console.log('✅ Rewrote clean auth data to storage');
+          }
+        } catch (rewriteError) {
+          console.error('❌ Failed to rewrite clean auth data:', rewriteError);
+        }
+      }
+      
+      if (!recoveredAzure) {
+        console.warn('⚠️ Clearing persist:ccr-azure-invoice due to corruption');
+        localStorage.removeItem('persist:ccr-azure-invoice');
+      }
+      
+      // Log final recovery status
+      console.log('📊 Recovery Summary:', {
+        authRecovered: recoveredAuth,
+        azureRecovered: recoveredAzure,
+        action: recoveredAuth ? 'User stays logged in' : 'User must re-login'
+      });
     }
   } else {
-    console.log('✅ Redux Persist: Store rehydration complete');
+    console.log('✅ Redux Persist: Store rehydration complete successfully');
+    
+    // Verify auth data after successful rehydration
+    if (typeof window !== 'undefined') {
+      const state = store.getState();
+      console.log('📊 Auth State After Rehydration:', {
+        isAuthenticated: state.auth?.isAuthenticated,
+        hasAccessToken: !!state.auth?.accessToken,
+        hasUser: !!state.auth?.user,
+        hasSoldTo: !!state.auth?.soldTo
+      });
+    }
   }
 });
 

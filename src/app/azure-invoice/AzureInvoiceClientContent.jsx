@@ -192,8 +192,11 @@ export default function AzureInvoiceClientContent(props) {
       try {
         console.log('🔄 Month changed - making single consolidated API call for:', monthValue);
         console.log('🔑 Access Token available:', !!accessToken);
+        console.log('🔑 Access Token type:', typeof accessToken);
         console.log('🔑 Access Token length:', accessToken?.length || 0);
-        console.log('🔑 Access Token preview:', accessToken?.substring(0, 30) + '...');
+        if (typeof accessToken === 'string' && accessToken.length > 30) {
+          console.log('🔑 Access Token preview:', accessToken.substring(0, 30) + '...');
+        }
       
       // Import the month-specific fetch action (doesn't fetch invoiceMonths)
       const { getAzureInvoiceDataForMonth } = await import('@/lib/azureInvoiceApi');
@@ -812,8 +815,8 @@ export default function AzureInvoiceClientContent(props) {
                     </div>
                   </div>
                 </div>
-                {/* Slide 2: Top Expensive Products */}
-                <div className="azure-invoice-chart-container">
+                {/* Slide 2: Top Expensive Products - Full Width */}
+                <div className="azure-invoice-chart-container full-width">
                   <div className="azure-invoice-chart-box">
                   {isLoadingTrends || topNExpensiveProductsChartTypeLoading ? (
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -837,7 +840,7 @@ export default function AzureInvoiceClientContent(props) {
                       📊 Loading chart data...
                     </div>
                   ) : topNExpensiveProductsChartType === "bar" ? (
-                    <Chart onRefresh={() => {}} className="chart3">
+                    <Chart onRefresh={() => {}} className="chart3 chart-full-width">
                       <BasicGroupedChart
                         key={topNExpensiveProductsChartType}
                         chartType={topNExpensiveProductsChartType}
