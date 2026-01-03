@@ -204,11 +204,50 @@ const Header = () => {
       const logoffUrl = uiProperties?.CCR_LOGOFF_URL;
       
       if (logoffUrl) {
-        console.log('🚪 Redirecting to CCR_LOGOFF_URL:', logoffUrl);
-        // Small delay to ensure cleanup is complete
-        setTimeout(() => {
-          window.location.href = logoffUrl;
-        }, 100);
+        console.log('🚪 Original CCR_LOGOFF_URL:', logoffUrl);
+        
+        // Override redirect_uri for non-production environments
+        try {
+          const logoutUrl = new URL(logoffUrl);
+          const currentOrigin = window.location.origin;
+          const existingRedirectUri = logoutUrl.searchParams.get('redirect_uri');
+          
+          // Override redirect_uri if:
+          // 1. Running on localhost (local development)
+          // 2. Running on Vercel (*.vercel.app domain)
+          // 3. NOT running on ccrdev.insight.com or ccrqa.insight.com (production domains)
+          const isLocalhost = currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1');
+          const isVercel = currentOrigin.includes('vercel.app');
+          const isProduction = currentOrigin.includes('ccrdev.insight.com') || currentOrigin.includes('ccrqa.insight.com');
+          
+          if (isLocalhost || isVercel) {
+            console.log('🔄 Dev/Staging environment - overriding logout redirect_uri to:', currentOrigin);
+            logoutUrl.searchParams.set('redirect_uri', currentOrigin);
+          } else if (isProduction) {
+            console.log('☁️ Production environment - using original logout redirect_uri');
+          } else {
+            console.log('⚠️ Unknown environment - using current origin as logout redirect_uri');
+            logoutUrl.searchParams.set('redirect_uri', currentOrigin);
+          }
+          
+          const finalLogoutUrl = logoutUrl.toString();
+          console.log('🚪 Redirecting to logout URL:', {
+            original: existingRedirectUri,
+            current: currentOrigin,
+            final: logoutUrl.searchParams.get('redirect_uri'),
+            environment: isLocalhost ? 'localhost' : isVercel ? 'vercel' : isProduction ? 'production' : 'unknown'
+          });
+          
+          // Small delay to ensure cleanup is complete
+          setTimeout(() => {
+            window.location.href = finalLogoutUrl;
+          }, 100);
+        } catch (urlError) {
+          console.error('❌ Failed to parse logout URL, using as-is:', urlError);
+          setTimeout(() => {
+            window.location.href = logoffUrl;
+          }, 100);
+        }
       } else {
         console.warn('⚠️ CCR_LOGOFF_URL not available, redirecting to home');
         setTimeout(() => {

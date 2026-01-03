@@ -386,7 +386,7 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
   const effectiveSalesOrg = salesOrg || authState?.salesOrg || '';
   
   // Build auth URL - use AUTH_URL from uiProperties response (CCRUIProps.CCR_AUTHENTICATION_URL)
-  // For local development, override the redirect_uri to point to localhost
+  // Override redirect_uri for local development and Vercel deployments
   const buildAuthURL = () => {
     if (!AUTH_URL) {
       console.error('❌ AUTH_URL is missing from UI properties!');
@@ -397,24 +397,34 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
       // Parse the AUTH_URL from uiProperties (CCRUIProps.CCR_AUTHENTICATION_URL)
       const url = new URL(AUTH_URL);
       
-      // For local development, replace redirect_uri with current origin
-      // This ensures PingFederate redirects back to localhost after authentication
+      // Override redirect_uri to current origin for non-production environments
       if (typeof window !== 'undefined') {
         const currentOrigin = window.location.origin;
         const existingRedirectUri = url.searchParams.get('redirect_uri');
         
-        // Only override if we're running locally (localhost or 127.0.0.1)
-        if (currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')) {
-          console.log('🏠 Local development detected - overriding redirect_uri');
+        // Override redirect_uri if:
+        // 1. Running on localhost (local development)
+        // 2. Running on Vercel (*.vercel.app domain)
+        // 3. NOT running on ccrdev.insight.com or ccrqa.insight.com (production domains)
+        const isLocalhost = currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1');
+        const isVercel = currentOrigin.includes('vercel.app');
+        const isProduction = currentOrigin.includes('ccrdev.insight.com') || currentOrigin.includes('ccrqa.insight.com');
+        
+        if (isLocalhost || isVercel) {
+          console.log('🔄 Dev/Staging environment detected - overriding redirect_uri to:', currentOrigin);
           url.searchParams.set('redirect_uri', currentOrigin);
+        } else if (isProduction) {
+          console.log('☁️ Production environment - using original redirect_uri');
         } else {
-          console.log('☁️ Production/staging environment - using original redirect_uri');
+          console.log('⚠️ Unknown environment - using current origin as redirect_uri');
+          url.searchParams.set('redirect_uri', currentOrigin);
         }
         
         console.log('🔗 Redirect URIs:', { 
           original: existingRedirectUri,
           current: currentOrigin,
-          final: url.searchParams.get('redirect_uri')
+          final: url.searchParams.get('redirect_uri'),
+          environment: isLocalhost ? 'localhost' : isVercel ? 'vercel' : isProduction ? 'production' : 'unknown'
         });
       }
       
