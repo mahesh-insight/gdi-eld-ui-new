@@ -1,15 +1,18 @@
-// Get the base URL dynamically based on environment
-function getBaseUrl() {
-  // In browser, use current origin
-  if (typeof window !== 'undefined') {
-    return window.location.origin;
-  }
+// Get the API base URL for server-side calls
+function getApiBaseUrl() {
+  // Always use the API base URL from environment variables
+  // This should NEVER use window.location.origin as we're calling external APIs
+  const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 
+                 process.env.API_BASE_URL || 
+                 process.env.NEXT_PUBLIC_CCR_API_BASE_URL ||
+                 process.env.CCR_API_BASE_URL ||
+                 'https://api-ccrdev.insight.com';
   
-  // In server, use environment variable or default
-  return process.env.NEXT_PUBLIC_API_BASE_URL || process.env.API_BASE_URL || 'http://localhost:80';
+  console.log('🔍 API Base URL for server config:', apiUrl);
+  return apiUrl;
 }
 
-const getUiPropertiesEndpoint = () => `${getBaseUrl()}/ccr-authentication-service/uiproperties`;
+const getUiPropertiesEndpoint = () => `${getApiBaseUrl()}/ccr-authentication-service/uiproperties`;
 
 let cachedUiProps = null;
 
