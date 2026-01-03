@@ -35,7 +35,11 @@ export async function getUiProperties() {
         console.log(`🔍 Fetching UI properties from: ${endpoint}`);
         
         const response = await fetch(endpoint, { 
-            cache: 'no-store'
+            cache: 'no-store',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; Vercel/Next.js)',
+                'Accept': 'application/json'
+            }
         });
         
         console.log(`📡 UI Properties Response Status: ${response.status} ${response.statusText}`);
@@ -63,8 +67,16 @@ export async function getUiProperties() {
         console.error("❌ Error fetching ui properties:", {
             message: error.message,
             name: error.name,
+            code: error.code,
+            cause: error.cause,
             stack: error.stack
         });
+        
+        // Log the full error cause chain
+        if (error.cause) {
+            console.error("❌ Error cause:", error.cause);
+        }
+        
         return null;
     }
 }
