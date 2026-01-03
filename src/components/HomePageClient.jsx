@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSelector, useDispatch } from 'react-redux';
 import { 
@@ -8,10 +8,14 @@ import {
 } from '../store/authSlice';
 import { setProperties } from '../store/uiSlice';
 
-export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, salesOrg }) {
+export default function HomePageClient({ authCode, soldTo, salesOrg }) {
+  const [uiProperties, setUiProperties] = useState(null);
+  const [uiPropertiesError, setUiPropertiesError] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingMessage, setProcessingMessage] = useState('');
+  const uiPropertiesFetchingRef = useRef(false);
+  
   console.log('🔍 DEBUG - HomePageClient props:', { 
-    AUTH_URL: !!AUTH_URL, 
-    CLIENT_ID, 
     authCode, 
     soldTo, 
     salesOrg 
@@ -21,53 +25,30 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
   const dispatch = useDispatch();
   const authState = useSelector(state => state.auth);
   const { isAuthenticated, user, accessToken, _persist } = authState;
-  const uiProperties = useSelector(state => state.ui.properties);
+  const storedUiProperties = useSelector(state => state.ui.properties);
   const uiCacheValid = useSelector(state => state.ui.loading === false);
+  
+  // Use fetched UI properties or fall back to stored ones
+  const activeUiProperties = uiProperties || storedUiProperties;
   
   // Check if Redux store has been rehydrated
   const isRehydrated = _persist?.rehydrated !== false;
   
   // Initialize state variables before using them in logging
   const reduxSoldTo = authState?.soldTo;
-  const reduxSalesOrg = authState?.salesOrg;
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [processingMessage, setProcessingMessage] = useState('');
   
   // Only log detailed debug info when there's an issue
   const shouldDebugLog = !isAuthenticated && (authCode || isProcessing);
   
-  if (shouldDebugLog) {
-    console.log('🔍 DEBUG - Current component state:', {
-      authCode: !!authCode,
-      isAuthenticated,
-      isRehydrated,
-      isProcessing,
-      user: !!user,
-      accessToken: !!accessToken
-    });
-  }
-
-  // Only log Redux state when debugging
-  if (shouldDebugLog) {
-    console.log('🔍 DEBUG - Redux auth state:', { 
-      isAuthenticated, 
-      user: !!user, 
-      accessToken: !!accessToken, 
-      reduxSoldTo, 
-      reduxSalesOrg 
-    });
-  }
-
-  const processAuthCode = async (code, soldToParam, salesOrgParam) => {
+  // IMPORTANT: Define processAuthCode BEFORE any useEffect hooks that reference it
+  const processAuthCode = useCallback(async (code, soldToParam, salesOrgParam) => {
     const hasProcessedKey = `processed_${code}`;
     
-    // Check if already processed - use both sessionStorage and state
     if (sessionStorage.getItem(hasProcessedKey) || isProcessing) {
       console.log('⚠️ Auth code already processed or currently processing, skipping');
       return;
     }
     
-    // Clear any existing processing flags for different codes
     Object.keys(sessionStorage).forEach(key => {
       if (key.startsWith('processed_') && key !== hasProcessedKey) {
         sessionStorage.removeItem(key);
@@ -78,203 +59,103 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
     setIsProcessing(true);
     setProcessingMessage('Processing authentication...');
     
-    console.log('🚀 Starting auth code processing:', { code, soldToParam, salesOrgParam });
-
-    console.log('🔍 DEBUG - processAuthCode called with:', { 
-      code, 
-      soldToParam, 
-      salesOrgParam, 
-      reduxSoldTo, 
-      reduxSalesOrg 
-    });
-
-    // Get soldTo and salesOrg from URL params or Redux store (for token expiry scenarios)  
-    const finalSoldTo = soldToParam || reduxSoldTo || '';
-    const finalSalesOrg = salesOrgParam || reduxSalesOrg || '';
-
-    console.log('🔍 DEBUG - Final parameters:', { finalSoldTo, finalSalesOrg });
-
-    // Allow login to proceed even without soldTo/salesOrg for initial login
-    console.log('ℹ️ Proceeding with authentication. Parameters:', { finalSoldTo, finalSalesOrg });
+    const finalSoldTo = soldToParam || authState?.soldTo || '';
+    const finalSalesOrg = salesOrgParam || authState?.salesOrg || '';
 
     try {
       const { default: request } = await import('../lib/api/request');
-      
-      // Real authentication only - no mock data
-      let response;
-      try {
-        console.log('🔑 Making authentication API call with:', {
-          service: 'loginAuthCode',
-          data: code,
-          params: { soldto: finalSoldTo, salesorg: finalSalesOrg }
-        });
-        
-        response = await request.post('loginAuthCode', {
-          data: code,
-          params: { 
-            soldto: finalSoldTo, 
-            salesorg: finalSalesOrg 
-          }
-        });
-        
-        console.log('✅ Authentication API response received:', {
-          hasResponse: !!response,
-          hasUserProfile: !!response?.userProfile,
-          hasTokens: !!response?.tokens,
-          hasBearerToken: !!response?.tokens?.bearerToken,
-          responseKeys: response ? Object.keys(response) : 'no response'
-        });
-        
-      } catch (authError) {
-        console.error('❌ Authentication API failed:', {
-          error: authError.message,
-          status: authError?.response?.status,
-          statusText: authError?.response?.statusText,
-          data: authError?.response?.data,
-          config: {
-            url: authError?.config?.baseURL,
-            method: authError?.config?.method,
-            headers: authError?.config?.headers
-          }
-        });
-        setProcessingMessage(`Authentication failed: ${authError?.response?.status === 403 ? 'Invalid credentials or missing parameters' : authError.message || 'Unknown error'}`);
-        sessionStorage.removeItem(hasProcessedKey);
-        setIsProcessing(false);
-        return;
-      }
-      
-      console.log('🔍 Validating auth response structure:', {
-        hasResponse: !!response,
-        hasUserProfile: !!response?.userProfile,
-        hasDefaultContext: !!response?.userProfile?.defaultContext?.[0],
-        hasTokens: !!response?.tokens,
-        hasBearerToken: !!response?.tokens?.bearerToken,
-        fullResponseStructure: response ? {
-          userProfile: !!response.userProfile,
-          tokens: !!response.tokens,
-          otherKeys: Object.keys(response).filter(k => k !== 'userProfile' && k !== 'tokens')
-        } : 'no response'
+      const response = await request.post('loginAuthCode', {
+        data: code,
+        params: { soldto: finalSoldTo, salesorg: finalSalesOrg }
       });
-
+      
       if (response?.userProfile?.defaultContext?.[0] && response?.tokens?.bearerToken) {
-        console.log('✅ Auth response validation passed, processing tokens...');
-        // Clear the processed flag since auth was successful
         sessionStorage.removeItem(hasProcessedKey);
         
         const bearerToken = response.tokens.bearerToken;
-        const userProfile = response.userProfile || {};
-        const defaultContext = userProfile.defaultContext?.[0] || {};
-        const soldToId = defaultContext?.soldToId;
-        
-        console.log('🔍 DEBUG - Auth response details:', {
-          hasBearerToken: !!bearerToken,
-          hasUserProfile: !!userProfile,
-          hasDefaultContext: !!defaultContext,
-          soldToId: soldToId,
-          defaultContextData: defaultContext,
-          userProfileKeys: userProfile ? Object.keys(userProfile) : 'no userProfile'
-        });
+        const soldToId = response.userProfile.defaultContext[0].soldToId;
         
         setProcessingMessage('Preparing to redirect...');
         
-        // Set HTTP cookies for server-side access (so SSR can detect authentication)
-        // Note: Cookies are now secondary to Redux persist storage
-        // They're kept for SSR compatibility but auth state primarily relies on Redux persist
-        console.log('🍪 Setting authentication cookies for server-side SSR compatibility...');
-        
         try {
-          // Set access token cookie with longer expiration (7 days to match typical session length)
           document.cookie = `access_token=${bearerToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
-          console.log('✅ Access token cookie set (7 days)');
-          
-          // Set user context cookie - STORE COMPLETE LOGIN RESPONSE for SSR compatibility
-          // This ensures soldToName "ET Test Customer US" is available everywhere
           document.cookie = `user_context=${encodeURIComponent(JSON.stringify(response))}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
-          
-          console.log('✅ Authentication cookies set successfully (7 days):', {
-            accessTokenLength: bearerToken?.length,
-            completeLoginResponse: 'Stored complete login response with soldToName',
-            soldToName: response?.userProfile?.defaultContext?.[0]?.soldToName
-          });
-          console.log('ℹ️ Primary auth storage: Redux persist (localStorage) - persists until logout');
-          console.log('ℹ️ Secondary auth storage: Cookies (7 days) - for SSR compatibility');
         } catch (cookieError) {
           console.error('❌ Failed to set cookies:', cookieError);
-          console.log('ℹ️ Continuing with Redux persist storage only');
         }
 
-        // Dispatch auth data to Redux store (without mpsaStatus context data)
-        // mpsaStatus will be called from the dashboard page itself
-        const safeResponse = response || {};
-        
-        // Ensure soldToId is included in user object for Header component
         const authPayload = {
           isAuthenticated: true,
           user: {
             soldToId: soldToId || null,
-            persona: safeResponse.persona || null,
-            firstName: safeResponse.firstName || null,
-            lastName: safeResponse.lastName || null,
-            username: safeResponse.username || safeResponse.userProfile?.username || null
+            persona: response.persona || null,
+            firstName: response.firstName || null,
+            lastName: response.lastName || null,
+            username: response.username || response.userProfile?.username || null
           },
-          loginResponse: safeResponse,
+          loginResponse: response,
           accessToken: bearerToken || null,
-          contextData: null, // Will be fetched in dashboard page
+          contextData: null,
           soldTo: finalSoldTo || soldToId || null,
           salesOrg: finalSalesOrg || null
         };
         
-        console.log('🔄 Dispatching auth data to Redux store:', {
-          isAuthenticated: authPayload.isAuthenticated,
-          hasUser: !!authPayload.user,
-          userSoldToId: authPayload.user?.soldToId,
-          userName: authPayload.user?.username,
-          hasAccessToken: !!authPayload.accessToken,
-          accessTokenLength: authPayload.accessToken?.length,
-          hasLoginResponse: !!authPayload.loginResponse,
-          loginResponseKeys: authPayload.loginResponse ? Object.keys(authPayload.loginResponse).length : 0,
-          contextData: 'Will be fetched in dashboard'
-        });
-        
-        try {
-          dispatch(initializeAuth(authPayload));
-          console.log('✅ Redux auth state updated successfully - data will persist in localStorage via redux-persist');
-        } catch (dispatchError) {
-          console.error('❌ Failed to dispatch auth data:', dispatchError);
-        }
-        
-        setProcessingMessage('Authentication successful! Redirecting to dashboard...');
-        console.log('🚀 Redirecting to dashboard immediately - mpsaStatus will be called from dashboard page');
-        console.log('🔄 Executing redirect to dashboard...');
+        dispatch(initializeAuth(authPayload));
+        setProcessingMessage('Authentication successful! Redirecting...');
         router.replace('/dashboard');
       } else {
-        console.error('❌ Auth response validation failed:', {
-          hasResponse: !!response,
-          responseStructure: response ? {
-            hasUserProfile: !!response.userProfile,
-            hasDefaultContext: !!response?.userProfile?.defaultContext?.[0],
-            hasTokens: !!response.tokens,
-            hasBearerToken: !!response?.tokens?.bearerToken,
-            userProfileKeys: response.userProfile ? Object.keys(response.userProfile) : 'no userProfile',
-            tokensKeys: response.tokens ? Object.keys(response.tokens) : 'no tokens'
-          } : 'no response'
-        });
-        setProcessingMessage('Authentication failed: Invalid response structure. Please try again.');
+        console.error('❌ Auth response validation failed');
+        setProcessingMessage('Authentication failed. Please try again.');
         sessionStorage.removeItem(hasProcessedKey);
         setIsProcessing(false);
       }
     } catch (error) {
       console.error('❌ Authentication failed:', error);
-      setProcessingMessage(`Authentication failed: ${error?.response?.status === 403 ? 'Invalid credentials or missing parameters' : error.message || 'Unknown error'}`);
+      setProcessingMessage(`Authentication failed: ${error.message || 'Unknown error'}`);
       sessionStorage.removeItem(hasProcessedKey);
       setIsProcessing(false);
-      
-      // Add a retry button after 3 seconds for failed authentication
-      setTimeout(() => {
-        setProcessingMessage('Authentication failed. Click Login to retry.');
-      }, 3000);
     }
-  };
+  }, [isProcessing, authState, dispatch, router]);
+
+  // Fetch UI properties on mount (client-side only)
+  useEffect(() => {
+    // Skip if already fetched or currently fetching
+    if (activeUiProperties || uiPropertiesError || uiPropertiesFetchingRef.current) {
+      console.log('⏭️ Skipping UI properties fetch - already loaded or in progress');
+      return;
+    }
+    
+    // Mark as fetching - this persists across StrictMode remounts
+    uiPropertiesFetchingRef.current = true;
+    console.log('🚀 Starting UI properties fetch');
+    
+    async function fetchUiProperties() {
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_UI_PROPERTIES_BASE_URL || 'https://ccrdev.insight.com';
+        const endpoint = `${baseUrl}/ccr-authentication-service/uiproperties`;
+        
+        console.log('🔍 Fetching UI properties from:', { baseUrl, endpoint });
+        
+        const response = await fetch(endpoint);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        const props = data?.CCRUIProps || {};
+        
+        console.log('✅ UI properties loaded successfully');
+        setUiProperties(props);
+        dispatch(setProperties(props));
+      } catch (error) {
+        console.error('❌ Failed to fetch UI properties:', error);
+        setUiPropertiesError(error.message);
+      }
+    }
+    
+    fetchUiProperties();
+    // No cleanup - ref should persist to prevent duplicate fetches across remounts
+  }, [dispatch, activeUiProperties, uiPropertiesError]);
 
   // Handle redirect when already authenticated (STRICT validation)
   useEffect(() => {
@@ -344,7 +225,7 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
         }
       }
     }
-  }, [isRehydrated, isAuthenticated, user, accessToken, authCode, router, authState, dispatch]);
+  }, [isRehydrated, isAuthenticated, user, accessToken, authCode, router, authState, dispatch, isProcessing]);
 
   // Handle auth code processing (separate to prevent double calls)
   useEffect(() => {
@@ -413,7 +294,7 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
         allConditions: !!(authCode && !isAuthenticated && isRehydrated && typeof window !== 'undefined' && !isProcessing)
       });
     }
-  }, [authCode, soldTo, salesOrg, isRehydrated, isProcessing]); // Added isProcessing to dependencies
+  }, [authCode, soldTo, salesOrg, isRehydrated, isProcessing, isAuthenticated, user, accessToken, _persist]);
 
   // Fetch UI properties when authenticated (once per session)
   useEffect(() => {
@@ -421,19 +302,70 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
       console.log('🎨 Fetching UI properties for authenticated user...');
       dispatch(setProperties({ theme: 'light', navigation: 'standard' }));
     }
-  }, [isAuthenticated, dispatch]); // Simplified dependencies to prevent excessive calls
+  }, [isAuthenticated, dispatch, uiProperties]);
+  
+  if (shouldDebugLog) {
+    console.log('🔍 DEBUG - Current component state:', {
+      authCode: !!authCode,
+      isAuthenticated,
+      isRehydrated,
+      isProcessing,
+      user: !!user,
+      accessToken: !!accessToken
+    });
+  }
 
+  // Show loading state while fetching UI properties
+  if (!activeUiProperties && !uiPropertiesError) {
+    return (
+      <div style={{ padding: '50px', textAlign: 'center' }}>
+        Loading configuration...
+      </div>
+    );
+  }
+  
+  // Show error if UI properties failed to load
+  if (uiPropertiesError) {
+    return (
+      <div style={{ padding: '50px', textAlign: 'center', color: 'red' }}>
+        Error: Failed to load configuration. Please ensure you are connected to the corporate network/VPN.
+        <br />
+        <small>{uiPropertiesError}</small>
+      </div>
+    );
+  }
+  
+  const AUTH_URL = activeUiProperties?.CCR_AUTHENTICATION_URL;
+  const CLIENT_ID = 'process.env.NEXT_PUBLIC_CLIENT_ID';
+  
+  if (!AUTH_URL) {
+    return (
+      <div style={{ padding: '50px', textAlign: 'center', color: 'red' }}>
+        Error: CCR_AUTHENTICATION_URL is missing from configuration.
+      </div>
+    );
+  }
 
+  // Only log Redux state when debugging
+  if (shouldDebugLog) {
+    console.log('🔍 DEBUG - Redux auth state:', { 
+      isAuthenticated, 
+      user: !!user, 
+      accessToken: !!accessToken, 
+      reduxSoldTo: authState?.soldTo, 
+      reduxSalesOrg: authState?.salesOrg 
+    });
+  }
 
   // Get soldTo/salesOrg for login URL (from Redux store if not in URL - token expiry scenario)
-  const effectiveSoldTo = soldTo || reduxSoldTo || '';
-  const effectiveSalesOrg = salesOrg || reduxSalesOrg || '';
+  const effectiveSoldTo = soldTo || authState?.soldTo || '';
+  const effectiveSalesOrg = salesOrg || authState?.salesOrg || '';
   
   // Build auth URL - use AUTH_URL from uiProperties response (CCRUIProps.CCR_AUTHENTICATION_URL)
   // For local development, override the redirect_uri to point to localhost
   const buildAuthURL = () => {
     if (!AUTH_URL) {
-      console.error('❌ AUTH_URL is missing from uiProperties response!');
+      console.error('❌ AUTH_URL is missing from UI properties!');
       return '#';
     }
     

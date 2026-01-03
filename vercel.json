@@ -9,6 +9,7 @@
     "NEXT_PUBLIC_CCR_API_BASE_URL": "https://api-ccrdev.insight.com",
     "CCR_API_BASE_URL": "https://api-ccrdev.insight.com",
     "API_BASE_URL": "https://api-ccrdev.insight.com",
+    "NEXT_PUBLIC_UI_PROPERTIES_BASE_URL": "https://ccrdev.insight.com",
     "BACKEND_URL": "https://api-ccrdev.insight.com",
     "REDIRECT_URL": "https://projectqa.insight.com",
     "ANALYTICS_SCRIPT": "https://assets.adobedtm.com/8875b4697ed8/dd1907352cb7/launch-7fde578aa51b-development.js"
