@@ -11,6 +11,7 @@ import { setProperties } from '../store/uiSlice';
 export default function HomePageClient({ authCode, soldTo, salesOrg }) {
   const [uiProperties, setUiProperties] = useState(null);
   const [uiPropertiesError, setUiPropertiesError] = useState(null);
+  const [uiPropertiesLoading, setUiPropertiesLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
   const uiPropertiesFetchingRef = useRef(false);
@@ -30,6 +31,7 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
   
   // Use fetched UI properties or fall back to stored ones
   const activeUiProperties = uiProperties || storedUiProperties;
+  const AUTH_URL = activeUiProperties?.CCR_AUTHENTICATION_URL;
   
   // Check if Redux store has been rehydrated
   const isRehydrated = _persist?.rehydrated !== false;
@@ -119,14 +121,22 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
 
   // Fetch UI properties on mount (client-side only)
   useEffect(() => {
-    // Skip if already fetched or currently fetching
-    if (activeUiProperties || uiPropertiesError || uiPropertiesFetchingRef.current) {
-      console.log('⏭️ Skipping UI properties fetch - already loaded or in progress');
+    // If we have properties from Redux, we're done loading
+    if (activeUiProperties) {
+      console.log('⏭️ Using cached UI properties from Redux');
+      setUiPropertiesLoading(false);
+      return;
+    }
+    
+    // Skip if already fetching or had an error
+    if (uiPropertiesError || uiPropertiesFetchingRef.current) {
+      console.log('⏭️ Skipping UI properties fetch - already in progress or error occurred');
       return;
     }
     
     // Mark as fetching - this persists across StrictMode remounts
     uiPropertiesFetchingRef.current = true;
+    setUiPropertiesLoading(true);
     console.log('🚀 Starting UI properties fetch');
     
     async function fetchUiProperties() {
@@ -147,9 +157,11 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
         console.log('✅ UI properties loaded successfully');
         setUiProperties(props);
         dispatch(setProperties(props));
+        setUiPropertiesLoading(false);
       } catch (error) {
         console.error('❌ Failed to fetch UI properties:', error);
         setUiPropertiesError(error.message);
+        setUiPropertiesLoading(false);
       }
     }
     
@@ -315,16 +327,37 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
     });
   }
 
-  // Show loading state while fetching UI properties
-  if (!activeUiProperties && !uiPropertiesError) {
+  // Show loading state until we have both properties AND AUTH_URL
+  if (uiPropertiesLoading || !activeUiProperties || !AUTH_URL) {
     return (
-      <div style={{ padding: '50px', textAlign: 'center' }}>
-        Loading configuration...
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column',
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        minHeight: '100vh',
+        gap: '20px'
+      }}>
+        <div style={{ 
+          border: '4px solid #f3f3f3',
+          borderTop: '4px solid #3498db',
+          borderRadius: '50%',
+          width: '50px',
+          height: '50px',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <div style={{ color: '#666', fontSize: '16px' }}>Loading configuration...</div>
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     );
   }
   
-  // Show error if UI properties failed to load
+  // Show error if UI properties failed to load (only after loading completes)
   if (uiPropertiesError) {
     return (
       <div style={{ padding: '50px', textAlign: 'center', color: 'red' }}>
@@ -335,16 +368,7 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
     );
   }
   
-  const AUTH_URL = activeUiProperties?.CCR_AUTHENTICATION_URL;
   const CLIENT_ID = 'process.env.NEXT_PUBLIC_CLIENT_ID';
-  
-  if (!AUTH_URL) {
-    return (
-      <div style={{ padding: '50px', textAlign: 'center', color: 'red' }}>
-        Error: CCR_AUTHENTICATION_URL is missing from configuration.
-      </div>
-    );
-  }
 
   // Only log Redux state when debugging
   if (shouldDebugLog) {
