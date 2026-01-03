@@ -1,29 +1,27 @@
-// Get the API base URL for server-side calls
-function getApiBaseUrl() {
-  // Always use the API base URL from environment variables
-  // This should NEVER use window.location.origin as we're calling external APIs
+// Get the UI Properties endpoint - uses different domain than other APIs
+function getUiPropertiesEndpoint() {
+  // UI Properties has its own domain, different from the main API
+  // Local: http://localhost:80/ccr-authentication-service/uiproperties
+  // Dev/Prod: https://ccrdev.insight.com/ccr-authentication-service/uiproperties
   
-  // Log all environment variables for debugging
-  console.log('🔍 Environment variables check:', {
-    NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
-    API_BASE_URL: process.env.API_BASE_URL,
-    NEXT_PUBLIC_CCR_API_BASE_URL: process.env.NEXT_PUBLIC_CCR_API_BASE_URL,
-    CCR_API_BASE_URL: process.env.CCR_API_BASE_URL,
+  const isLocal = process.env.NODE_ENV === 'development' && 
+                  !process.env.VERCEL;
+  
+  const baseUrl = isLocal 
+    ? 'http://localhost:80'
+    : 'https://ccrdev.insight.com';
+  
+  const endpoint = `${baseUrl}/ccr-authentication-service/uiproperties`;
+  
+  console.log('🔍 UI Properties endpoint:', {
+    isLocal,
     NODE_ENV: process.env.NODE_ENV,
-    VERCEL: process.env.VERCEL
+    VERCEL: process.env.VERCEL,
+    endpoint
   });
   
-  const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 
-                 process.env.API_BASE_URL || 
-                 process.env.NEXT_PUBLIC_CCR_API_BASE_URL ||
-                 process.env.CCR_API_BASE_URL ||
-                 'https://api-ccrdev.insight.com';
-  
-  console.log('🎯 Final API Base URL for server config:', apiUrl);
-  return apiUrl;
+  return endpoint;
 }
-
-const getUiPropertiesEndpoint = () => `${getApiBaseUrl()}/ccr-authentication-service/uiproperties`;
 
 let cachedUiProps = null;
 
