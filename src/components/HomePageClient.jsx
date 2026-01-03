@@ -429,15 +429,55 @@ export default function HomePageClient({ AUTH_URL, CLIENT_ID, authCode, soldTo, 
   const effectiveSoldTo = soldTo || reduxSoldTo || '';
   const effectiveSalesOrg = salesOrg || reduxSalesOrg || '';
   
-  // Build auth URL with soldTo/salesOrg params if available
+  // Build auth URL - use AUTH_URL from uiProperties response (CCRUIProps.CCR_AUTHENTICATION_URL)
+  // For local development, override the redirect_uri to point to localhost
   const buildAuthURL = () => {
-    if (!effectiveSoldTo || !effectiveSalesOrg) {
-      return AUTH_URL; // Basic auth URL if no params available
+    if (!AUTH_URL) {
+      console.error('❌ AUTH_URL is missing from uiProperties response!');
+      return '#';
     }
-    const url = new URL(AUTH_URL);
-    url.searchParams.set('soldto', effectiveSoldTo);
-    url.searchParams.set('salesorg', effectiveSalesOrg);
-    return url.toString();
+    
+    try {
+      // Parse the AUTH_URL from uiProperties (CCRUIProps.CCR_AUTHENTICATION_URL)
+      const url = new URL(AUTH_URL);
+      
+      // For local development, replace redirect_uri with current origin
+      // This ensures PingFederate redirects back to localhost after authentication
+      if (typeof window !== 'undefined') {
+        const currentOrigin = window.location.origin;
+        const existingRedirectUri = url.searchParams.get('redirect_uri');
+        
+        // Only override if we're running locally (localhost or 127.0.0.1)
+        if (currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')) {
+          console.log('🏠 Local development detected - overriding redirect_uri');
+          url.searchParams.set('redirect_uri', currentOrigin);
+        } else {
+          console.log('☁️ Production/staging environment - using original redirect_uri');
+        }
+        
+        console.log('🔗 Redirect URIs:', { 
+          original: existingRedirectUri,
+          current: currentOrigin,
+          final: url.searchParams.get('redirect_uri')
+        });
+      }
+      
+      // Add soldTo/salesOrg parameters if available
+      if (effectiveSoldTo && effectiveSalesOrg) {
+        url.searchParams.set('soldto', effectiveSoldTo);
+        url.searchParams.set('salesorg', effectiveSalesOrg);
+      }
+      
+      const finalUrl = url.toString();
+      console.log('🔗 Built auth URL from uiProperties:', { 
+        sourceAuthUrl: AUTH_URL,
+        finalUrl 
+      });
+      return finalUrl;
+    } catch (error) {
+      console.error('❌ Error building auth URL:', error);
+      return AUTH_URL;
+    }
   };
 
   // Don't render anything until Redux is rehydrated to prevent flash

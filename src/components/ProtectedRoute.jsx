@@ -109,7 +109,7 @@ export default function ProtectedRoute({ children }) {
 
   // Only render content if properly authenticated OR still loading
   // Prevents showing "authenticated" content when user is not actually authenticated
-  if (!mounted || isLoading) {
+  if (!mounted || isLoading || authState?._persist?.rehydrated === false) {
     return (
       <div style={{ 
         padding: '40px', 

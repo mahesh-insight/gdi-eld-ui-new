@@ -7,6 +7,7 @@ import ReduxProvider from '@/components/ReduxProvider';
 import AuthContextInitializer from '@/components/AuthContextInitializer';
 import CookieSync from '@/components/CookieSync';
 import { usePathname } from 'next/navigation';
+import { KendoIntlProvider } from '@/components/KendoIntlProvider';
 
 // Pages where header should NOT show (pre-login / error pages)
 const NO_HEADER_PATHS = ['/', '/Unauthorised', '/SignIn'];
@@ -42,15 +43,17 @@ export default function ClientLayout({ children }) {
 
   return (
     <ReduxProvider>
-      <AuthContextInitializer>
-        <CookieSync />
-        <div className="App">
-          {showHeader && <Header />}
+      <KendoIntlProvider>
+        <AuthContextInitializer>
+          <CookieSync />
+          <div className="App">
+            {showHeader && <Header />}
 
-          {/* All your pages will render here */}
-          {children}
-        </div>
-      </AuthContextInitializer>
+            {/* All your pages will render here */}
+            {children}
+          </div>
+        </AuthContextInitializer>
+      </KendoIntlProvider>
     </ReduxProvider>
   );
 }

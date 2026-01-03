@@ -1,0 +1,369 @@
+.dashboard-widgets-container {
+  padding: 24px;
+  margin: 0 auto;
+  background: white;
+  min-height: calc(100vh - 80px);
+}
+
+.widgets-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 0;
+}
+
+@media (max-width: 1400px) {
+  .widgets-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .widgets-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dashboard-widget {
+  background: white;
+  border-radius: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+  border: 1px solid #e0e0e0;
+}
+
+.dashboard-widget:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.widget-header {
+  background: #6c3fb5;
+  color: white;
+  padding: 16px 20px;
+  border-bottom: none;
+}
+
+.widget-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+.widget-body {
+  padding: 20px;
+  background: white;
+}
+
+.widget-metric {
+
+}
+
+.widget-metric:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.widget-metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.metric-label {
+  font-size: 13px;
+  color: #666;
+  font-weight: 400;
+}
+
+.metric-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #d32f2f;
+  letter-spacing: -0.3px;
+}
+
+.metric-date {
+  font-size: 11px;
+  color: #999;
+  font-weight: 400;
+  margin-top: 2px;
+}
+
+.widget-change {
+  display: flex;
+  align-items: center;
+  margin-top: 12px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.change-indicator {
+  font-size: 14px;
+  margin-right: 6px;
+  font-weight: 600;
+}
+
+.change-indicator.up {
+  color: #10a37f;
+}
+
+.change-indicator.down {
+  color: #f23a3a;
+}
+
+.change-text {
+  font-weight: 500;
+  color: #333;
+}
+
+.change-label {
+  color: #777;
+  margin-left: 4px;
+  font-weight: 400;
+}
+
+.widget-alerts {
+  margin: 16px 0;
+  padding: 0 4px;
+}
+
+.alert {
+  display: flex;
+  align-items: flex-start;
+  padding: 5px 0px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.alert-icon {
+  margin-right: 8px;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.alert-message {
+  color: inherit;
+  line-height: 1.6;
+  font-size: 12px;
+}
+
+.widget-counts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.count-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 14px 10px;
+  background: #fafafa;
+  border-radius: 4px;
+  border: 1px solid #e8e8e8;
+}
+
+.count-label {
+  font-size: 11px;
+  color: #666;
+  margin-bottom: 8px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.count-value {
+  font-size: 22px;
+  font-weight: 600;
+  color: #6c3fb5;
+  letter-spacing: -0.5px;
+}
+
+.widget-chart {
+  padding: 20px 24px;
+  background: white;
+  border-top: 1px solid #e8e8e8;
+}
+
+.widget-chart h4 {
+  margin: 0 0 16px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  text-align: left;
+}
+
+/* Override ChartTitleAndButtons styling for dashboard */
+.widget-chart > div[style] {
+  margin-bottom: 16px !important;
+}
+
+.widget-chart > div[style] > div:first-child p {
+  text-align: left !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #333 !important;
+}
+
+/* Ensure chart takes full width */
+.widget-chart .k-chart,
+.widget-chart .k-chart > div,
+.widget-chart .k-chart svg {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Ensure chart container doesn't overflow */
+.widget-chart .k-chart {
+  overflow: visible !important;
+}
+
+.widget-chart .k-chart svg {
+  overflow: visible !important;
+}
+
+.chart-placeholder {
+  height: 200px;
+  background: #fafafa;
+  border: 2px dashed #d0d0d0;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 13px;
+}
+
+.widget-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.widget-chart-controls {
+  display: flex;
+  gap: 4px;
+  background: #f0f0f0;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.chart-control-btn {
+  background: transparent;
+  border: none;
+  padding: 6px 10px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+  color: #666;
+}
+
+.chart-control-btn:hover {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.chart-control-btn.active {
+  background: white;
+  color: #333;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.no-widgets {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 4px;
+  margin: 20px;
+  border: 1px solid #e0e0e0;
+}
+
+.no-widgets h2 {
+  color: #333;
+  margin-bottom: 12px;
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.no-widgets p {
+  color: #666;
+  font-size: 14px;
+  margin: 0;
+}
+
+/* SSR Mode Banner */
+.ssr-mode-banner {
+  background: #fffbeb;
+  border: 1px solid #fbbf24;
+  border-radius: 4px;
+  padding: 12px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #92400e;
+}
+
+.ssr-mode-banner strong {
+  font-weight: 600;
+}
+
+/* Loading and Error States */
+.dashboard-loading,
+.dashboard-error {
+  margin: 40px auto;
+  padding: 40px;
+  max-width: 600px;
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  border: 1px solid #e0e0e0;
+}
+
+.dashboard-loading h3,
+.dashboard-error h3 {
+  margin: 0 0 12px 0;
+  font-size: 20px;
+  font-weight: 500;
+  color: #333;
+}
+
+.dashboard-loading p,
+.dashboard-error p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.dashboard-error {
+  border-color: #ef4444;
+}
+
+.dashboard-error h3 {
+  color: #dc2626;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .widgets-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .widget-counts {
+    grid-template-columns: 1fr;
+  }
+  
+  .dashboard-widgets-container {
+    padding: 16px;
+  }
+}

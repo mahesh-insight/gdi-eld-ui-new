@@ -119,7 +119,9 @@ const instance = (serviceName, configuration = {}) => {
   
   // Handle path parameters for services that support them
   if (pathParam && serviceConfig.pathParam) {
-    serviceUrl = `${serviceUrl}/${pathParam}`;
+    // URL-encode the pathParam to handle special characters like | (pipe)
+    const encodedPathParam = encodeURIComponent(pathParam);
+    serviceUrl = `${serviceUrl}/${encodedPathParam}`;
   }
   
   // Handle URL parameters for services that support them
@@ -175,24 +177,34 @@ const instance = (serviceName, configuration = {}) => {
             // First try to get from Redux store
             if (window.__REDUX_STORE__) {
               const state = window.__REDUX_STORE__.getState();
+              console.log('🔍 Redux state check:', {
+                hasAuth: !!state?.auth,
+                hasAccessToken: !!state?.auth?.accessToken,
+                hasLoginResponse: !!state?.auth?.loginResponse,
+                accessTokenType: typeof state?.auth?.accessToken,
+                accessTokenLength: typeof state?.auth?.accessToken === 'string' ? state?.auth?.accessToken.length : 0
+              });
+              
               let tokenFromRedux = state?.auth?.accessToken;
               
               // Handle case where accessToken might be an object or nested in loginResponse
               if (tokenFromRedux && typeof tokenFromRedux === 'object') {
                 console.warn('⚠️ accessToken is an object, extracting bearerToken from loginResponse');
-                tokenFromRedux = state?.auth?.loginResponse?.bearerToken;
+                tokenFromRedux = state?.auth?.loginResponse?.tokens?.bearerToken;
               }
               
-              // If still not found, try loginResponse.bearerToken
+              // If still not found, try loginResponse.tokens.bearerToken
               if (!tokenFromRedux || typeof tokenFromRedux !== 'string') {
-                tokenFromRedux = state?.auth?.loginResponse?.bearerToken;
+                tokenFromRedux = state?.auth?.loginResponse?.tokens?.bearerToken;
               }
               
               accessToken = tokenFromRedux;
-              console.log('🔍 Got token from Redux store:', !!accessToken, '- Type:', typeof accessToken);
+              console.log('🔑 Token from Redux:', !!accessToken, 'Type:', typeof accessToken, 'Length:', accessToken?.length || 0);
+            } else {
+              console.warn('⚠️ Redux store not available on window');
             }
           } catch (error) {
-            console.warn('⚠️ Redux store access failed:', error.message);
+            console.error('❌ Redux store access failed:', error);
           }
           
           // Fallback to cookies, then localStorage
@@ -225,18 +237,56 @@ const instance = (serviceName, configuration = {}) => {
           // Add token if available
           if (accessToken) {
             config.headers.Authorization = `Bearer ${accessToken}`;
-            console.log('🔐 Added Authorization header for:', config.baseURL);
+            console.log('✅ Authorization header added for API call:', {
+              url: config.baseURL,
+              method: config.method,
+              tokenPreview: accessToken.substring(0, 20) + '...',
+              tokenLength: accessToken.length
+            });
           } else {
-            console.warn('⚠️ No access token available for API call:', config.baseURL);
+            console.error('❌ No access token available for API call:', {
+              url: config.baseURL,
+              method: config.method,
+              message: 'API call will fail without authentication'
+            });
           }
         }
       } else {
         // Server-side: Don't set auth headers for auth endpoints
         if (!config?.noAuthHeader && !config.baseURL.includes("ccr-login-service")) {
-          // For server-side requests that need auth, you can pass token in configuration
+          // For server-side requests, check multiple sources for the token
+          let serverToken = null;
+          
+          // 1. Check if token is in configuration.accessToken (old pattern)
           if (configuration.accessToken) {
-            config.headers.Authorization = `Bearer ${configuration.accessToken}`;
-            console.log('🔐 Server-side: Added Authorization header');
+            serverToken = configuration.accessToken;
+            console.log('🔐 Server-side: Token from configuration.accessToken');
+          }
+          
+          // 2. Check if token is in headers.Authorization (new pattern)
+          if (!serverToken && config.headers.Authorization) {
+            // Already set by the caller, extract it
+            serverToken = config.headers.Authorization.replace('Bearer ', '');
+            console.log('🔐 Server-side: Token already in headers');
+          }
+          
+          // 3. Check if token is passed in otherConfig.headers
+          if (!serverToken && configuration.headers?.Authorization) {
+            serverToken = configuration.headers.Authorization.replace('Bearer ', '');
+            console.log('🔐 Server-side: Token from configuration.headers');
+          }
+          
+          if (serverToken) {
+            // Ensure it has Bearer prefix
+            config.headers.Authorization = serverToken.startsWith('Bearer ') 
+              ? serverToken 
+              : `Bearer ${serverToken}`;
+            console.log('✅ Server-side: Authorization header added', {
+              url: config.baseURL,
+              tokenLength: serverToken.replace('Bearer ', '').length
+            });
+          } else {
+            console.warn('⚠️ Server-side: No access token available for API call');
           }
         }
       }

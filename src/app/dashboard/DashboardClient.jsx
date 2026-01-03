@@ -4,25 +4,63 @@ import { useAuth } from '@/hooks/useAuth';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import { useEffect, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { initializeAuth } from '@/store/authSlice';
 import { setMpsaStatusData } from '@/store/dashboardSlice';
+import DashboardWidgets from './components/DashboardWidgets';
 
-export default function DashboardClient() {
+/**
+ * DashboardClient Component
+ * Supports both SSR (data from server) and Client-side (data from API calls)
+ * 
+ * Props:
+ * - mode: 'ssr' (server-rendered with data) or 'client-side' (fetch on client)
+ * - ssrData: Dashboard data from server (when mode='ssr')
+ * - userContext: User context from server cookies (when mode='ssr')
+ * - cached: Whether SSR data came from cache
+ * - error: Error from server-side fetch (when mode='client-side')
+ */
+export default function DashboardClient({ mode = 'client-side', ssrData = null, userContext = null, cached = false, error = null }) {
   const dispatch = useDispatch();
-  const { user, logout, isAuthenticated, loginResponse, contextData, soldTo, salesOrg } = useAuth();
-  const {username, firstName, persona} = loginResponse || {};
+  const { user, logout, isAuthenticated, loginResponse } = useAuth();
+  const { username, firstName, persona } = loginResponse || {};
   
   // Get widget flags from Redux store
   const widgetFlags = useSelector(state => state.dashboard.widgetFlags);
   const mpsaStatusData = useSelector(state => state.dashboard.mpsaStatusData);
   
-  const [mpsaResponse, setMpsaResponse] = useState(null);
-  const [mpsaError, setMpsaError] = useState(null);
-  const [mpsaLoading, setMpsaLoading] = useState(false);
-  const hasFetchedMpsa = useRef(false); // Prevent duplicate calls
+  const [mpsaError, setMpsaError] = useState(error);
+  const [mpsaLoading, setMpsaLoading] = useState(mode === 'client-side');
+  const [dashboardData, setDashboardData] = useState(ssrData);
+  const hasFetchedMpsa = useRef(mode === 'ssr'); // Skip client fetch if SSR data provided
 
-  // Call mpsaStatus API when dashboard mounts
+  // Initialize Redux store with SSR data on mount
   useEffect(() => {
+    if (mode === 'ssr' && ssrData && ssrData.mpsaStatus) {
+      console.log('✅ CLIENT: Initializing with SSR data', {
+        cached,
+        hasWidgetFlags: !!ssrData.widgetFlags,
+        widgetCount: ssrData.widgets ? Object.keys(ssrData.widgets).length : 0
+      });
+      
+      // Store mpsaStatus data in Redux
+      const serializableResponse = {
+        data: ssrData.mpsaStatus.data || ssrData.mpsaStatus,
+        status: 200,
+        statusText: 'OK (SSR)'
+      };
+      
+      dispatch(setMpsaStatusData(serializableResponse));
+      setMpsaLoading(false);
+      hasFetchedMpsa.current = true;
+    }
+  }, [mode, ssrData, cached, dispatch]);
+  // Client-side mpsaStatus fetch (only if mode='client-side' and no SSR data)
+  useEffect(() => {
+    // Skip client-side fetch if SSR data is available
+    if (mode === 'ssr' || hasFetchedMpsa.current) {
+      console.log('ℹ️ CLIENT: Skipping client-side fetch', { mode, hasFetchedMpsa: hasFetchedMpsa.current });
+      return;
+    }
+
     const fetchMpsaStatus = async () => {
       // Only fetch if we don't have valid mpsaStatusData and we have user soldToId
       const soldToId = user?.soldToId || loginResponse?.userProfile?.defaultContext?.[0]?.soldToId;
@@ -36,7 +74,7 @@ export default function DashboardClient() {
         Object.keys(mpsaStatusData.data).length > 0;
       
       console.log('='.repeat(80));
-      console.log('🏠 Dashboard mounted - MPSA Status Check');
+      console.log('🏠 Dashboard mounted - MPSA Status Check (Client-side fallback)');
       console.log('='.repeat(80));
       console.log('📊 Redux State:');
       console.log('  - mpsaStatusData:', JSON.stringify(mpsaStatusData, null, 2));
@@ -44,19 +82,11 @@ export default function DashboardClient() {
       console.log('  - Widget flags:', widgetFlags);
       console.log('');
       console.log('👤 User Info:');
-      console.log('  - user object:', user);
-      console.log('  - soldToId from user:', user?.soldToId);
-      console.log('  - soldToId from loginResponse:', loginResponse?.userProfile?.defaultContext?.[0]?.soldToId);
-      console.log('  - Final soldToId:', soldToId);
+      console.log('  - soldToId:', soldToId);
       console.log('');
       console.log('🔐 Auth State:');
       console.log('  - isAuthenticated:', isAuthenticated);
-      console.log('  - loginResponse exists:', !!loginResponse);
       console.log('  - accessToken exists:', !!loginResponse?.tokens?.bearerToken);
-      console.log('');
-      console.log('🔄 Fetch Status:');
-      console.log('  - hasFetchedMpsa.current:', hasFetchedMpsa.current);
-      console.log('  - mpsaLoading:', mpsaLoading);
       console.log('');
       console.log('✅ Conditions Check:');
       console.log('  - !hasValidMpsaData:', !hasValidMpsaData);
@@ -68,9 +98,7 @@ export default function DashboardClient() {
       
       if (!hasValidMpsaData && soldToId && isAuthenticated && !hasFetchedMpsa.current) {
         hasFetchedMpsa.current = true; // Mark as fetched to prevent duplicates
-        console.log('🚀 CALLING mpsaStatus API');
-        console.log('  - soldToId:', soldToId);
-        console.log('  - Will use Bearer token from Redux store');
+        console.log('🚀 CLIENT FALLBACK: Calling mpsaStatus API');
         setMpsaLoading(true);
         
         try {
@@ -82,7 +110,6 @@ export default function DashboardClient() {
           });
           
           console.log('✅ mpsaStatus response received:', response);
-          setMpsaResponse(response);
           
           // Store ONLY serializable data in Redux (no AxiosHeaders, config, etc.)
           const serializableResponse = {
@@ -93,19 +120,6 @@ export default function DashboardClient() {
           
           // Store mpsaStatus data in Redux store (will extract widget flags automatically)
           dispatch(setMpsaStatusData(serializableResponse));
-          
-          // Also update contextData in auth slice for backward compatibility
-          const updatedAuth = {
-            isAuthenticated,
-            user,
-            loginResponse,
-            accessToken: loginResponse?.tokens?.bearerToken,
-            contextData: serializableResponse,
-            soldTo,
-            salesOrg
-          };
-          
-          dispatch(initializeAuth(updatedAuth));
           console.log('✅ Redux store updated with mpsaStatus data and widget flags');
           
         } catch (error) {
@@ -120,27 +134,20 @@ export default function DashboardClient() {
           setMpsaLoading(false);
         }
       } else if (hasValidMpsaData) {
-        console.log('ℹ️ mpsaStatusData already available, skipping mpsaStatus call');
+        console.log('ℹ️ CLIENT: mpsaStatusData already available, skipping fetch');
         console.log('📊 Widget flags:', widgetFlags);
         setMpsaLoading(false);
       } else if (!soldToId) {
-        console.warn('⚠️ No soldToId available for mpsaStatus call');
+        console.warn('⚠️ CLIENT: No soldToId available for mpsaStatus call');
         setMpsaLoading(false);
-      } else if (hasFetchedMpsa.current) {
-        console.log('⚠️ mpsaStatus already fetched, skipping duplicate call');
       } else {
-        console.log('⚠️ Conditions not met for mpsaStatus call:', {
-          hasValidMpsaData,
-          soldToId: !!soldToId,
-          isAuthenticated,
-          hasFetched: hasFetchedMpsa.current
-        });
+        console.log('ℹ️ CLIENT: Conditions not met for mpsaStatus call');
         setMpsaLoading(false);
       }
     };
     
     fetchMpsaStatus();
-  }, []); // Run only once on mount
+  }, [mode, user, loginResponse, isAuthenticated, mpsaStatusData, widgetFlags, dispatch]); // Run when auth state changes
 
   const handleLogout = () => {
     if (confirm('Are you sure you want to logout?')) {
@@ -169,210 +176,47 @@ export default function DashboardClient() {
 
   return (
     <ProtectedRoute>
-      <div style={{ padding: '20px' }}>
-        <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-          <button
-            onClick={handleForceMpsaRefresh}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#17a2b8',
-              color: 'white',
-              border: 'none',
+      <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
+        
+        {/* Loading State */}
+        {(mpsaLoading || (!mpsaStatusData?.data && !mpsaError)) && (
+          <div className="dashboard-loading">
+            <div style={{ 
+              fontSize: '48px',
+              marginBottom: '15px'
+            }}>⏳</div>
+            <h3>Loading Dashboard Data...</h3>
+            <p>Fetching widget information and configurations</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {mpsaError && !mpsaStatusData?.data && (
+          <div className="dashboard-error">
+            <div style={{ fontSize: '48px', marginBottom: '15px' }}>❌</div>
+            <h3>Failed to Load Dashboard</h3>
+            <p style={{ marginBottom: '15px' }}>
+              Unable to fetch context data from the server
+            </p>
+            <pre style={{ 
+              fontSize: '12px',
+              padding: '15px',
+              backgroundColor: '#f5f5f5',
               borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            🔄 Force Refresh MPSA Data
-          </button>
-          <button
-            onClick={() => window.open('/clear-storage.html', '_blank')}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#6c757d',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            🧹 Clear Storage
-          </button>
-        </div>
-        <div>
-          {/* Show skeleton while loading mpsaStatus */}
-          {(mpsaLoading || (!mpsaStatusData?.data && !mpsaResponse && !mpsaError)) && (
-            <div style={{ 
-              marginTop: '20px', 
-              padding: '15px', 
-              backgroundColor: '#f5f5f5', 
-              borderRadius: '5px',
-              border: '1px solid #e0e0e0'
+              textAlign: 'left',
+              overflow: 'auto',
+              maxHeight: '200px'
             }}>
-              <div style={{ 
-                height: '24px', 
-                width: '60%', 
-                backgroundColor: '#e0e0e0', 
-                borderRadius: '4px',
-                marginBottom: '15px',
-                animation: 'pulse 1.5s ease-in-out infinite'
-              }}></div>
-              <div style={{ 
-                height: '120px', 
-                width: '100%', 
-                backgroundColor: '#e0e0e0', 
-                borderRadius: '4px',
-                animation: 'pulse 1.5s ease-in-out infinite'
-              }}></div>
-              <p style={{ marginTop: '10px', fontSize: '14px', color: '#666' }}>
-                🔄 Loading mpsaStatus API response...
-              </p>
-            </div>
-          )}
+              {JSON.stringify(mpsaError, null, 2)}
+            </pre>
+          </div>
+        )}
 
-          {mpsaStatusData?.data && (
-            <>
-              <div style={{ 
-                marginTop: '20px', 
-                padding: '15px', 
-                backgroundColor: '#e8f5e8', 
-                borderRadius: '5px' 
-              }}>
-                <h3>✅ Widget Flags (Available in Redux Store):</h3>
-                <div style={{ 
-                  fontSize: '14px',
-                  backgroundColor: '#fff',
-                  padding: '15px',
-                  borderRadius: '3px',
-                  border: '1px solid #ddd',
-                  marginTop: '10px'
-                }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <div>
-                      <strong>🔷 Azure Spend Widget:</strong> {widgetFlags.isAzureSpendWidgetDataState ? '✅ Enabled' : '❌ Disabled'}
-                    </div>
-                    <div>
-                      <strong>📊 M365 Widget:</strong> {widgetFlags.isM365WidgetDataState ? '✅ Enabled' : '❌ Disabled'}
-                    </div>
-                    <div>
-                      <strong>☁️ MS Cloud Spend Widget:</strong> {widgetFlags.isMSSpendWidgetDataState ? '✅ Enabled' : '❌ Disabled'}
-                    </div>
-                    <div>
-                      <strong>🟠 AWS Spend Widget:</strong> {widgetFlags.isAwsSpendWidgetDataState ? '✅ Enabled' : '❌ Disabled'}
-                    </div>
-                    <div>
-                      <strong>🔴 Adobe Widget:</strong> {widgetFlags.isAdobeWidgetDataState ? '✅ Enabled' : '❌ Disabled'}
-                    </div>
-                    <div>
-                      <strong>📋 MPSA Widget:</strong> {widgetFlags.isMPSAWidgetDataState ? '✅ Enabled' : '❌ Disabled'}
-                    </div>
-                  </div>
-                  <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px solid #e0e0e0' }}>
-                    <p style={{ margin: '5px 0' }}>
-                      <strong>🌍 Country Code:</strong> {mpsaStatusData.data?.salesOrganizationCountryCode || 'N/A'}
-                    </p>
-                    <p style={{ margin: '5px 0' }}>
-                      <strong>💾 Persisted:</strong> Yes (until logout)
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ 
-                marginTop: '20px', 
-                padding: '15px', 
-                backgroundColor: '#e3f2fd', 
-                borderRadius: '5px' 
-              }}>
-                <h3>Raw mpsaStatus API Response:</h3>
-                <div style={{ 
-                  maxHeight: '300px', 
-                  overflow: 'auto',
-                  fontSize: '12px',
-                  backgroundColor: '#fff',
-                  padding: '10px',
-                  borderRadius: '3px',
-                  border: '1px solid #ddd',
-                  marginTop: '10px'
-                }}>
-                  <pre>{JSON.stringify(mpsaStatusData, null, 2)}</pre>
-                </div>
-              </div>
-            </>
-          )}
-
-          {contextData && !mpsaStatusData?.data && (
-            <div style={{ 
-              marginTop: '20px', 
-              padding: '15px', 
-              backgroundColor: '#e8f5e8', 
-              borderRadius: '5px' 
-            }}>
-              <h3>Context Data (mpsaStatus API Response):</h3>
-              <div style={{ 
-                maxHeight: '300px', 
-                overflow: 'auto',
-                fontSize: '12px',
-                backgroundColor: '#fff',
-                padding: '10px',
-                borderRadius: '3px',
-                border: '1px solid #ddd'
-              }}>
-                <pre>{JSON.stringify(contextData, null, 2)}</pre>
-              </div>
-            </div>
-          )}
-
-          {mpsaResponse && !mpsaStatusData?.data && (
-            <div style={{ 
-              marginTop: '20px', 
-              padding: '15px', 
-              backgroundColor: '#e8f5e8', 
-              borderRadius: '5px' 
-            }}>
-              <h3>✅ mpsaStatus API Response (Called from Dashboard):</h3>
-              <div style={{ 
-                maxHeight: '300px', 
-                overflow: 'auto',
-                fontSize: '12px',
-                backgroundColor: '#fff',
-                padding: '10px',
-                borderRadius: '3px',
-                border: '1px solid #ddd'
-              }}>
-                <pre>{JSON.stringify(mpsaResponse, null, 2)}</pre>
-              </div>
-            </div>
-          )}
-
-          {mpsaError && !mpsaStatusData?.data && (
-            <div style={{ 
-              marginTop: '20px', 
-              padding: '15px', 
-              backgroundColor: '#ffebee', 
-              borderRadius: '5px',
-              border: '1px solid #ef5350'
-            }}>
-              <h3>❌ mpsaStatus API Error</h3>
-              <p>Failed to fetch context data from dashboard</p>
-              <pre style={{ fontSize: '12px' }}>{JSON.stringify(mpsaError.message, null, 2)}</pre>
-            </div>
-          )}
-        </div>
+        {/* Dashboard Widgets */}
+        {mpsaStatusData?.data && !mpsaError && (
+          <DashboardWidgets ssrData={dashboardData} mode={mode} />
+        )}
       </div>
-
-      {/* CSS for skeleton pulse animation */}
-      <style jsx>{`
-        @keyframes pulse {
-          0%, 100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.5;
-          }
-        }
-      `}</style>
     </ProtectedRoute>
   );
 }
