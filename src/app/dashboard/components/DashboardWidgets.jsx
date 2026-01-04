@@ -146,7 +146,7 @@ export default function DashboardWidgets({ ssrData, mode }) {
             pageType="dashboard"
           />
           {data.latestInvoiceTrend?.chartData && data.latestInvoiceTrend.chartData.length > 0 ? (
-            <Chart onRefresh={() => {}} style={{ height: '250px' }}>
+            <Chart onRefresh={() => {}} className="dashboard-chart">
               <BasicGroupedChart
                 key={azureChartType}
                 chartType={azureChartType}
@@ -295,7 +295,7 @@ export default function DashboardWidgets({ ssrData, mode }) {
             pageType="dashboard"
           />
           {data.billableItemTrend?.chartData && data.billableItemTrend.chartData.length > 0 ? (
-            <Chart onRefresh={() => {}} style={{ height: '250px' }}>
+            <Chart onRefresh={() => {}} className="dashboard-chart">
               <BasicGroupedChart
                 key={msCloudChartType}
                 chartType={msCloudChartType}
@@ -373,7 +373,7 @@ export default function DashboardWidgets({ ssrData, mode }) {
             pageType="dashboard"
           />
           {data.billableItemTrend?.chartData && data.billableItemTrend.chartData.length > 0 ? (
-            <Chart onRefresh={() => {}} style={{ height: '250px' }}>
+            <Chart onRefresh={() => {}} className="dashboard-chart">
               <BasicGroupedChart
                 key={adobeChartType}
                 chartType={adobeChartType}

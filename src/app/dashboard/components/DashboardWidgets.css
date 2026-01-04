@@ -81,6 +81,19 @@
   font-weight: bold;
   color: #ae0a46;
   letter-spacing: -0.3px;
+  display: inline-block;
+}
+
+.metric-value.align-right {
+  text-align: right;
+}
+
+.metric-value.align-left {
+  text-align: left;
+}
+
+.dashboard-chart {
+  height: 250px;
 }
 
 .metric-date {

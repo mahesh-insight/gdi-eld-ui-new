@@ -43,15 +43,13 @@ export const CurrencyFormatter = (props) => {
     ? `${currency} ${formattedValue}`
     : formattedValue;
 
+  const alignmentClass = alignRight ? 'align-right' : 'align-left';
+
   return (
     <Tooltip anchorElement="target" position="auto">
       <span 
-        className="metric-value"
+        className={`metric-value ${alignmentClass}`}
         title={title || displayValue}
-        style={{ 
-          textAlign: alignRight ? 'right' : 'left',
-          display: 'inline-block'
-        }}
       >
         {displayValue}
       </span>
