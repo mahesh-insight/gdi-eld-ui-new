@@ -8,7 +8,7 @@ export default function ErrorMessage({ errorMessage, message }) {
     <div className="error-message" style={{ 
       padding: '20px', 
       textAlign: 'center', 
-      color: '#d32f2f', 
+      color: '#ae0a46', 
       backgroundColor: '#ffebee',
       borderRadius: '4px',
       border: '1px solid #ffcdd2'

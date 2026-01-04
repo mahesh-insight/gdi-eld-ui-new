@@ -36,7 +36,7 @@ class ErrorBoundary extends React.Component {
           borderRadius: '8px',
           backgroundColor: '#ffe0e0'
         }}>
-          <h2 style={{ color: '#d32f2f', margin: '0 0 10px 0' }}>
+          <h2 style={{ color: '#ae0a46', margin: '0 0 10px 0' }}>
             ⚠️ Something went wrong
           </h2>
           <p style={{ color: '#666', margin: '0 0 10px 0' }}>

@@ -7,6 +7,11 @@ import { BasicChart } from '@/common/Charts/BasicChart';
 import { BasicGroupedChart } from '@/common/Charts/BasicGroupedChart';
 import { Chart } from '@progress/kendo-react-charts';
 import ChartTitleAndButtons from '@/components/ChartTitleAndButtons';
+import { CurrencyFormatter } from '@/common/CurrencyFormatter';
+import { MetricLabel } from '@/common/MetricLabel';
+import { ChangeLabel } from '@/common/ChangeLabel';
+import { formatMonthYear } from '@/lib/utils';
+import { ArrowUpIcon, ArrowDownIcon } from '@/lib/svg/svgList';
 
 export default function DashboardWidgets({ ssrData, mode }) {
   const widgetFlags = useSelector(state => state.dashboard.widgetFlags);
@@ -37,7 +42,7 @@ export default function DashboardWidgets({ ssrData, mode }) {
     msCloudData: widgets.msCloud?.data
   });
   
-  const formatCurrency = (value, currencyCode = 'USD') => {
+  const formatCurrency = (value, currencyCode) => {
     if (!value) return `${currencyCode} 0.00`;
     return `${currencyCode} ${parseFloat(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
@@ -65,7 +70,7 @@ export default function DashboardWidgets({ ssrData, mode }) {
       latestAzureChange,
       latestAzureChangePercent,
       latestAzureChangePercentExists,
-      currencyCode = 'USD'
+      currencyCode
     } = data;
 
     return (
@@ -76,34 +81,58 @@ export default function DashboardWidgets({ ssrData, mode }) {
         <div className="widget-body">
           <div className="widget-metric">
             <div className="widget-metric-row">
-              <span className="metric-label">Current Estimated Usage</span>
-              <span className="metric-value">{formatCurrency(currentEstimatedUsage, currencyCode)}</span>
+              <MetricLabel title={`Current estimated usage for ${formatMonthYear(latestInvoiceDate)}`}>
+                Current Estimated Usage
+              </MetricLabel>
+              <CurrencyFormatter
+                title={`Current estimated usage for ${formatMonthYear(latestInvoiceDate)}`}
+                value={currentEstimatedUsage}
+                alignRight={true}
+                showCurrencyCode={true}
+                currency={currencyCode}
+              />
             </div>
           </div>
           <div className="widget-metric">
             <div className="widget-metric-row">
-              <span className="metric-label">Latest Billed Usage</span>
-              <span className="metric-value">{formatCurrency(latestBilledUsage, currencyCode)}</span>
+              <MetricLabel title={`Invoiced usage for ${formatMonthYear(latestBilledUsageDate)}`}>
+                Latest Billed Usage
+              </MetricLabel>
+              <CurrencyFormatter
+                title={`Invoiced usage for ${formatMonthYear(latestBilledUsageDate)}`}
+                value={latestBilledUsage}
+                alignRight={true}
+                showCurrencyCode={true}
+                currency={currencyCode}
+              />
             </div>
-            <span className="metric-date">{formatDate(latestBilledUsageDate)}</span>
           </div>
           <div className="widget-metric">
             <div className="widget-metric-row">
-              <span className="metric-label">Latest Azure Invoice</span>
-              <span className="metric-value">{formatCurrency(latestAzureUsage, currencyCode)}</span>
+              <MetricLabel title={`Total Azure Spend for ${formatMonthYear(latestInvoiceDate)}`}>
+                Latest Azure Invoice
+              </MetricLabel>
+              <CurrencyFormatter
+                title={`Total Azure Spend for ${formatMonthYear(latestInvoiceDate)}`}
+                value={latestAzureUsage}
+                alignRight={true}
+                showCurrencyCode={true}
+                currency={currencyCode}
+              />
             </div>
-            <span className="metric-date">{formatDate(latestInvoiceDate)}</span>
           </div>
           {latestAzureChange !== 0 && (
             <div className="widget-change">
               <span className={`change-indicator ${latestAzureChange > 0 ? 'up' : 'down'}`}>
-                {latestAzureChange > 0 ? '▲' : '▼'}
+                {latestAzureChange > 0 ? <ArrowUpIcon className="svg-style"/> : <ArrowDownIcon className="svg-style"/>}
               </span>
-              <span className="change-text">
-                {formatCurrency(Math.abs(latestAzureChange), currencyCode)}
-                {latestAzureChangePercentExists && ` (${latestAzureChangePercent}%)`}
-              </span>
-              <span className="change-label"> from previous month</span>
+              <ChangeLabel
+                title={`Difference in spend on ${formatMonthYear(latestInvoiceDate)} invoice from the previous month`}
+                value={Math.abs(latestAzureChange)}
+                currency={currencyCode}
+                percentage={latestAzureChangePercent}
+                showPercentage={latestAzureChangePercentExists}
+              />
             </div>
           )}
         </div>
@@ -153,7 +182,7 @@ export default function DashboardWidgets({ ssrData, mode }) {
       haveLatestChangePercent,
       subscriptionSummary,
       subscriptionExpirationSummary,
-      currencyCode = 'USD'
+      currencyCode
     } = data;
 
     const totals = subscriptionSummary?.totals || [];
@@ -166,7 +195,9 @@ export default function DashboardWidgets({ ssrData, mode }) {
         <div className="widget-body">
           <div className="widget-metric">
             <div className="widget-metric-row">
-              <span className="metric-label">Latest Invoice</span>
+              <MetricLabel title={`Latest billed M365 invoice for ${formatDate(latestBillableItemDate)}`}>
+                Latest Invoice
+              </MetricLabel>
               <span className="metric-value">{formatCurrency(cloudLicenseTotalSpend, currencyCode)}</span>
             </div>
             <span className="metric-date">{formatDate(latestBillableItemDate)}</span>
@@ -174,13 +205,15 @@ export default function DashboardWidgets({ ssrData, mode }) {
           {latestChange !== 0 && (
             <div className="widget-change">
               <span className={`change-indicator ${latestChange > 0 ? 'up' : 'down'}`}>
-                {latestChange > 0 ? '▲' : '▼'}
+                {latestChange > 0 ? <ArrowUpIcon /> : <ArrowDownIcon />}
               </span>
-              <span className="change-text">
-                {formatCurrency(Math.abs(latestChange), currencyCode)}
-                {haveLatestChangePercent && ` (${latestChangePercent}%)`}
-              </span>
-              <span className="change-label"> from previous month</span>
+              <ChangeLabel
+                title={`Difference in spend on ${formatMonthYear(latestBillableItemDate)} invoice from the previous month`}
+                value={Math.abs(latestChange)}
+                currency={currencyCode}
+                percentage={latestChangePercent}
+                showPercentage={haveLatestChangePercent}
+              />
             </div>
           )}
           
@@ -219,7 +252,7 @@ export default function DashboardWidgets({ ssrData, mode }) {
       latestChange,
       latestChangePercent,
       latestChangePercentExists,
-      currencyCode = 'USD'
+      currencyCode
     } = data;
 
     return (
@@ -230,7 +263,9 @@ export default function DashboardWidgets({ ssrData, mode }) {
         <div className="widget-body">
           <div className="widget-metric">
             <div className="widget-metric-row">
-              <span className="metric-label">Latest Insight Invoice</span>
+              <MetricLabel title={`Latest Microsoft Cloud invoice for ${formatDate(latestBillableItemDate)}`}>
+                Latest Insight Invoice
+              </MetricLabel>
               <span className="metric-value">{formatCurrency(billableItemTotal, currencyCode)}</span>
             </div>
             <span className="metric-date">{formatDate(latestBillableItemDate)}</span>
@@ -238,13 +273,15 @@ export default function DashboardWidgets({ ssrData, mode }) {
           {latestChange !== 0 && (
             <div className="widget-change">
               <span className={`change-indicator ${latestChange > 0 ? 'up' : 'down'}`}>
-                {latestChange > 0 ? '▲' : '▼'}
+                {latestChange > 0 ? <ArrowUpIcon /> : <ArrowDownIcon />}
               </span>
-              <span className="change-text">
-                {formatCurrency(Math.abs(latestChange), currencyCode)}
-                {latestChangePercentExists && ` (${latestChangePercent}%)`}
-              </span>
-              <span className="change-label"> from previous month</span>
+              <ChangeLabel
+                title={`Difference in spend on ${formatMonthYear(latestBillableItemDate)} invoice from the previous month`}
+                value={Math.abs(latestChange)}
+                currency={currencyCode}
+                percentage={latestChangePercent}
+                showPercentage={latestChangePercentExists}
+              />
             </div>
           )}
         </div>
@@ -293,7 +330,7 @@ export default function DashboardWidgets({ ssrData, mode }) {
       latestChange,
       latestPercent,
       latestPercentExists,
-      currencyCode = 'USD'
+      currencyCode
     } = data;
 
     return (
@@ -304,7 +341,9 @@ export default function DashboardWidgets({ ssrData, mode }) {
         <div className="widget-body">
           <div className="widget-metric">
             <div className="widget-metric-row">
-              <span className="metric-label">Latest Insight Invoice</span>
+              <MetricLabel title={`Latest Adobe invoice for ${formatDate(latestBillableItemDate)}`}>
+                Latest Insight Invoice
+              </MetricLabel>
               <span className="metric-value">{formatCurrency(totalSpend, currencyCode)}</span>
             </div>
             <span className="metric-date">{formatDate(latestBillableItemDate)}</span>
@@ -312,13 +351,15 @@ export default function DashboardWidgets({ ssrData, mode }) {
           {latestChange !== 0 && (
             <div className="widget-change">
               <span className={`change-indicator ${latestChange > 0 ? 'up' : 'down'}`}>
-                {latestChange > 0 ? '▲' : '▼'}
+                {latestChange > 0 ? <ArrowUpIcon /> : <ArrowDownIcon />}
               </span>
-              <span className="change-text">
-                {formatCurrency(Math.abs(latestChange), currencyCode)}
-                {latestPercentExists && ` (${latestPercent}%)`}
-              </span>
-              <span className="change-label"> from previous month</span>
+              <ChangeLabel
+                title={`Difference in spend on ${formatMonthYear(latestBillableItemDate)} invoice from the previous month`}
+                value={Math.abs(latestChange)}
+                currency={currencyCode}
+                percentage={latestPercent}
+                showPercentage={latestPercentExists}
+              />
             </div>
           )}
         </div>
@@ -367,7 +408,7 @@ export default function DashboardWidgets({ ssrData, mode }) {
       latestChange,
       latestPercent,
       latestPercentExists,
-      currencyCode = 'USD'
+      currencyCode
     } = data;
 
     return (
@@ -378,25 +419,31 @@ export default function DashboardWidgets({ ssrData, mode }) {
         <div className="widget-body">
           {currentEstimatedUsage > 0 && (
             <div className="widget-metric">
-              <span className="metric-label">Current Estimated Usage</span>
+              <MetricLabel title="Current estimated AWS usage">
+                Current Estimated Usage
+              </MetricLabel>
               <span className="metric-value">{formatCurrency(currentEstimatedUsage, currencyCode)}</span>
             </div>
           )}
           <div className="widget-metric">
-            <span className="metric-label">Latest Insight Invoice</span>
+            <MetricLabel title={`Latest AWS invoice for ${formatDate(latestBillableItemDate)}`}>
+              Latest Insight Invoice
+            </MetricLabel>
             <span className="metric-value">{formatCurrency(totalSpend, currencyCode)}</span>
             <span className="metric-date">{formatDate(latestBillableItemDate)}</span>
           </div>
           {latestChange !== 0 && (
             <div className="widget-change">
               <span className={`change-indicator ${latestChange > 0 ? 'up' : 'down'}`}>
-                {latestChange > 0 ? '▲' : '▼'}
+                {latestChange > 0 ? <ArrowUpIcon /> : <ArrowDownIcon />}
               </span>
-              <span className="change-text">
-                {formatCurrency(Math.abs(latestChange), currencyCode)}
-                {latestPercentExists && ` (${latestPercent}%)`}
-              </span>
-              <span className="change-label"> from previous month</span>
+              <ChangeLabel
+                title={`Difference in spend on ${formatMonthYear(latestBillableItemDate)} invoice from the previous month`}
+                value={Math.abs(latestChange)}
+                currency={currencyCode}
+                percentage={latestPercent}
+                showPercentage={latestPercentExists}
+              />
             </div>
           )}
         </div>

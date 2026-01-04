@@ -23,7 +23,7 @@ function UnauthorizedContent() {
       textAlign: 'center',
       padding: '20px'
     }}>
-      <h1 style={{ color: '#d32f2f' }}>Access Denied</h1>
+      <h1 style={{ color: '#ae0a46' }}>Access Denied</h1>
       <p>You are not authorized to access this application.</p>
       <p><strong>Reason:</strong> {reason}</p>
       {message && <p><strong>Details:</strong> {decodeURIComponent(message)}</p>}

@@ -1,7 +1,7 @@
 .dashboard-widgets-container {
   padding: 24px;
   margin: 0 auto;
-  background: white;
+  background: #f0edec;
   min-height: calc(100vh - 80px);
 }
 
@@ -26,8 +26,8 @@
 
 .dashboard-widget {
   background: white;
-  border-radius: 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, .04);
   overflow: hidden;
   transition: box-shadow 0.2s ease;
   border: 1px solid #e0e0e0;
@@ -38,21 +38,19 @@
 }
 
 .widget-header {
-  background: #6c3fb5;
-  color: white;
   padding: 16px 20px;
   border-bottom: none;
 }
 
 .widget-header h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: 22px;
   font-weight: 500;
   letter-spacing: 0.3px;
 }
 
 .widget-body {
-  padding: 20px;
+  padding: 0 20px;
   background: white;
 }
 
@@ -74,15 +72,14 @@
 }
 
 .metric-label {
-  font-size: 13px;
-  color: #666;
-  font-weight: 400;
+  font-weight: bold;
+  font-size: 14px;
 }
 
 .metric-value {
-  font-size: 16px;
-  font-weight: 600;
-  color: #d32f2f;
+  font-size: 14px;
+  font-weight: bold;
+  color: #ae0a46;
   letter-spacing: -0.3px;
 }
 
@@ -99,11 +96,11 @@
   margin-top: 12px;
   border-radius: 4px;
   font-size: 13px;
+  color: #007997;
 }
 
 .change-indicator {
   font-size: 14px;
-  margin-right: 6px;
   font-weight: 600;
 }
 
@@ -117,11 +114,20 @@
 
 .change-text {
   font-weight: 500;
-  color: #333;
+  color: #007997;
+}
+
+.change-info {
+  font-weight: 400;
+  color: #007997;
+}
+
+.change-info strong {
+  font-weight: 700;
 }
 
 .change-label {
-  color: #777;
+  color: #007997;
   margin-left: 4px;
   font-weight: 400;
 }
@@ -189,7 +195,6 @@
 .widget-chart {
   padding: 20px 24px;
   background: white;
-  border-top: 1px solid #e8e8e8;
 }
 
 .widget-chart h4 {
