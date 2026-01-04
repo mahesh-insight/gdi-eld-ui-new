@@ -15,12 +15,7 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
   const uiPropertiesFetchingRef = useRef(false);
-  
-  console.log('🔍 DEBUG - HomePageClient props:', { 
-    authCode, 
-    soldTo, 
-    salesOrg 
-  });
+  const authProcessingRef = useRef(false);
 
   const router = useRouter();
   const dispatch = useDispatch();
@@ -46,10 +41,21 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
   const processAuthCode = useCallback(async (code, soldToParam, salesOrgParam) => {
     const hasProcessedKey = `processed_${code}`;
     
-    if (sessionStorage.getItem(hasProcessedKey) || isProcessing) {
-      console.log('⚠️ Auth code already processed or currently processing, skipping');
+    console.log('🔐 processAuthCode called:', {
+      code: code?.substring(0, 10) + '...',
+      refValue: authProcessingRef.current,
+      sessionStorageValue: !!sessionStorage.getItem(hasProcessedKey)
+    });
+    
+    // CRITICAL: Check both sessionStorage and ref to prevent any duplicate processing
+    if (sessionStorage.getItem(hasProcessedKey) || authProcessingRef.current) {
+      console.log('⚠️ BLOCKED: Auth code already processed or currently processing');
       return;
     }
+    
+    // Set BOTH markers immediately before any async operations
+    authProcessingRef.current = true;
+    sessionStorage.setItem(hasProcessedKey, Date.now().toString());
     
     Object.keys(sessionStorage).forEach(key => {
       if (key.startsWith('processed_') && key !== hasProcessedKey) {
@@ -57,7 +63,6 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
       }
     });
     
-    sessionStorage.setItem(hasProcessedKey, Date.now().toString());
     setIsProcessing(true);
     setProcessingMessage('Processing authentication...');
     
@@ -76,8 +81,6 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
         
         const bearerToken = response.tokens.bearerToken;
         const soldToId = response.userProfile.defaultContext[0].soldToId;
-        
-        setProcessingMessage('Preparing to redirect...');
         
         try {
           document.cookie = `access_token=${bearerToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
@@ -102,22 +105,24 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
           salesOrg: finalSalesOrg || null
         };
         
+        // Dispatch auth immediately and redirect - don't wait
         dispatch(initializeAuth(authPayload));
-        setProcessingMessage('Authentication successful! Redirecting...');
+        console.log('✅ Auth successful - redirecting to dashboard immediately');
+        
+        // Redirect immediately - dashboard will show header + skeleton loaders
         router.replace('/dashboard');
       } else {
         console.error('❌ Auth response validation failed');
-        setProcessingMessage('Authentication failed. Please try again.');
-        sessionStorage.removeItem(hasProcessedKey);
+        setProcessingMessage('Authentication failed: Invalid response. Please login again.');
         setIsProcessing(false);
       }
     } catch (error) {
       console.error('❌ Authentication failed:', error);
-      setProcessingMessage(`Authentication failed: ${error.message || 'Unknown error'}`);
-      sessionStorage.removeItem(hasProcessedKey);
+      const errorStatus = error?.response?.status;
+      setProcessingMessage(`Authentication failed: ${error.message || 'Unknown error'}. Please try logging in again.`);
       setIsProcessing(false);
     }
-  }, [isProcessing, authState, dispatch, router]);
+  }, [authState, dispatch, router]);
 
   // Fetch UI properties on mount (client-side only)
   useEffect(() => {
@@ -248,20 +253,27 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
       salesOrg,
       isAuthenticated,
       isRehydrated,
-      isProcessing,
+      authProcessingRefValue: authProcessingRef.current,
       windowDefined: typeof window !== 'undefined'
     });
+
+    // Check ref first - if already processing, skip immediately
+    if (authProcessingRef.current) {
+      console.log('⚠️ Auth processing already in progress (ref check), skipping');
+      return;
+    }
 
     // Try processing with more lenient conditions for debugging
     // Allow processing if we have auth code but aren't properly authenticated (could be invalid/incomplete auth state)
     const hasValidAuth = isAuthenticated && user?.soldToId && accessToken && typeof accessToken === 'string' && accessToken.length > 10;
-    const shouldProcess = authCode && !hasValidAuth && typeof window !== 'undefined' && !isProcessing;
+    const shouldProcess = authCode && !hasValidAuth && typeof window !== 'undefined';
     
     if (authCode) {
       console.log('🔍 Auth processing check:', {
         shouldProcess,
         isRehydrated,
         hasValidAuth,
+        authProcessingRef: authProcessingRef.current,
         conditions: {
           hasAuthCode: !!authCode,
           isAuthenticated,
@@ -270,8 +282,7 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
           hasAccessToken: !!accessToken,
           accessTokenType: typeof accessToken,
           accessTokenLength: typeof accessToken === 'string' ? accessToken.length : 0,
-          hasWindow: typeof window !== 'undefined',
-          notProcessing: !isProcessing
+          hasWindow: typeof window !== 'undefined'
         }
       });
     }
@@ -282,14 +293,6 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
       console.log('🔍 Checking processed key:', hasProcessedKey, 'exists:', !!sessionStorage.getItem(hasProcessedKey));
       
       if (sessionStorage.getItem(hasProcessedKey)) {
-        console.log('⚠️ Auth code already processed, skipping');
-        // Check if processing failed - if so, allow retry
-        const processedTime = sessionStorage.getItem(hasProcessedKey);
-        const timeDiff = Date.now() - parseInt(processedTime);
-        if (timeDiff > 30000) { // 30 seconds timeout
-          console.log('🔄 Processing timeout detected, clearing processed flag for retry');
-          sessionStorage.removeItem(hasProcessedKey);
-        }
         return;
       }
       
@@ -297,16 +300,9 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
       processAuthCode(authCode, soldTo, salesOrg);
       return;
     } else {
-      console.log('⏸️ Auth processing conditions not met:', {
-        hasAuthCode: !!authCode,
-        notAuthenticated: !isAuthenticated,
-        isRehydrated: isRehydrated,
-        hasWindow: typeof window !== 'undefined',
-        notProcessing: !isProcessing,
-        allConditions: !!(authCode && !isAuthenticated && isRehydrated && typeof window !== 'undefined' && !isProcessing)
-      });
+      console.log('⏸️ Auth processing conditions not met');
     }
-  }, [authCode, soldTo, salesOrg, isRehydrated, isProcessing, isAuthenticated, user, accessToken, _persist]);
+  }, [authCode, soldTo, salesOrg, isRehydrated, isAuthenticated, user, accessToken, _persist, processAuthCode]); // Removed isProcessing
 
   // Fetch UI properties when authenticated (once per session)
   useEffect(() => {
