@@ -13,6 +13,7 @@ import ChartTitleAndButtons from '@/components/ChartTitleAndButtons';
 import { Tooltip } from '@progress/kendo-react-tooltip';
 import { infoCircleIcon } from '@progress/kendo-svg-icons';
 import { SvgIcon } from '@progress/kendo-react-common';
+import { ArrowUpIcon, ArrowDownIcon } from '@/lib/svg/svgList';
 import { BasicGroupedChart } from '@/common/Charts/BasicGroupedChart';
 import { getInsightThemeColors } from '@/lib/chartColors';
 import { getProviderColumns } from '@/common/gridColumnDefinitions';
@@ -167,6 +168,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
   const [isMonthChanging, setIsMonthChanging] = useState(false);
 
   // Section-specific loading states - more granular control
+  // ✅ For SSR: Start with false (data already loaded), for CSR: Start with true
   const [providerSectionLoading, setProviderSectionLoading] = useState(mode !== 'ssr');
   const [monthSectionLoading, setMonthSectionLoading] = useState(mode !== 'ssr');
   const [invoiceSectionLoading, setInvoiceSectionLoading] = useState(mode !== 'ssr');
@@ -179,13 +181,19 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
   // 🔍 DEBUG: Log initial loading states
   console.log('🔄 DEBUG: Initial loading states:', {
     mode,
+    modeValue: mode,
+    modeType: typeof mode,
+    isSSR: mode === 'ssr',
+    calculatedLoading: mode !== 'ssr',
     providerLoading: mode !== 'ssr',
     monthLoading: mode !== 'ssr',
     invoiceLoading: mode !== 'ssr',
     statsLoading: mode !== 'ssr',
     chartsLoading: mode !== 'ssr',
     gridLoading: mode !== 'ssr',
-    filtersLoading: mode !== 'ssr'
+    filtersLoading: mode !== 'ssr',
+    hasInitialData: !!initialData,
+    hasSummaryData: !!initialData?.summaryResponse?.data
   });
   
   // Centralized section loading state manager
@@ -254,6 +262,12 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
   const [selectedInvoiceNumber, setSelectedInvoiceNumber] = useState(null);
   const [totalSpend, setTotalSpend] = useState(mode === 'ssr' ? (initialData?.summaryResponse?.data?.spendPeriod?.totalSpend || 0) : 0);
   const [summarySelectLists, setSummarySelectLists] = useState(mode === 'ssr' ? (initialData?.summaryResponse?.data?.selectLists || []) : []);
+  
+  // Monthly difference and invoice status from summary API
+  const [monthlyDifference, setMonthlyDifference] = useState(mode === 'ssr' ? (initialData?.summaryResponse?.data?.spendPeriod?.differenceTotalSpend || 0) : 0);
+  const [monthlyDifferencePercent, setMonthlyDifferencePercent] = useState(mode === 'ssr' ? (initialData?.summaryResponse?.data?.spendPeriod?.differencePercentSpend || null) : null);
+  const [haveDifferencePercent, setHaveDifferencePercent] = useState(mode === 'ssr' ? (initialData?.summaryResponse?.data?.spendPeriod?.haveDifferencePercentSpend || false) : false);
+  const [invoiceStatus, setInvoiceStatus] = useState(mode === 'ssr' ? (initialData?.summaryResponse?.data?.invoiceStatus || '') : '');
 
   // Additional filter states with default 'All' values
   const [productCategories, setProductCategories] = useState([{ label: 'All', value: 'all' }]);
@@ -444,6 +458,10 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
             
             // Set summary data
             setTotalSpend(summaryResponse.data?.spendPeriod?.totalSpend || 0);
+            setMonthlyDifference(summaryResponse.data?.spendPeriod?.differenceTotalSpend || 0);
+            setMonthlyDifferencePercent(summaryResponse.data?.spendPeriod?.differencePercentSpend || null);
+            setHaveDifferencePercent(summaryResponse.data?.spendPeriod?.haveDifferencePercentSpend || false);
+            setInvoiceStatus(summaryResponse.data?.invoiceStatus || '');
             const spendData = summaryResponse.data?.spendPeriod?.spend || [];
             const chartData = summaryResponse.data?.chartData || summaryResponse.data?.breakdown || spendData;
             
@@ -1109,9 +1127,36 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
 
   // 🛡️ SAFETY MECHANISM: Ensure loading states are off in SSR mode regardless of data format
   useEffect(() => {
+    console.log('🛡️ SAFETY useEffect triggered:', {
+      mode,
+      isSSR: mode === 'ssr',
+      currentLoadingStates: {
+        provider: providerSectionLoading,
+        month: monthSectionLoading,
+        invoice: invoiceSectionLoading,
+        stats: statsSectionLoading,
+        charts: chartsSectionLoading,
+        grid: gridSectionLoading,
+        filters: filtersSectionLoading
+      }
+    });
+    
     if (mode === 'ssr') {
       console.log('🛡️ SAFETY: Forcing loading states OFF for SSR mode');
       setSectionLoadingStates(false);
+      
+      // Force update after a short delay to ensure state has updated
+      setTimeout(() => {
+        console.log('🛡️ SAFETY: Verifying loading states after force-off:', {
+          provider: providerSectionLoading,
+          month: monthSectionLoading,
+          invoice: invoiceSectionLoading,
+          stats: statsSectionLoading,
+          charts: chartsSectionLoading,
+          grid: gridSectionLoading,
+          filters: filtersSectionLoading
+        });
+      }, 100);
     }
   }, [mode]);
 
@@ -1138,11 +1183,12 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
   }
 
   return (
+    <>
     <div className="invoices-container">
       {/* Header Section with horizontal layout */}
       <div className="invoices-header-row">
         <div className="header-left">
-          <h1>Invoice Reporting</h1>
+          <h1 className="header-text-large">Invoice Reporting</h1>
         </div>
         <div className="header-right">
           <div className="azure-invoice-kpi-cards">
@@ -1178,17 +1224,24 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
               ) : (
                 <>
                   <div className="azure-invoice-kpi-label">
-                    Monthly Difference
+                    Monthly Difference&nbsp;
+                    {monthlyDifference > 0 ? (
+                      <ArrowUpIcon className="svg-style" />
+                    ) : monthlyDifference < 0 ? (
+                      <ArrowDownIcon className="svg-style" />
+                    ) : null}
                   </div>
                   <div className="azure-invoice-kpi-value monthly-difference">
-                    $0.00
-                    <span> (0%)</span>
+                    ${Math.abs(monthlyDifference).toFixed(2)}
+                    {haveDifferencePercent && monthlyDifferencePercent !== null && (
+                      <span> ({monthlyDifferencePercent}%)</span>
+                    )}
                   </div>
                 </>
               )}
             </div>
 
-            {/* Invoice Credits */}
+            {/* Invoice Status */}
             <div className="azure-invoice-kpi-card invoice-credits">
               {isStatsLoading ? (
                 <>
@@ -1197,10 +1250,15 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
                 </>
               ) : (
                 <>
-                  <div className="azure-invoice-kpi-label">Invoice Credits</div>
-                  <div className="azure-invoice-kpi-value invoice-credits">
-                    $0.00
+                  <div className="azure-invoice-kpi-label">Invoice Status
+                    <Tooltip anchorElement="target" position="auto">
+                      <SvgIcon icon={infoCircleIcon} size="small" className="info-icon" title="Please note that your download may not be available immediately. Please check back in the next 1 - 2 days." />
+                    </Tooltip>
                   </div>
+                  <div className="azure-invoice-kpi-value invoice-credits">
+                    {invoiceStatus || 'N/A'}
+                  </div>
+                  {<span className="redirect">{t("Download PDF")}</span>}
                 </>
               )}
             </div>
@@ -1214,11 +1272,11 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
           <div className="primary-filters">
             <div className="dropdown-group">
               {isProviderLoading ? (
-                <label>
+                <label className="label-text-bold">
                   <Skeleton style={{ width: '60px', height: '16px', marginBottom: '4px' }} />
                 </label>
               ) : (
-                <label>Provider</label>
+                <label className="label-text-bold">Provider</label>
               )}
               {isProviderLoading ? (
                 <Skeleton style={{ width: '200px', height: '32px' }} />
@@ -1235,11 +1293,11 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
 
             <div className="dropdown-group">
               {isMonthLoading ? (
-                <label>
+                <label className="label-text-bold">
                   <Skeleton style={{ width: '90px', height: '16px', marginBottom: '4px' }} />
                 </label>
               ) : (
-                <label>Invoice Month</label>
+                <label className="label-text-bold">Invoice Month</label>
               )}
               {isMonthLoading ? (
                 <Skeleton style={{ width: '200px', height: '32px' }} />
@@ -1257,11 +1315,11 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
 
             <div className="dropdown-group">
               {isInvoiceLoading ? (
-                <label>
+                <label className="label-text-bold">
                   <Skeleton style={{ width: '65px', height: '16px', marginBottom: '4px' }} />
                 </label>
               ) : (
-                <label>Invoice #</label>
+                <label className="label-text-bold">Invoice #</label>
               )}
               {isInvoiceLoading ? (
                 <Skeleton style={{ width: '200px', height: '32px' }} />
@@ -1297,7 +1355,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
             </>
           ) : (
             <>
-              <h3>Invoice Breakdown by Product Category</h3>
+              <p className="chart-title">Invoice Breakdown by Product Category</p>
               {breakdownChartData && breakdownChartData.length > 0 ? (
                 <Chart onRefresh={() => {}} seriesColors={getInsightThemeColors()}>
                   <BasicGroupedChart
@@ -1392,24 +1450,28 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         </div>
       </div>
 
+      </div>
+      
+
+      <div className="invoices-container">
       {/* Additional Filters Section */}
       <div className="invoices-additional-filters">
         {isFiltersLoading ? (
           <div className="dropdown-row">
             <div className="dropdown-group">
-              <label>
+              <label className="label-text-bold">
                 <Skeleton style={{ width: '120px', height: '16px', marginBottom: '4px' }} />
               </label>
               <Skeleton style={{ width: '200px', height: '32px' }} />
             </div>
             <div className="dropdown-group">
-              <label>
+              <label className="label-text-bold">
                 <Skeleton style={{ width: '100px', height: '16px', marginBottom: '4px' }} />
               </label>
               <Skeleton style={{ width: '200px', height: '32px' }} />
             </div>
             <div className="dropdown-group">
-              <label>
+              <label className="label-text-bold">
                 <Skeleton style={{ width: '110px', height: '16px', marginBottom: '4px' }} />
               </label>
               <Skeleton style={{ width: '200px', height: '32px' }} />
@@ -1423,7 +1485,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         ) : (
           <div className="dropdown-row">
             <div className="dropdown-group">
-              <label>Product Category:</label>
+              <label className="label-text-bold">Product Category</label>
               <MultiSelect
                 data={productCategories}
                 textField="label"
@@ -1437,7 +1499,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
             </div>
 
             <div className="dropdown-group">
-              <label>Product Name:</label>
+              <label className="label-text-bold">Product Name</label>
               <MultiSelect
                 data={productNames}
                 textField="label"
@@ -1451,7 +1513,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
             </div>
 
             <div className="dropdown-group">
-              <label>Subscription ID:</label>
+              <label className="label-text-bold">Subscription ID</label>
               <MultiSelect
                 data={subscriptionIds}
                 textField="label"
@@ -1488,7 +1550,6 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
           </>
         ) : (
           <>
-            <h3>Invoice Details</h3>
             <Grid
               data={gridData}
               sortable={true}
@@ -1513,5 +1574,6 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       </div>
 
     </div>
+    </>
   );
 }

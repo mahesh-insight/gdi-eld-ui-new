@@ -3,13 +3,13 @@
 /* Ensure chart components use insight theme colors */
 .k-chart {
   /* Use CSS custom properties from insight theme */
-  --chart-color-0: var(--kendo-color-tertiary, #007996);
-  --chart-color-1: var(--kendo-color-primary, #ff6358);
-  --chart-color-2: var(--kendo-color-secondary, #666666);
-  --chart-color-3: var(--kendo-color-info, #0058e9);
-  --chart-color-4: var(--kendo-color-warning, #ffc000);
-  --chart-color-5: var(--kendo-color-success, #37b400);
-  --chart-color-6: var(--kendo-color-error, #f31700);
+  --chart-color-0: #007996;
+  --chart-color-1: #ae0a46;
+  --chart-color-2: #666666;
+  --chart-color-3: #0058e9;
+  --chart-color-4: #ffc000;
+  --chart-color-5: #37b400;
+  --chart-color-6: #f31700;
 }
 
 /* Override any default series colors with theme colors */
