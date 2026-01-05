@@ -40,3 +40,6 @@
 .k-chart .k-chart-surface .k-chart-series .k-chart-series-6 .k-chart-series-element {
   fill: var(--chart-color-6) !important;
 }
+.k-grid-download {
+  padding: 7px 10px !important;
+}

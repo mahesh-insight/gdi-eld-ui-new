@@ -37,21 +37,16 @@ export const CurrencyFormatter = (props) => {
   // Format the currency value using Kendo's intl formatter
   const formattedValue = intl?.formatNumber(value, 'c') || `$${value.toFixed(2)}`;
 
-  // Get currency symbol from the formatted value
-  // The 'c' format already includes the currency symbol
-  const displayValue = showCurrencyCode 
-    ? `${currency} ${formattedValue}`
-    : formattedValue;
-
   const alignmentClass = alignRight ? 'align-right' : 'align-left';
 
   return (
     <Tooltip anchorElement="target" position="auto">
       <span 
         className={`metric-value ${alignmentClass}`}
-        title={title || displayValue}
+        title={title || (showCurrencyCode ? `${currency} ${formattedValue}` : formattedValue)}
       >
-        {displayValue}
+        {showCurrencyCode && <>{currency} </>}
+        <strong>{formattedValue}</strong>
       </span>
     </Tooltip>
   );

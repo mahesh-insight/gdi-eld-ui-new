@@ -3,6 +3,7 @@ import { ButtonGroup, Button } from "@progress/kendo-react-buttons";
 import { SvgIcon } from "@progress/kendo-react-common";
 import * as svgIcons from "@progress/kendo-svg-icons";
 import { DropDownList } from "@progress/kendo-react-dropdowns";
+import "./ChartTitleAndButtons.css";
 
 const ChartTitleAndButtons = ({ 
   title, 
@@ -25,30 +26,24 @@ const ChartTitleAndButtons = ({
     // Add your period change logic here
   };
 
+  const isDashboard = pageType === 'dashboard';
+  const containerClass = `chart-title-container ${isDashboard ? 'dashboard' : 'default'}`;
+  const titleWrapperClass = `chart-title-wrapper ${isDashboard ? 'dashboard' : ''}`;
+  const controlsClass = `chart-controls ${isDashboard ? 'dashboard' : ''}`;
+
   return (
-    <div style={{ 
-      display: 'flex', 
-      justifyContent: 'space-between', 
-      alignItems: 'center', 
-      marginBottom: '20px' 
-    }}>
-      <div>
-        <p style={{ 
-          textAlign: 'center', 
-          fontWeight: 'bold',
-          margin: 0,
-          fontSize: '14px'
-        }}>
+    <div className={containerClass}>
+      <div className={titleWrapperClass}>
+        <p className="chart-title">
           {title}
         </p>
       </div>
-      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+      <div className={controlsClass}>
         {dropDownList && (
           <DropDownList
             data={timePeriodsToUse}
             value={selectedPeriod}
             onChange={handlePeriodChange}
-            style={{ width: '150px' }}
           />
         )}
         <ButtonGroup>
@@ -56,6 +51,7 @@ const ChartTitleAndButtons = ({
             <Button
               key={type}
               togglable={true}
+              className="k-grid-download"
               selected={trendingChartType === type}
               onClick={() => handleChartTypeChange(type)}
               title={buttonTitle}

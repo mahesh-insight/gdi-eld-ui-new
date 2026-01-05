@@ -998,11 +998,8 @@ const WidgetColumns = () => {
 
   // Azure widget
   if (isAzureSpendWidgetDataState) {
-    const handleAzureSpendChartTypeChange = async (newType) => {
+    const handleAzureSpendChartTypeChange = (newType) => {
       setAzureSpendTrendingChartType(newType);
-      setAzureSpendChartTypeLoading(true);
-      await refreshChartType("");
-      setAzureSpendChartTypeLoading(false);
     };
 
     contentWidgetItems.push(

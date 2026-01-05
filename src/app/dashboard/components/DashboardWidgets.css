@@ -78,10 +78,13 @@
 
 .metric-value {
   font-size: 14px;
-  font-weight: bold;
   color: #ae0a46;
   letter-spacing: -0.3px;
   display: inline-block;
+
+  strong{
+    font-weight: bold;
+  }
 }
 
 .metric-value.align-right {
@@ -152,41 +155,41 @@
 
 .alert {
   display: flex;
-  align-items: flex-start;
-  padding: 5px 0px;
-  border-radius: 4px;
-  font-size: 12px;
+  align-items: center;
+  font-size: 14px;
   line-height: 1.5;
 }
 
 .alert-icon {
   margin-right: 8px;
-  font-size: 14px;
+  font-size: 22px;
   flex-shrink: 0;
 }
 
 .alert-message {
   color: inherit;
-  line-height: 1.6;
-  font-size: 12px;
 }
 
 .widget-counts {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
-  margin-top: 16px;
+  margin-top: 30px;
 }
 
 .count-item {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 14px 10px;
-  background: #fafafa;
-  border-radius: 4px;
-  border: 1px solid #e8e8e8;
+  padding: 0px 10px;
+}
+.vertical-pink {
+	border-left: 7px solid #9f177a;
+}
+.vertical-gray {
+  border-left: 7px solid #cbc4c3;
+}
+.vertical-blue{
+  border-left: 7px solid #007996;
 }
 
 .count-label {
@@ -200,8 +203,6 @@
 
 .count-value {
   font-size: 22px;
-  font-weight: 600;
-  color: #6c3fb5;
   letter-spacing: -0.5px;
 }
 
@@ -215,16 +216,12 @@
   font-size: 13px;
   font-weight: 600;
   color: #333;
-  text-align: left;
+  text-align: center;
 }
 
 /* Override ChartTitleAndButtons styling for dashboard */
-.widget-chart > div[style] {
-  margin-bottom: 16px !important;
-}
-
 .widget-chart > div[style] > div:first-child p {
-  text-align: left !important;
+  text-align: center !important;
   font-size: 13px !important;
   font-weight: 600 !important;
   color: #333 !important;

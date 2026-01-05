@@ -1,0 +1,43 @@
+.chart-title-container {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.chart-title-container.dashboard {
+  justify-content: center;
+}
+
+.chart-title-container.default {
+  justify-content: space-between;
+}
+
+.chart-title-wrapper {
+  flex: initial;
+}
+
+.chart-title-wrapper.dashboard {
+  flex: 1;
+}
+
+.chart-title {
+  text-align: center;
+  margin: 0;
+  font-size: 14px;
+}
+
+.chart-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  position: static;
+  right: auto;
+}
+
+.chart-controls.dashboard {
+  right: 0;
+}
+
+.chart-controls .k-dropdown {
+  width: 150px;
+}

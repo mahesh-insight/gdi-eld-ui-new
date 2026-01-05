@@ -13,6 +13,12 @@ import { ChangeLabel } from '@/common/ChangeLabel';
 import { formatMonthYear } from '@/lib/utils';
 import { ArrowUpIcon, ArrowDownIcon } from '@/lib/svg/svgList';
 
+const iconPaths = {
+  warning: "M256 32 0 480h512zm-32 160h64v160h-64zm0 256v-64h64v64z",
+  error: "M256 32C132.3 32 32 132.3 32 256s100.3 224 224 224 224-100.3 224-224S379.7 32 256 32m-32 352L96 256l45-45 83 83 147-147 45 45z",
+  info: "M256 480c123.7 0 224-100.3 224-224S379.7 32 256 32 32 132.3 32 256s100.3 224 224 224m-32-352h64v160h-64zm0 256v-64h64v64z",
+};
+
 export default function DashboardWidgets({ ssrData, mode }) {
   const widgetFlags = useSelector(state => state.dashboard.widgetFlags);
   const widgets = ssrData?.widgets || {};
@@ -22,6 +28,22 @@ export default function DashboardWidgets({ ssrData, mode }) {
   const [m365ChartType, setM365ChartType] = useState('column');
   const [msCloudChartType, setMsCloudChartType] = useState('column');
   const [adobeChartType, setAdobeChartType] = useState('column');
+
+  // Chart type change handlers with logging
+  const handleAzureChartTypeChange = useCallback((newType) => {
+    console.log('🔄 Azure chart type changing to', newType);
+    setAzureChartType(newType);
+  }, []);
+
+  const handleMsCloudChartTypeChange = useCallback((newType) => {
+    console.log('🔄 MS Cloud chart type changing to', newType);
+    setMsCloudChartType(newType);
+  }, []);
+
+  const handleAdobeChartTypeChange = useCallback((newType) => {
+    console.log('🔄 Adobe chart type changing to', newType);
+    setAdobeChartType(newType);
+  }, []);
 
   const columnLineAreaOptions = [
     { type: 'column', icon: 'chartColumnStackedIcon', title: 'Column chart' },
@@ -34,12 +56,11 @@ export default function DashboardWidgets({ ssrData, mode }) {
     hasSSRData: !!ssrData,
     widgetKeys: Object.keys(widgets),
     widgetFlags,
-    rawAzureSpend: widgets.azureSpend,
-    azureSpendHasData: !!widgets.azureSpend?.data,
-    azureSpendDataKeys: widgets.azureSpend?.data ? Object.keys(widgets.azureSpend.data) : [],
-    azureCurrentEstimated: widgets.azureSpend?.data?.currentEstimatedUsage,
-    m365Data: widgets.m365?.data,
-    msCloudData: widgets.msCloud?.data
+    chartTypes: {
+      azure: azureChartType,
+      msCloud: msCloudChartType,
+      adobe: adobeChartType
+    }
   });
   
   const formatCurrency = (value, currencyCode) => {
@@ -100,7 +121,7 @@ export default function DashboardWidgets({ ssrData, mode }) {
               </MetricLabel>
               <CurrencyFormatter
                 title={`Invoiced usage for ${formatMonthYear(latestBilledUsageDate)}`}
-                value={latestBilledUsage}
+                value={latestAzureUsage}
                 alignRight={true}
                 showCurrencyCode={true}
                 currency={currencyCode}
@@ -114,7 +135,7 @@ export default function DashboardWidgets({ ssrData, mode }) {
               </MetricLabel>
               <CurrencyFormatter
                 title={`Total Azure Spend for ${formatMonthYear(latestInvoiceDate)}`}
-                value={latestAzureUsage}
+                value={latestBilledUsage}
                 alignRight={true}
                 showCurrencyCode={true}
                 currency={currencyCode}
@@ -140,15 +161,14 @@ export default function DashboardWidgets({ ssrData, mode }) {
           <ChartTitleAndButtons
             title="Trending 6 Month Spend"
             trendingChartType={azureChartType}
-            handleChartTypeChange={(newType) => setAzureChartType(newType)}
+            handleChartTypeChange={handleAzureChartTypeChange}
             chartOptions={columnLineAreaOptions}
             dropDownList={false}
             pageType="dashboard"
           />
           {data.latestInvoiceTrend?.chartData && data.latestInvoiceTrend.chartData.length > 0 ? (
-            <Chart onRefresh={() => {}} className="dashboard-chart">
+            <Chart key={azureChartType} onRefresh={() => {}} className="dashboard-chart">
               <BasicGroupedChart
-                key={azureChartType}
                 chartType={azureChartType}
                 data={data.latestInvoiceTrend.chartData}
                 groupedByField="label"
@@ -158,6 +178,8 @@ export default function DashboardWidgets({ ssrData, mode }) {
                 valueFormat="c0"
                 legendPosition="bottom"
                 showLabels={false}
+                stacked={azureChartType === 'column'}
+                yAxisLabelStep={2}
                 height={250}
               />
             </Chart>
@@ -195,20 +217,25 @@ export default function DashboardWidgets({ ssrData, mode }) {
         <div className="widget-body">
           <div className="widget-metric">
             <div className="widget-metric-row">
-              <MetricLabel title={`Latest billed M365 invoice for ${formatDate(latestBillableItemDate)}`}>
+              <MetricLabel title={`Invoiced M365 for ${formatDate(latestBillableItemDate)}`}>
                 Latest Invoice
               </MetricLabel>
-              <span className="metric-value">{formatCurrency(cloudLicenseTotalSpend, currencyCode)}</span>
+              <CurrencyFormatter
+                title={`Invoiced M365 for ${formatMonthYear(latestBillableItemDate)}`}
+                value={cloudLicenseTotalSpend}
+                alignRight={true}
+                showCurrencyCode={true}
+                currency={currencyCode}
+              />
             </div>
-            <span className="metric-date">{formatDate(latestBillableItemDate)}</span>
           </div>
           {latestChange !== 0 && (
             <div className="widget-change">
               <span className={`change-indicator ${latestChange > 0 ? 'up' : 'down'}`}>
-                {latestChange > 0 ? <ArrowUpIcon /> : <ArrowDownIcon />}
+                {latestChange > 0 ? <ArrowUpIcon className="svg-style" /> : <ArrowDownIcon className="svg-style"/>}
               </span>
               <ChangeLabel
-                title={`Difference in spend on ${formatMonthYear(latestBillableItemDate)} invoice from the previous month`}
+                title={`Difference in spend on ${formatMonthYear(latestBillableItemDate)} M365 invoice from the previous month`}
                 value={Math.abs(latestChange)}
                 currency={currencyCode}
                 percentage={latestChangePercent}
@@ -221,7 +248,13 @@ export default function DashboardWidgets({ ssrData, mode }) {
             <div className="widget-alerts">
               {subscriptionExpirationSummary.map((alert, idx) => (
                 <div key={idx} className={`alert alert-${alert.iconType}`}>
-                  <span className="alert-icon">{alert.iconType === 'error' ? '🔴' : alert.iconType === 'warning' ? '⚠️' : 'ℹ️'}</span>
+                  <div className="alert-icon">
+                    <svg viewBox="0 0 512 512" fill={alert.iconStatus} width="1em" height="1em">
+                      {iconPaths[alert.iconType] && (
+                        <path d={iconPaths[alert.iconType]} />
+                      )}
+                    </svg>
+                  </div>
                   <span className="alert-message">{alert.message}</span>
                 </div>
               ))}
@@ -229,12 +262,16 @@ export default function DashboardWidgets({ ssrData, mode }) {
           )}
           
           <div className="widget-counts">
-            {totals.map((item, idx) => (
-              <div key={idx} className="count-item">
-                <span className="count-label">{item.label}</span>
-                <span className="count-value">{item.value}</span>
-              </div>
-            ))}
+            {totals.map((item, idx) => {
+              const colorClasses = ['vertical-pink', 'vertical-blue', 'vertical-gray'];
+              const colorClass = colorClasses[idx] || 'vertical-gray';
+              return (
+                <div key={idx} className={`count-item ${colorClass}`}>
+                  <span className="count-label">{item.label}</span>
+                  <span className="count-value">{item.value}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -263,17 +300,22 @@ export default function DashboardWidgets({ ssrData, mode }) {
         <div className="widget-body">
           <div className="widget-metric">
             <div className="widget-metric-row">
-              <MetricLabel title={`Latest Microsoft Cloud invoice for ${formatDate(latestBillableItemDate)}`}>
+              <MetricLabel title={`Invoice for ${formatDate(latestBillableItemDate)}`}>
                 Latest Insight Invoice
               </MetricLabel>
-              <span className="metric-value">{formatCurrency(billableItemTotal, currencyCode)}</span>
+              <CurrencyFormatter
+                title={`Invoice for ${formatMonthYear(latestBillableItemDate)}`}
+                value={billableItemTotal}
+                alignRight={true}
+                showCurrencyCode={true}
+                currency={currencyCode}
+              />
             </div>
-            <span className="metric-date">{formatDate(latestBillableItemDate)}</span>
           </div>
           {latestChange !== 0 && (
             <div className="widget-change">
               <span className={`change-indicator ${latestChange > 0 ? 'up' : 'down'}`}>
-                {latestChange > 0 ? <ArrowUpIcon /> : <ArrowDownIcon />}
+                {latestChange > 0 ? <ArrowUpIcon className="svg-style" /> : <ArrowDownIcon className="svg-style"/>}
               </span>
               <ChangeLabel
                 title={`Difference in spend on ${formatMonthYear(latestBillableItemDate)} invoice from the previous month`}
@@ -289,15 +331,14 @@ export default function DashboardWidgets({ ssrData, mode }) {
           <ChartTitleAndButtons
             title="Trending 6 Month Spend"
             trendingChartType={msCloudChartType}
-            handleChartTypeChange={(newType) => setMsCloudChartType(newType)}
+            handleChartTypeChange={handleMsCloudChartTypeChange}
             chartOptions={columnLineAreaOptions}
             dropDownList={false}
             pageType="dashboard"
           />
           {data.billableItemTrend?.chartData && data.billableItemTrend.chartData.length > 0 ? (
-            <Chart onRefresh={() => {}} className="dashboard-chart">
+            <Chart key={msCloudChartType} onRefresh={() => {}} className="dashboard-chart">
               <BasicGroupedChart
-                key={msCloudChartType}
                 chartType={msCloudChartType}
                 data={data.billableItemTrend.chartData}
                 groupedByField="label"
@@ -307,7 +348,8 @@ export default function DashboardWidgets({ ssrData, mode }) {
                 valueFormat="c0"
                 legendPosition="bottom"
                 showLabels={false}
-                stacked={true}
+                stacked={msCloudChartType === 'column'}
+                yAxisLabelStep={2}
                 height={250}
               />
             </Chart>
@@ -341,17 +383,22 @@ export default function DashboardWidgets({ ssrData, mode }) {
         <div className="widget-body">
           <div className="widget-metric">
             <div className="widget-metric-row">
-              <MetricLabel title={`Latest Adobe invoice for ${formatDate(latestBillableItemDate)}`}>
+              <MetricLabel title={`Invoice for ${formatDate(latestBillableItemDate)}`}>
                 Latest Insight Invoice
               </MetricLabel>
-              <span className="metric-value">{formatCurrency(totalSpend, currencyCode)}</span>
+               <CurrencyFormatter
+                title={`Invoice for ${formatMonthYear(latestBillableItemDate)}`}
+                value={totalSpend}
+                alignRight={true}
+                showCurrencyCode={true}
+                currency={currencyCode}
+              />
             </div>
-            <span className="metric-date">{formatDate(latestBillableItemDate)}</span>
           </div>
           {latestChange !== 0 && (
             <div className="widget-change">
               <span className={`change-indicator ${latestChange > 0 ? 'up' : 'down'}`}>
-                {latestChange > 0 ? <ArrowUpIcon /> : <ArrowDownIcon />}
+                {latestChange > 0 ? <ArrowUpIcon className="svg-style" /> : <ArrowDownIcon className="svg-style"/>}
               </span>
               <ChangeLabel
                 title={`Difference in spend on ${formatMonthYear(latestBillableItemDate)} invoice from the previous month`}
@@ -367,15 +414,14 @@ export default function DashboardWidgets({ ssrData, mode }) {
           <ChartTitleAndButtons
             title="Trending 6 Month Spend"
             trendingChartType={adobeChartType}
-            handleChartTypeChange={(newType) => setAdobeChartType(newType)}
+            handleChartTypeChange={handleAdobeChartTypeChange}
             chartOptions={columnLineAreaOptions}
             dropDownList={false}
             pageType="dashboard"
           />
           {data.billableItemTrend?.chartData && data.billableItemTrend.chartData.length > 0 ? (
-            <Chart onRefresh={() => {}} className="dashboard-chart">
+            <Chart key={adobeChartType} onRefresh={() => {}} className="dashboard-chart">
               <BasicGroupedChart
-                key={adobeChartType}
                 chartType={adobeChartType}
                 data={data.billableItemTrend.chartData}
                 groupedByField="label"
@@ -385,6 +431,8 @@ export default function DashboardWidgets({ ssrData, mode }) {
                 valueFormat="c0"
                 legendPosition="bottom"
                 showLabels={false}
+                stacked={adobeChartType === 'column'}
+                yAxisLabelStep={2}
                 height={250}
               />
             </Chart>
@@ -435,7 +483,7 @@ export default function DashboardWidgets({ ssrData, mode }) {
           {latestChange !== 0 && (
             <div className="widget-change">
               <span className={`change-indicator ${latestChange > 0 ? 'up' : 'down'}`}>
-                {latestChange > 0 ? <ArrowUpIcon /> : <ArrowDownIcon />}
+                {latestChange > 0 ? <ArrowUpIcon className="svg-style" /> : <ArrowDownIcon className="svg-style" />}
               </span>
               <ChangeLabel
                 title={`Difference in spend on ${formatMonthYear(latestBillableItemDate)} invoice from the previous month`}
