@@ -163,7 +163,7 @@
 .alert-icon {
   margin-right: 8px;
   font-size: 22px;
-  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .alert-message {
