@@ -7,6 +7,7 @@ import {
   initializeAuth
 } from '../store/authSlice';
 import { setProperties } from '../store/uiSlice';
+import './HomePageClient.css';
 
 export default function HomePageClient({ authCode, soldTo, salesOrg }) {
   const [uiProperties, setUiProperties] = useState(null);
@@ -335,29 +336,9 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
   // Show loading state until we have both properties AND AUTH_URL
   if (uiPropertiesLoading || !activeUiProperties || !AUTH_URL) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column',
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        minHeight: '100vh',
-        gap: '20px'
-      }}>
-        <div style={{ 
-          border: '4px solid #f3f3f3',
-          borderTop: '4px solid #3498db',
-          borderRadius: '50%',
-          width: '50px',
-          height: '50px',
-          animation: 'spin 1s linear infinite'
-        }} />
-        <div style={{ color: '#666', fontSize: '16px' }}>Loading configuration...</div>
-        <style>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
+      <div className="loading-container">
+        <div className="loading-spinner" />
+        <div className="loading-text">Loading configuration...</div>
       </div>
     );
   }
@@ -365,7 +346,7 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
   // Show error if UI properties failed to load (only after loading completes)
   if (uiPropertiesError) {
     return (
-      <div style={{ padding: '50px', textAlign: 'center', color: 'red' }}>
+      <div className="error-container">
         Error: Failed to load configuration. Please ensure you are connected to the corporate network/VPN.
         <br />
         <small>{uiPropertiesError}</small>
@@ -454,26 +435,54 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
   // Don't render anything until Redux is rehydrated to prevent flash
   if (!isRehydrated) {
     return (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        padding: '20px',
-        backgroundColor: '#f5f5f5'
-      }}>
-        <h1 style={{ marginBottom: '30px', color: '#333' }}>Welcome to CCR</h1>
-        {/* Show login button but make it non-functional until rehydrated */}
-        <div style={{
-          padding: '12px 24px',
-          backgroundColor: '#007bff',
-          color: 'white',
-          borderRadius: '4px',
-          fontSize: '16px',
-          opacity: 0.7
-        }}>
-          Login
+      <div className="login-content">
+        {/* Left Section */}
+        <div className="left-section">
+          <h1 className="page-title">
+            Cloud Consumption Reporting
+          </h1>
+          <p className="page-description">
+            Insight fully understands the increasingly vital role software
+                  plays in the IT environment of organizations. Insight has
+                  positioned itself as one of the world's largest software
+                  resellers, with the ability and expertise to deliver software
+                  solutions at a global level. In addition to our comprehensive
+                  licensing expertise, Insight offers a range of Software
+                  services. These center largely around Software Asset
+                  Management (SAM), a term that can be found on the agenda of
+                  almost every organization. Effective investment in SAM enables
+                  clients to gain control of their software licenses, delivering
+                  transparency and ensuring compliancy, while creating potential
+                  cost savings.
+          </p>
+          
+          <p style={{
+            fontSize: '14px',
+            color: '#666',
+            marginBottom: '40px',
+            lineHeight: '1.6'
+          }}>
+            The Enterprise License Dashboard service is reliant on the
+                  quality and accuracy of the data provided by the client and/or
+                  client installed inventory tools. As such, the Enterprise
+                  License Dashboard service does not guarantee that the client
+                  is appropriately licensed for all the software in use.
+                  Furthermore, the reporting produced by the Enterprise License
+                  Dashboard service does not constitute proof of the client’s
+                  ownership of or rights to the software licenses concerned.
+                  Actual proof of ownership is dependent upon each software
+                  publisher’s stipulated requirements
+          </p>
+        </div>
+        
+        {/* Right Section */}
+        <div className="right-section">
+          <h2 className="sign-in-title">
+            Sign In
+          </h2>
+          <div className="sign-in-placeholder">
+            Sign-in to my account
+          </div>
         </div>
       </div>
     );
@@ -522,35 +531,58 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
 
   // Always show the login screen with conditional overlay
   return (
-    <div style={{ position: 'relative', minHeight: '100vh' }}>
+    <div className="login-page">
       {/* Main Login Screen */}
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        padding: '20px',
-        backgroundColor: '#f5f5f5',
-        filter: showLoader ? 'brightness(0.7)' : 'none',
-        pointerEvents: showLoader ? 'none' : 'auto',
-        transition: 'filter 0.3s ease'
-      }}>
-        <h1 style={{ marginBottom: '30px', color: '#333' }}>Welcome to CCR</h1>
-        <div style={{ display: 'flex', gap: '10px', flexDirection: 'column', alignItems: 'center' }}>
+      <div className={`login-content ${showLoader ? 'loading' : ''}`}>
+        {/* Left Section */}
+        <div className="left-section">
+          <h1 className="page-title">
+            Cloud Consumption Reporting
+          </h1>
+          <p className="page-description">
+            Insight fully understands the increasingly vital role software
+                  plays in the IT environment of organizations. Insight has
+                  positioned itself as one of the world's largest software
+                  resellers, with the ability and expertise to deliver software
+                  solutions at a global level. In addition to our comprehensive
+                  licensing expertise, Insight offers a range of Software
+                  services. These center largely around Software Asset
+                  Management (SAM), a term that can be found on the agenda of
+                  almost every organization. Effective investment in SAM enables
+                  clients to gain control of their software licenses, delivering
+                  transparency and ensuring compliancy, while creating potential
+                  cost savings.
+          </p>
+          
+          <p style={{
+            fontSize: '14px',
+            color: '#666',
+            marginBottom: '40px',
+            lineHeight: '1.6'
+          }}>
+            The Enterprise License Dashboard service is reliant on the
+                  quality and accuracy of the data provided by the client and/or
+                  client installed inventory tools. As such, the Enterprise
+                  License Dashboard service does not guarantee that the client
+                  is appropriately licensed for all the software in use.
+                  Furthermore, the reporting produced by the Enterprise License
+                  Dashboard service does not constitute proof of the client’s
+                  ownership of or rights to the software licenses concerned.
+                  Actual proof of ownership is dependent upon each software
+                  publisher’s stipulated requirements
+          </p>
+        </div>
+        
+        {/* Right Section */}
+        <div className="right-section">
+          <h2 className="sign-in-title">
+            Sign In
+          </h2>
           <a 
             href={buildAuthURL()}
-            style={{
-              padding: '12px 24px',
-              backgroundColor: '#007bff',
-              color: 'white',
-              textDecoration: 'none',
-              borderRadius: '4px',
-              fontSize: '16px',
-              opacity: showLoader ? 0.5 : 1
-            }}
+            className={`sign-in-link ${showLoader ? 'disabled' : ''}`}
           >
-            Login
+            Sign-in to my account
           </a>
           
           {/* Debug controls - show if there's an actual problem that needs debugging */}
@@ -560,24 +592,16 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
              sessionStorage.getItem(`processed_${authCode}`) && 
              (Date.now() - parseInt(sessionStorage.getItem(`processed_${authCode}`))) > 10000) ||
             (isAuthenticated && user && accessToken && authCode && !isProcessing)) && (
-            <div style={{ marginTop: '20px', textAlign: 'center' }}>
-              <p style={{ fontSize: '12px', color: '#666', marginBottom: '10px' }}>
+            <div className="debug-container">
+              <p className="debug-message">
                 Debug: Authentication issue detected
                 <br />
                 Auth Code: {authCode ? authCode.substring(0, 8) + '...' : 'None'}
               </p>
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <div className="debug-buttons">
                 <button
                   onClick={clearAuthState}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: '#dc3545',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    cursor: 'pointer'
-                  }}
+                  className="debug-button clear"
                 >
                   Clear Auth State & Retry
                 </button>
@@ -589,15 +613,7 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
                       sessionStorage.removeItem(`processed_${authCode}`);
                       processAuthCode(authCode, soldTo, salesOrg);
                     }}
-                    style={{
-                      padding: '8px 16px',
-                      backgroundColor: '#28a745',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      fontSize: '12px',
-                      cursor: 'pointer'
-                    }}
+                    className="debug-button force"
                   >
                     Force Process Auth Code
                   </button>
@@ -610,59 +626,10 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
 
       {/* Loading Overlay */}
       {showLoader && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '40px',
-            borderRadius: '8px',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-            textAlign: 'center',
-            maxWidth: '400px',
-            width: '90%'
-          }}>
-            {/* Spinner */}
-            <div style={{
-              width: '40px',
-              height: '40px',
-              border: '4px solid #f3f3f3',
-              borderTop: '4px solid #007bff',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite',
-              margin: '0 auto 20px auto'
-            }}></div>
-            
-            
-            <p style={{ 
-              color: '#666', 
-              margin: 0,
-              fontSize: '14px',
-              lineHeight: '1.4'
-            }}>
-              {loaderMessage}
-            </p>
-          </div>
+        <div className="loading-overlay">
+          <div className="auth-spinner"></div>
         </div>
       )}
-
-      {/* CSS for spinner animation */}
-      <style jsx>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 }
