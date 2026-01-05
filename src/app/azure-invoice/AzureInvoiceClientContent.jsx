@@ -19,6 +19,10 @@ import { fetchConsolidatedAzureInvoiceData } from './actions';
 import './AzureInvoice.css';
 import './azure-invoice.css';
 import { useTranslation } from 'react-i18next';
+import { Tooltip } from '@progress/kendo-react-tooltip';
+import { ArrowUpIcon, ArrowDownIcon, ArcheraIcon, ImportIcon } from '@/lib/svg/svgList';
+import { infoCircleIcon } from '@progress/kendo-svg-icons';
+import { SvgIcon } from '@progress/kendo-react-common';
 
 export default function AzureInvoiceClientContent(props) {
   const { mode, initialData, userContext, ssrPerformance } = props;
@@ -77,8 +81,6 @@ export default function AzureInvoiceClientContent(props) {
   // Chart type states
   const [trendingChartType, setTrendingChartType] = useState('column');
   const [topNExpensiveProductsChartType, setTopNExpensiveProductsChartType] = useState('bar');
-  const [chartTypeLoading, setChartTypeLoading] = useState(false);
-  const [topNExpensiveProductsChartTypeLoading, setTopNExpensiveProductsChartTypeLoading] = useState(false);
   const [trendingPeriod, setTrendingPeriod] = useState('last6months');
   const [refreshChart, setRefreshChart] = useState(true);
   
@@ -263,16 +265,14 @@ export default function AzureInvoiceClientContent(props) {
   };
 
   // Chart type handlers
-  const handleChartTypeChange = useCallback(async (newType) => {
-    setChartTypeLoading(true);
+  const handleChartTypeChange = useCallback((newType) => {
+    console.log('🔄 Trending chart type changing to', newType);
     setTrendingChartType(newType);
-    setTimeout(() => setChartTypeLoading(false), 300);
   }, []);
 
-  const handleTopNExpensiveProductsChartTypeChange = useCallback(async (newType) => {
-    setTopNExpensiveProductsChartTypeLoading(true);
+  const handleTopNExpensiveProductsChartTypeChange = useCallback((newType) => {
+    console.log('🔄 Top products chart type changing to', newType);
     setTopNExpensiveProductsChartType(newType);
-    setTimeout(() => setTopNExpensiveProductsChartTypeLoading(false), 300);
   }, []);
 
   const handleTrendingPeriodChange = useCallback((event) => {
@@ -581,11 +581,11 @@ export default function AzureInvoiceClientContent(props) {
         <div className="azure-invoice-container">
           <div className="azure-invoice-header">
             <div className="azure-invoice-header-top">
-              <h1 className="azure-invoice-title">Azure Invoice</h1>
+              <h1 className="azure-invoice-title">Azure Plan Invoice</h1>
               
               <div className="azure-invoice-kpi-cards">
-                {/* Invoice Total */}
-                <div className="azure-invoice-kpi-card invoice-total">
+                {/* Archera Link */}
+                <div className="azure-invoice-kpi-card archera-link">
                   {isLoadingSummary ? (
                     <>
                       <div className="skeleton-loader" style={{ height: '18px', width: '100px', marginBottom: '12px' }}></div>
@@ -593,7 +593,33 @@ export default function AzureInvoiceClientContent(props) {
                     </>
                   ) : (
                     <>
-                      <div className="azure-invoice-kpi-label">Invoice Total</div>
+                      <div className="azure-invoice-kpi-label">
+                        <Tooltip anchorElement="target" position="right">
+                          <span title="Insight has partnered with Archera for this reporting. You can purchase Archera for free on buy.insight.com">
+                            <ArcheraIcon className="archera-icon" />
+                          </span>
+                        </Tooltip>
+                        Archera RI Reporting
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Invoice Total */}
+                <div className="azure-invoice-kpi-card invoice-total">
+                  {isLoadingSummary ? (
+                    <>
+                      <div className="skeleton-loader skeleton-kpi-label"></div>
+                      <div className="skeleton-loader skeleton-kpi-value"></div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="azure-invoice-kpi-label">
+                        Invoice Total
+                        <Tooltip anchorElement="target" position="auto">
+                          <SvgIcon icon={infoCircleIcon} size="small" className="info-icon" title="Taxes are not included in totals." />
+                        </Tooltip>
+                      </div>
                       <div className="azure-invoice-kpi-value invoice-total">
                         ${invoiceTotal.toFixed(2)}
                       </div>
@@ -605,14 +631,18 @@ export default function AzureInvoiceClientContent(props) {
                 <div className="azure-invoice-kpi-card monthly-difference">
                   {isLoadingSummary ? (
                     <>
-                      <div className="skeleton-loader" style={{ height: '18px', width: '160px', marginBottom: '12px' }}></div>
-                      <div className="skeleton-loader" style={{ height: '36px', width: '180px' }}></div>
+                      <div className="skeleton-loader skeleton-kpi-label-wide"></div>
+                      <div className="skeleton-loader skeleton-kpi-value-wide"></div>
                     </>
                   ) : (
                     <>
                       <div className="azure-invoice-kpi-label">
                         Monthly Difference
-                        {monthlyDifference > 0 ? " ↑" : monthlyDifference < 0 ? " ↓" : ""}
+                        {monthlyDifference > 0 ? (
+                          <ArrowUpIcon className="svg-style arrow-icon" />
+                        ) : monthlyDifference < 0 ? (
+                          <ArrowDownIcon className="svg-style arrow-icon" />
+                        ) : null}
                       </div>
                       <div className="azure-invoice-kpi-value monthly-difference">
                         ${Math.abs(monthlyDifference).toFixed(2)}
@@ -626,8 +656,8 @@ export default function AzureInvoiceClientContent(props) {
                 <div className="azure-invoice-kpi-card invoice-credits">
                   {isLoadingCredits ? (
                     <>
-                      <div className="skeleton-loader" style={{ height: '18px', width: '120px', marginBottom: '12px' }}></div>
-                      <div className="skeleton-loader" style={{ height: '36px', width: '140px' }}></div>
+                      <div className="skeleton-loader skeleton-kpi-label-credits"></div>
+                      <div className="skeleton-loader skeleton-kpi-value"></div>
                     </>
                   ) : (
                     <>
@@ -643,7 +673,7 @@ export default function AzureInvoiceClientContent(props) {
             
             <div className="azure-invoice-header-bottom">
               <div className="azure-invoice-month-selector">
-                <label className="azure-invoice-month-label">Invoice Month</label>
+                <label className="azure-invoice-month-label label-text-bold">Invoice Month</label>
                 {monthsData && monthsData.length > 0 ? (
                   <DropDownList
                     data={monthsData.map(month => ({
@@ -669,7 +699,7 @@ export default function AzureInvoiceClientContent(props) {
                   </span>
                 )}
               </div>
-              <a href="#" className="azure-invoice-view-usage-link">View Usage Details</a>
+              <a href="#" className="azure-invoice-view-usage-link">View Billed Usage</a>
             </div>
           </div>
 
@@ -691,43 +721,15 @@ export default function AzureInvoiceClientContent(props) {
                   <div className="o-grid__item u-1/1 u-1/2@desktop invoiceBreakdown azure-invoice-chart-container">
                     <div className="azure-invoice-chart-box">
                     {isLoadingCredits ? (
-                      <div className="azure-invoice-skeleton-chart-title" style={{ marginBottom: '16px' }}></div>
+                      <div className="azure-invoice-skeleton-chart-title skeleton-chart-title-margin"></div>
                     ) : (
-                      <p className="u-text-center u-text-bold -tiny">
+                      <p className="u-text-center -tiny">
                         Invoice Breakdown by Product Category
                       </p>
                     )}
                     {isLoadingCredits ? (
-                      <div className="skeleton-loader" style={{ height: '300px', width: '100%', marginTop: '16px' }}></div>
+                      <div className="skeleton-loader skeleton-chart-body-large"></div>
                     ) : invoiceBreakdownData.length > 0 ? (
-                      // <Chart 
-                      //   onRefresh={() => {}} 
-                      //   seriesColors={['#007996', '#ae0a46', '#666666']}
-                      //   className="chart1 clickableChart"
-                      //   style={{ height: '350px' }}
-                      // >
-                      //   <BasicGroupedChart
-                      //     chartType="column"
-                      //     title=""
-                      //     subTitle=""
-                      //     data={invoiceBreakdownData}
-                      //     categoryField="group"
-                      //     valueField="value"
-                      //     groupedByField="label"
-                      //     categoryTitle=""
-                      //     showCategoryLabels={false}
-                      //     legendPosition="bottom"
-                      //     legendTitle=""
-                      //     legendVisible={false}
-                      //     tooltipFormat="c2"
-                      //     showLabels={true}
-                      //     valueFormat="c2"
-                      //     labelFormat="c2"
-                      //     labelIncludeGroup={true}
-                      //     gap={0.05}
-                      //     spacing={0}
-                      //   />
-                      // </Chart>
 
                       <Chart
                         onRefresh={handleChartRefresh}
@@ -763,12 +765,12 @@ export default function AzureInvoiceClientContent(props) {
                   </div>
                   <div className="o-grid__item u-1/1 u-1/2@desktop trending6MonthSpend azure-invoice-chart-container">
                     <div className="azure-invoice-chart-box">
-                    {isLoadingTrends || chartTypeLoading ? (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                        <div className="azure-invoice-skeleton-chart-title" style={{ width: '180px' }}></div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <div className="azure-invoice-skeleton-filter-button" style={{ width: '120px', height: '32px' }}></div>
-                          <div className="azure-invoice-skeleton-filter-button" style={{ width: '100px', height: '32px' }}></div>
+                    {isLoadingTrends ? (
+                      <div className="chart-header-layout">
+                        <div className="azure-invoice-skeleton-chart-title skeleton-chart-title-180"></div>
+                        <div className="skeleton-button-group">
+                          <div className="azure-invoice-skeleton-filter-button skeleton-filter-button-120"></div>
+                          <div className="azure-invoice-skeleton-filter-button skeleton-filter-button-100"></div>
                         </div>
                       </div>
                     ) : (
@@ -786,12 +788,11 @@ export default function AzureInvoiceClientContent(props) {
                         pageType="invoice"
                       />
                     )}
-                    {isLoadingTrends || chartTypeLoading ? (
-                      <div className="skeleton-loader" style={{ height: '300px', width: '100%', marginTop: '16px' }}></div>
+                    {isLoadingTrends ? (
+                      <div className="skeleton-loader skeleton-chart-body-large"></div>
                     ) : (
-                      <Chart onRefresh={() => {}} className="clickableChart">
+                      <Chart key={trendingChartType} onRefresh={() => {}} className="clickableChart">
                         <BasicGroupedChart
-                          key={trendingChartType}
                           chartType={trendingChartType}
                           title=""
                           subTitle=""
@@ -818,10 +819,10 @@ export default function AzureInvoiceClientContent(props) {
                 {/* Slide 2: Top Expensive Products - Full Width */}
                 <div className="azure-invoice-chart-container full-width">
                   <div className="azure-invoice-chart-box">
-                  {isLoadingTrends || topNExpensiveProductsChartTypeLoading ? (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                      <div className="azure-invoice-skeleton-chart-title" style={{ width: '200px' }}></div>
-                      <div className="azure-invoice-skeleton-filter-button" style={{ width: '100px', height: '32px' }}></div>
+                  {isLoadingTrends ? (
+                    <div className="chart-header-layout">
+                      <div className="azure-invoice-skeleton-chart-title skeleton-chart-title-200"></div>
+                      <div className="azure-invoice-skeleton-filter-button skeleton-filter-button-100"></div>
                     </div>
                   ) : (
                     <ChartTitleAndButtons
@@ -835,7 +836,7 @@ export default function AzureInvoiceClientContent(props) {
                       ]}
                     />
                   )}
-                  {topNExpensiveProductsChartTypeLoading || isLoadingTrends ? (
+                  {isLoadingTrends ? (
                     <div className="chart-content chart-loading">
                       📊 Loading chart data...
                     </div>
@@ -887,36 +888,38 @@ export default function AzureInvoiceClientContent(props) {
               </Carousel>
             </div>
           </div>
+        </div>
 
+        <div className="azure-invoice-container">
           {/* Filters Section */}
           <div className="azure-invoice-filters-section">
             {isLoading || isLoadingSummary ? (
               // Skeleton loaders for filters
-              <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'nowrap' }}>
-                <div style={{ flex: 1, minWidth: '200px' }}>
-                  <div className="azure-invoice-skeleton-filter-label" style={{ marginBottom: '8px' }}></div>
+              <div className="filter-container">
+                <div className="filter-item">
+                  <div className="azure-invoice-skeleton-filter-label filter-label-skeleton"></div>
                   <div className="azure-invoice-skeleton-filter-dropdown"></div>
                 </div>
                 
-                <div style={{ flex: 1, minWidth: '200px' }}>
-                  <div className="azure-invoice-skeleton-filter-label" style={{ marginBottom: '8px' }}></div>
+                <div className="filter-item">
+                  <div className="azure-invoice-skeleton-filter-label filter-label-skeleton"></div>
                   <div className="azure-invoice-skeleton-filter-dropdown"></div>
                 </div>
                 
-                <div style={{ flex: 1, minWidth: '200px' }}>
-                  <div className="azure-invoice-skeleton-filter-label" style={{ marginBottom: '8px' }}></div>
+                <div className="filter-item">
+                  <div className="azure-invoice-skeleton-filter-label filter-label-skeleton"></div>
                   <div className="azure-invoice-skeleton-filter-dropdown"></div>
                 </div>
                 
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', paddingBottom: '2px' }}>
-                  <div className="azure-invoice-skeleton-filter-button" style={{ width: '120px', height: '36px' }}></div>
-                  <div className="azure-invoice-skeleton-filter-button" style={{ width: '48px', height: '36px' }}></div>
+                <div className="filter-actions">
+                  <div className="azure-invoice-skeleton-filter-button skeleton-filter-button-primary"></div>
+                  <div className="azure-invoice-skeleton-filter-button skeleton-filter-button-download"></div>
                 </div>
               </div>
             ) : (
               // Actual filters
-              <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'nowrap' }}>
-                <div style={{ flex: 1, minWidth: '200px' }}>
+              <div className="filter-container">
+                <div className="filter-item">
                   <span className="label-text-bold">Product Category</span>
                   <MultiSelect
                     data={filterOptions.productCategories}
@@ -930,7 +933,7 @@ export default function AzureInvoiceClientContent(props) {
                   />
                 </div>
                 
-                <div style={{ flex: 1, minWidth: '200px' }}>
+                <div className="filter-item">
                   <span className="label-text-bold">Product Name</span>
                   <MultiSelect
                     data={filterOptions.productNames}
@@ -944,7 +947,7 @@ export default function AzureInvoiceClientContent(props) {
                   />
                 </div>
                 
-                <div style={{ flex: 1, minWidth: '200px' }}>
+                <div className="filter-item">
                   <span className="label-text-bold">Sku Name</span>
                   <MultiSelect
                     data={filterOptions.skuNames}
@@ -958,7 +961,7 @@ export default function AzureInvoiceClientContent(props) {
                   />
                 </div>
                 
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', paddingBottom: '2px' }}>
+                <div className="filter-item filter-actions">
                   <Button
                     themeColor="primary"
                     onClick={handleApplyFilters}
@@ -968,11 +971,11 @@ export default function AzureInvoiceClientContent(props) {
                   </Button>
                   <Button
                     onClick={handleDownload}
-                    className="download-button"
+                    className="k-grid-download"
                     fillMode="outline"
                     title="Schedule Download"
                   >
-                    📥
+                    <ImportIcon className="svg-style-sm" />
                   </Button>
                 </div>
               </div>
@@ -983,16 +986,16 @@ export default function AzureInvoiceClientContent(props) {
           <div className="azure-invoice-tabs-section">
             {isLoading || isLoadingTabData ? (
               <div>
-                <div style={{ display: 'flex', gap: '2px', borderBottom: '2px solid #e0e0e0', marginBottom: '20px' }}>
-                  <div className="azure-invoice-skeleton-filter-button" style={{ width: '140px', height: '40px', borderRadius: '4px 4px 0 0' }}></div>
-                  <div className="azure-invoice-skeleton-filter-button" style={{ width: '160px', height: '40px', borderRadius: '4px 4px 0 0' }}></div>
+                <div className="tab-skeleton-header">
+                  <div className="azure-invoice-skeleton-filter-button tab-skeleton-item-1"></div>
+                  <div className="azure-invoice-skeleton-filter-button tab-skeleton-item-2"></div>
                 </div>
-                <div style={{ padding: '20px' }}>
-                  <div className="skeleton-loader" style={{ height: '40px', width: '100%', marginBottom: '10px' }}></div>
-                  <div className="skeleton-loader" style={{ height: '40px', width: '100%', marginBottom: '10px' }}></div>
-                  <div className="skeleton-loader" style={{ height: '40px', width: '100%', marginBottom: '10px' }}></div>
-                  <div className="skeleton-loader" style={{ height: '40px', width: '100%', marginBottom: '10px' }}></div>
-                  <div className="skeleton-loader" style={{ height: '40px', width: '100%' }}></div>
+                <div className="tab-content-padding">
+                  <div className="skeleton-loader skeleton-row"></div>
+                  <div className="skeleton-loader skeleton-row"></div>
+                  <div className="skeleton-loader skeleton-row"></div>
+                  <div className="skeleton-loader skeleton-row"></div>
+                  <div className="skeleton-loader skeleton-row-last"></div>
                 </div>
               </div>
             ) : (
@@ -1004,12 +1007,12 @@ export default function AzureInvoiceClientContent(props) {
               <TabStripTab title="Invoice Details">
                 <div className="azure-invoice-tab-content">
                   {isLoadingTabData ? (
-                    <div style={{ padding: '20px' }}>
-                      <div className="skeleton-loader" style={{ height: '40px', width: '100%', marginBottom: '10px' }}></div>
-                      <div className="skeleton-loader" style={{ height: '40px', width: '100%', marginBottom: '10px' }}></div>
-                      <div className="skeleton-loader" style={{ height: '40px', width: '100%', marginBottom: '10px' }}></div>
-                      <div className="skeleton-loader" style={{ height: '40px', width: '100%', marginBottom: '10px' }}></div>
-                      <div className="skeleton-loader" style={{ height: '40px', width: '100%', marginBottom: '10px' }}></div>
+                    <div className="tab-content-padding">
+                      <div className="skeleton-loader skeleton-row"></div>
+                      <div className="skeleton-loader skeleton-row"></div>
+                      <div className="skeleton-loader skeleton-row"></div>
+                      <div className="skeleton-loader skeleton-row"></div>
+                      <div className="skeleton-loader skeleton-row"></div>
                     </div>
                   ) : (() => {
                     // Enhanced data processing for Invoice Details
@@ -1055,12 +1058,12 @@ export default function AzureInvoiceClientContent(props) {
               <TabStripTab title="Monthly Differences">
                 <div className="azure-invoice-tab-content">
                   {isLoadingTabData ? (
-                    <div style={{ padding: '20px' }}>
-                      <div className="skeleton-loader" style={{ height: '40px', width: '100%', marginBottom: '10px' }}></div>
-                      <div className="skeleton-loader" style={{ height: '40px', width: '100%', marginBottom: '10px' }}></div>
-                      <div className="skeleton-loader" style={{ height: '40px', width: '100%', marginBottom: '10px' }}></div>
-                      <div className="skeleton-loader" style={{ height: '40px', width: '100%', marginBottom: '10px' }}></div>
-                      <div className="skeleton-loader" style={{ height: '40px', width: '100%', marginBottom: '10px' }}></div>
+                    <div className="tab-content-padding">
+                      <div className="skeleton-loader skeleton-row"></div>
+                      <div className="skeleton-loader skeleton-row"></div>
+                      <div className="skeleton-loader skeleton-row"></div>
+                      <div className="skeleton-loader skeleton-row"></div>
+                      <div className="skeleton-loader skeleton-row"></div>
                     </div>
                   ) : (() => {
                     // Enhanced data processing for Monthly Differences

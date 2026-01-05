@@ -218,10 +218,7 @@
 }
 
 .invoice-total {
-  background-color: #ffffff;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
 }
 
 .vertical-pink,
@@ -348,11 +345,6 @@
 }
 
 /* Charts */
-.invoiceBreakdown,
-.trending6MonthSpend {
-  margin-bottom: 20px;
-}
-
 .u-text-center {
   text-align: center;
 }
@@ -838,7 +830,6 @@
 
 .chart-title {
   text-align: center;
-  font-weight: bold;
   font-size: 14px;
   margin-bottom: 20px;
 }
@@ -1055,6 +1046,166 @@
   border: 1px solid #ffeaa7;
   border-radius: 5px;
   font-size: 14px;
+}
+
+/* Icon Styles */
+.archera-icon {
+  margin-right: 2px;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  vertical-align: middle;
+}
+
+.info-icon {
+  margin-left: 8px;
+  cursor: pointer;
+}
+
+.arrow-icon {
+  margin-left: 8px;
+}
+
+/* Skeleton Loader Variants */
+.skeleton-kpi-label {
+  height: 18px;
+  width: 100px;
+  margin-bottom: 12px;
+}
+
+.skeleton-kpi-value {
+  height: 36px;
+  width: 140px;
+}
+
+.skeleton-kpi-label-wide {
+  height: 18px;
+  width: 160px;
+  margin-bottom: 12px;
+}
+
+.skeleton-kpi-value-wide {
+  height: 36px;
+  width: 180px;
+}
+
+.skeleton-kpi-label-credits {
+  height: 18px;
+  width: 120px;
+  margin-bottom: 12px;
+}
+
+.skeleton-chart-title-margin {
+  margin-bottom: 16px;
+}
+
+.skeleton-chart-body-large {
+  height: 300px;
+  width: 100%;
+  margin-top: 16px;
+}
+
+.skeleton-chart-title-180 {
+  width: 180px;
+}
+
+.skeleton-chart-title-200 {
+  width: 200px;
+}
+
+.skeleton-button-group {
+  display: flex;
+  gap: 8px;
+}
+
+.skeleton-filter-button-120 {
+  width: 120px;
+  height: 32px;
+}
+
+.skeleton-filter-button-100 {
+  width: 100px;
+  height: 32px;
+}
+
+.skeleton-filter-button-primary {
+  width: 120px;
+  height: 36px;
+}
+
+.skeleton-filter-button-download {
+  width: 48px;
+  height: 36px;
+}
+
+/* Chart Header Layouts */
+.chart-header-layout {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+/* Filter Section Layouts */
+.filter-container {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  flex-wrap: nowrap;
+}
+
+.filter-item {
+  flex: 1;
+  min-width: 170px;
+}
+
+.filter-label-skeleton {
+  margin-bottom: 8px;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 8px;
+  padding-bottom: 2px;
+  flex-direction: row;
+  align-content: center;
+  justify-content: flex-start;
+  align-items: flex-end;
+}
+
+/* Tab Section Layouts */
+.tab-skeleton-header {
+  display: flex;
+  gap: 2px;
+  border-bottom: 2px solid #e0e0e0;
+  margin-bottom: 20px;
+}
+
+.tab-skeleton-item-1 {
+  width: 140px;
+  height: 40px;
+  border-radius: 4px 4px 0 0;
+}
+
+.tab-skeleton-item-2 {
+  width: 160px;
+  height: 40px;
+  border-radius: 4px 4px 0 0;
+}
+
+.tab-content-padding {
+  padding: 20px;
+}
+
+.skeleton-row {
+  height: 40px;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.skeleton-row-last {
+  height: 40px;
+  width: 100%;
 }
 
 /* Responsive */

@@ -29,7 +29,7 @@
 .c-carousel__indicators {
   display: flex;
   justify-content: center;
-  margin-top: 20px;
+  margin: 25px 0;
 }
 
 .c-carousel__indicators ol {
@@ -50,7 +50,7 @@
 }
 
 .c-carousel__indicators li.c-carousel__indicator-active {
-  background-color: #14a2b8;
+  background-color: #ae0a46;
 }
 
 .o-list-inline {

@@ -28,18 +28,15 @@
 }
 
 .azure-invoice-page {
-  background: #f5f5f5;
+  background: #f0eeed;
   min-height: 100vh;
   width: 100%;
   overflow-x: hidden;
 }
 
 .azure-invoice-container {
-  background: #f0eeed;
-  padding: 24px;
-  max-width: none !important;
-  width: 100% !important;
-  min-width: 100% !important;
+  background: #fff;
+  margin: 15px 25px 25px;
   overflow-x: hidden;
   box-sizing: border-box;
 }
@@ -54,11 +51,9 @@
 }
 
 .azure-invoice-header {
-  background: #fff;
   border-radius: 8px;
   padding: 24px;
   margin-bottom: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   max-width: 100%;
   overflow-x: hidden;
   box-sizing: border-box;
@@ -68,11 +63,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
-  padding-bottom: 20px;
-  flex-wrap: wrap;
-  gap: 16px;
-  max-width: 100%;
+  margin-bottom: 10px;
 }
 
 .azure-invoice-title {
@@ -92,57 +83,49 @@
   gap: 32px;
   flex-wrap: wrap;
   max-width: 100%;
-  overflow: hidden;
+  align-items: center;
 }
 
 .azure-invoice-kpi-card {
-  text-align: right;
-  padding-right: 32px;
+  /* padding-right: 32px; */
   min-width: 0;
   flex-shrink: 1;
   white-space: nowrap;
 }
 
 .azure-invoice-kpi-card.invoice-total {
-  border-right: 2px solid #e74c3c;
+  border-left: 7px solid #9f177a;
+  padding: 0px 10px;
 }
 
 .azure-invoice-kpi-card.monthly-difference {
-  border-right: 2px solid #27ae60;
+  border-left: 7px solid #007996;
+  padding: 0px 10px;
 }
 
 .azure-invoice-kpi-card.invoice-credits {
-  border-right: 2px solid #3498db;
+  border-left: 7px solid #cbc4c3;
+  padding: 0px 10px;
 }
 
 .azure-invoice-kpi-label {
-  font-size: 11px;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
   color: #7f8c8d;
   margin-bottom: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+}
+
+.archera-link{
+  .azure-invoice-kpi-label{
+    color: #ae0a46;
+  }
 }
 
 .azure-invoice-kpi-value {
-  font-size: 24px;
-  font-weight: bold;
+  font-size: 18px;
 }
 
-.azure-invoice-kpi-value.invoice-total {
-  color: #e74c3c;
-}
-
-.azure-invoice-kpi-value.invoice-total.zero {
-  color: #95a5a6;
-}
-
-.azure-invoice-kpi-value.monthly-difference {
-  color: #27ae60;
-}
-
-.azure-invoice-kpi-value.invoice-credits {
-  color: #3498db;
-}
 
 .azure-invoice-header-bottom {
   display: flex;
@@ -152,9 +135,10 @@
 }
 
 .azure-invoice-month-selector {
+  width: 25%;
   min-width: 200px;
-  max-width: 100%;
-  flex-shrink: 1;
+  max-width: 400px;
+  flex-shrink: 0;
 }
 
 .azure-invoice-month-label {
@@ -222,10 +206,7 @@
 }
 
 .azure-invoice-chart-box {
-  background: #fff;
-  border-radius: 8px;
   padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   height: 100%;
   box-sizing: border-box;
   overflow: hidden;
@@ -234,11 +215,8 @@
 
 /* Filter Section Styling */
 .azure-invoice-filters-section {
-  margin: 24px 0;
-  background: #fff;
   border-radius: 8px;
   padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .azure-invoice-filters-row {
@@ -246,13 +224,16 @@
 }
 
 .filter-item {
-  margin-bottom: 16px;
+  flex: 1;
+  min-width: 200px;
 }
 
 .filter-container {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-direction: row;
+  gap: 16px;
+  align-items: flex-end;
+  flex-wrap: nowrap;
   width: 100%;
 }
 
@@ -412,11 +393,8 @@
 }
 
 .azure-invoice-filters-section {
-  margin-bottom: 24px;
-  background: #fff;
   border-radius: 8px;
   padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .filters-row {
@@ -694,7 +672,6 @@
 .azure-invoice-header,
 .azure-invoice-charts-section,
 .o-grid__item {
-  width: 100% !important;
   max-width: none !important;
 }
 
@@ -784,11 +761,9 @@
 
 /* Azure Invoice Tabs Styling */
 .azure-invoice-tabs-section {
-  background: #fff;
   border-radius: 8px;
-  padding: 24px;
+  padding: 0 10px;
   margin-bottom: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   max-width: 100%;
   overflow-x: hidden;
   box-sizing: border-box;
@@ -799,7 +774,6 @@
 }
 
 .azure-invoice-tabstrip .k-tabstrip-items {
-  border-bottom: 2px solid #e9ecef;
   margin-bottom: 20px;
 }
 

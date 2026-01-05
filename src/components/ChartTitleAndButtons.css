@@ -9,11 +9,11 @@
 }
 
 .chart-title-container.default {
-  justify-content: space-between;
+  justify-content: center;
 }
 
 .chart-title-wrapper {
-  flex: initial;
+  flex: 1;
 }
 
 .chart-title-wrapper.dashboard {
