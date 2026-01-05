@@ -16,6 +16,10 @@ import {
  * - Client component receives pre-fetched data as props
  */
 
+export const metadata = {
+  title: 'Invoices',
+};
+
 export default async function InvoicesPage() {
   console.log('🎯 SERVER: Rendering Invoices page with SSR...');
   
@@ -88,10 +92,13 @@ export default async function InvoicesPage() {
       throw new Error(`Providers fetch failed: ${providersData.error}`);
     }
     
-    const defaultProvider = providersData?.data?.find(p => p.abbreviation === 'microsoft') || providersData?.data?.[0];
+    // ✅ Use first provider from list as default (not always microsoft)
+    const defaultProvider = providersData?.data?.[0];
     if (!defaultProvider) {
       throw new Error('No providers available');
     }
+    
+    console.log('📌 SERVER: Default provider set to first option:', defaultProvider.abbreviation);
     
     const apiEndpoint = defaultProvider.abbreviation;
     

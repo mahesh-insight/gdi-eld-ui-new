@@ -10,6 +10,9 @@ import { Chart } from '@progress/kendo-react-charts';
 import request from '@/lib/api/request';
 import { exceptionHandler } from '@/lib/utils';
 import ChartTitleAndButtons from '@/components/ChartTitleAndButtons';
+import { Tooltip } from '@progress/kendo-react-tooltip';
+import { infoCircleIcon } from '@progress/kendo-svg-icons';
+import { SvgIcon } from '@progress/kendo-react-common';
 import { BasicGroupedChart } from '@/common/Charts/BasicGroupedChart';
 import { getInsightThemeColors } from '@/lib/chartColors';
 import { getProviderColumns } from '@/common/gridColumnDefinitions';
@@ -235,7 +238,8 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
   // Provider and dropdown states
   const [providers, setProviders] = useState(mode === 'ssr' ? (initialData?.providersResponse?.data || []) : []);
   const [selectedProvider, setSelectedProvider] = useState(mode === 'ssr' ? initialData?.defaultProvider : null);
-  const [apiEndpoint, setApiEndpoint] = useState(mode === 'ssr' ? (initialData?.defaultProvider?.abbreviation || 'microsoft') : 'microsoft');
+  // ✅ apiEndpoint will be set from first provider in list, not hardcoded to 'microsoft'
+  const [apiEndpoint, setApiEndpoint] = useState(mode === 'ssr' ? initialData?.defaultProvider?.abbreviation : null);
 
   // Invoice months data
   const [invoiceMonths, setInvoiceMonths] = useState(mode === 'ssr' ? (initialData?.invoiceMonthsResponse?.data || []) : []);
@@ -289,7 +293,8 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
 
   // Dynamic grid columns based on selected provider
   const gridColumns = useMemo(() => {
-    const providerAbbr = selectedProvider?.abbreviation || apiEndpoint || 'microsoft';
+    // ✅ Use actual selected provider or apiEndpoint, fallback to first provider if available
+    const providerAbbr = selectedProvider?.abbreviation || apiEndpoint || providers?.[0]?.abbreviation;
     console.log('📊 Computing grid columns for provider:', providerAbbr);
     return getProviderColumns(providerAbbr, t);
   }, [selectedProvider, apiEndpoint, t]);
@@ -357,13 +362,13 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       console.log('Providers response:', response.data);
       setProviders(response.data);
 
-      // Set default provider (first one or microsoft)
-      const defaultProvider = response.data.find(p => p.abbreviation === 'microsoft') || response.data[0];
+      // ✅ Set default provider to FIRST option from list (not always microsoft)
+      const defaultProvider = response.data[0];
       if (defaultProvider) {
-        console.log('✅ Setting default provider:', defaultProvider);
+        console.log('✅ Setting default provider to first option:', defaultProvider.abbreviation);
         setSelectedProvider(defaultProvider);
         setApiEndpoint(defaultProvider.abbreviation);
-        // Trigger next API call
+        // Trigger next API call with first provider
         await fetchInitialInvoiceMonths(defaultProvider.abbreviation);
       }
     } catch (error) {
@@ -377,17 +382,18 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
    * 2. Fetch Initial Invoice Months - Second API call
    * Calls dynamic endpoint like /ccr-billableitem-service/microsoft/months
    */
-  const fetchInitialInvoiceMonths = useCallback(async (abbreviation = apiEndpoint) => {
+  const fetchInitialInvoiceMonths = useCallback(async (abbreviation = apiEndpoint, isUserTriggered = false) => {
     if (!selectedSoldToId || !abbreviation) return;
     
     // ⚠️ CRITICAL: Prevent duplicate initialization calls (React StrictMode/multiple renders)
-    if (hasInitialized.current) {
+    // BUT allow user-triggered provider changes to proceed
+    if (hasInitialized.current && !isUserTriggered) {
       console.log('⚠️ BLOCKED: Already initialized, skipping duplicate fetch');
       return;
     }
     
     hasInitialized.current = true;
-    console.log('✅ First initialization - proceeding with data fetch');
+    console.log(isUserTriggered ? '👤 User-triggered provider change - fetching data' : '✅ First initialization - proceeding with data fetch');
 
     try {
       const response = await fetchInvoiceMonthsServer(selectedSoldToId, abbreviation);
@@ -511,7 +517,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
 
     // Client-side API call triggered by user interaction
     console.log('🔄 Fetching data for user-selected provider:', newProvider.abbreviation);
-    await fetchInitialInvoiceMonths(newProvider.abbreviation);
+    await fetchInitialInvoiceMonths(newProvider.abbreviation, true); // ✅ Pass true to indicate user-triggered change
   }, [selectedProvider, fetchInitialInvoiceMonths]);
 
   const handleMonthChange = useCallback(async (event) => {
@@ -1139,82 +1145,64 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
           <h1>Invoice Reporting</h1>
         </div>
         <div className="header-right">
-          <div className="header-stats">
-            <div className="stat-item unbilled">
+          <div className="azure-invoice-kpi-cards">
+            {/* Invoice Total */}
+            <div className="azure-invoice-kpi-card invoice-total">
               {isStatsLoading ? (
-                <a href="#" className="stat-link">
-                  <Skeleton style={{ width: '150px', height: '20px' }} />
-                </a>
+                <>
+                  <div className="skeleton-loader skeleton-kpi-label"></div>
+                  <div className="skeleton-loader skeleton-kpi-value"></div>
+                </>
               ) : (
-                <a href="#" className="stat-link">View Unbilled Usage</a>
+                <>
+                  <div className="azure-invoice-kpi-label">
+                    Invoice Total
+                    <Tooltip anchorElement="target" position="auto">
+                      <SvgIcon icon={infoCircleIcon} size="small" className="info-icon" title="Taxes are not included in totals." />
+                    </Tooltip>
+                  </div>
+                  <div className="azure-invoice-kpi-value invoice-total">
+                    ${totalSpend.toFixed(2)}
+                  </div>
+                </>
               )}
             </div>
-            <div className="stat-item invoice-total">
-              <div className="stat-content">
-                {isStatsLoading ? (
-                  <>
-                    <span className="stat-label">
-                      <Skeleton style={{ width: '90px', height: '16px', marginBottom: '4px' }} />
-                    </span>
-                    <span className="stat-value">
-                      <Skeleton style={{ width: '60px', height: '20px' }} />
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span className="stat-label">Invoice Total <span className="info-icon">ℹ️</span></span>
-                    <span className="stat-value">
-                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalSpend)}
-                    </span>
-                  </>
-                )}
-              </div>
+
+            {/* Monthly Difference */}
+            <div className="azure-invoice-kpi-card monthly-difference">
+              {isStatsLoading ? (
+                <>
+                  <div className="skeleton-loader skeleton-kpi-label-wide"></div>
+                  <div className="skeleton-loader skeleton-kpi-value-wide"></div>
+                </>
+              ) : (
+                <>
+                  <div className="azure-invoice-kpi-label">
+                    Monthly Difference
+                  </div>
+                  <div className="azure-invoice-kpi-value monthly-difference">
+                    $0.00
+                    <span> (0%)</span>
+                  </div>
+                </>
+              )}
             </div>
-            <div className="stat-item monthly-diff">
-              <div className="stat-content">
-                {isStatsLoading ? (
-                  <>
-                    <span className="stat-label">
-                      <Skeleton style={{ width: '120px', height: '16px', marginBottom: '4px' }} />
-                    </span>
-                    <span className="stat-value">
-                      <Skeleton style={{ width: '80px', height: '20px' }} />
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span className="stat-label">Monthly Difference <span className="info-icon">ℹ️</span></span>
-                    <span className="stat-value">$0.00 (0%)</span>
-                  </>
-                )}
-              </div>
-            </div>
-            <div className="stat-item invoice-status">
-              <div className="stat-content">
-                {isStatsLoading ? (
-                  <>
-                    <span className="stat-label">
-                      <Skeleton style={{ width: '100px', height: '16px', marginBottom: '4px' }} />
-                    </span>
-                    <div className="status-content">
-                      <span className="status-badge">
-                        <Skeleton style={{ width: '50px', height: '24px', marginRight: '8px' }} />
-                      </span>
-                      <button className="download-pdf" disabled>
-                        <Skeleton style={{ width: '100px', height: '32px' }} />
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <span className="stat-label">Invoice Status <span className="info-icon">ℹ️</span></span>
-                    <div className="status-content">
-                      <span className="status-badge">Paid</span>
-                      <button className="download-pdf">Download PDF</button>
-                    </div>
-                  </>
-                )}
-              </div>
+
+            {/* Invoice Credits */}
+            <div className="azure-invoice-kpi-card invoice-credits">
+              {isStatsLoading ? (
+                <>
+                  <div className="skeleton-loader skeleton-kpi-label-credits"></div>
+                  <div className="skeleton-loader skeleton-kpi-value"></div>
+                </>
+              ) : (
+                <>
+                  <div className="azure-invoice-kpi-label">Invoice Credits</div>
+                  <div className="azure-invoice-kpi-value invoice-credits">
+                    $0.00
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

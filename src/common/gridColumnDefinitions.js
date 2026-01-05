@@ -219,21 +219,23 @@ export const awsBillableInvoiceColumns = (t) => [
   { field: "tags", title: t("common.tags"), minWidth: 200, format: "" },
 ];
 
-// Google Cloud Billable Invoice Columns
-export const googleBillableInvoiceColumns = (t) => [
+const adobeBillableInvoiceColumns = (t) => [
   { field: "invoiceNumber", title: t("common.invoice#"), minWidth: 150, format: "" },
-  { field: "projectId", title: t("common.projectId"), minWidth: 200, format: "" },
-  { field: "serviceName", title: t("common.serviceName"), minWidth: 200, format: "" },
-  { field: "skuDescription", title: t("common.skuDescription"), minWidth: 300, format: "" },
-  { field: "location", title: t("common.location"), minWidth: 150, format: "" },
-  { field: "usageAmount", title: t("common.usageAmount"), minWidth: 150, format: "" },
-  { field: "usageUnit", title: t("common.usageUnit"), minWidth: 100, format: "" },
-  { field: "unitPrice", title: t("common.unitPrice"), minWidth: 150, format: "{0:c4}" },
-  { field: "cost", title: t("common.totalPrice"), minWidth: 150, format: "{0:c2}" },
-  { field: "currency", title: t("common.currency"), minWidth: 100, format: "" },
-  { field: "usageStartDate", title: t("common.usageStartDate"), minWidth: 175, format: "{0:yyyy-MM-dd}" },
-  { field: "usageEndDate", title: t("common.usageEndDate"), minWidth: 175, format: "{0:yyyy-MM-dd}" },
-  { field: "labels", title: t("common.labels"), minWidth: 200, format: "" },
+  { field: "soldTo", title: t("common.account#"), minWidth: 150, format: "" },
+  { field: "soldToName", title: t("common.companyName"), minWidth: 150, format: "" },
+  { field: "customerPO", title: t("common.poNumber"), minWidth: 150, format: "" },
+  { field: "productCategory", title: t("common.productCategory"), minWidth: 150, format: "" },
+  { field: "partNumber", title: t("common.partNumber"), minWidth: 150, format: "" },
+  { field: "partDescription", title: t("common.productName"), minWidth: 150, format: "" },
+  { field: "quantity", title: t("common.quantity"), minWidth: 150, format: "" },
+  { field: "total", title: t("common.totalPrice"), minWidth: 150, format: "{0:c2}" },
+  { field: "currency", title: t("common.currency"), minWidth: 150, format: "" },
+  { field: "invoiceDate", title: t("common.invoiceDate"), minWidth: 150, format: "{0:yyyy-MM-dd}" },
+  { field: "coverageStartDate", title: t("common.chargeStartDate"), minWidth: 150, format: "{0:yyyy-MM-dd}" },
+  { field: "coverageEndDate", title: t("common.chargeEndDate"), minWidth: 150, format: "{0:yyyy-MM-dd}" },
+  { field: "invoiceNumber", title: t("common.invoiceNumber"), minWidth: 150, format: "" },
+  { field: "invoiceItem", title: t("common.invoiceItem"), minWidth: 150, format: "" },
+  { field: "orderNumber", title: t("common.orderNumber"), minWidth: 150, format: "" },
 ];
 
 // Dynamic column selector based on provider
@@ -241,8 +243,7 @@ export const getProviderColumns = (providerAbbreviation, t) => {
   const providerMap = {
     'microsoft': microsoftBillableInvoiceColumns,
     'aws': awsBillableInvoiceColumns,
-    'google': googleBillableInvoiceColumns,
-    'gcp': googleBillableInvoiceColumns, // Alias for Google Cloud Platform
+    'adobe': adobeBillableInvoiceColumns,
   };
   
   const columnFunction = providerMap[providerAbbreviation?.toLowerCase()] || microsoftBillableInvoiceColumns;

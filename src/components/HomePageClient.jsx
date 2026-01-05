@@ -83,8 +83,17 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
         const soldToId = response.userProfile.defaultContext[0].soldToId;
         
         try {
+          // Set all authentication cookies - CRITICAL for SSR to work
           document.cookie = `access_token=${bearerToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
           document.cookie = `user_context=${encodeURIComponent(JSON.stringify(response))}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
+          // ✅ CRITICAL: Set soldToId cookie for SSR pages (Azure Invoice, Dashboard, etc.)
+          document.cookie = `soldToId=${soldToId}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
+          
+          console.log('✅ Auth cookies set:', {
+            access_token: !!bearerToken,
+            user_context: !!response,
+            soldToId: !!soldToId
+          });
         } catch (cookieError) {
           console.error('❌ Failed to set cookies:', cookieError);
         }

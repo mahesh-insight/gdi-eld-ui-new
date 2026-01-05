@@ -45,6 +45,11 @@ h6 {
   --border-color: #e0e0e0;
 }
 
+/* Label text bold for dropdowns and multiselects */
+.label-text-bold {
+  font-weight: bold;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -146,4 +151,121 @@ a {
 .k-dropdownlist .k-input-inner {
     padding-top: 10px !important;
     padding-bottom: 10px !important;
+}
+
+/* ================================
+   SHARED KPI CARD STYLES
+   Used by: Azure Invoice, Invoices pages
+   ================================ */
+
+/* Skeleton Loader for KPI Cards */
+.skeleton-loader {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-kpi-label {
+  height: 18px;
+  width: 100px;
+  margin-bottom: 12px;
+}
+
+.skeleton-kpi-value {
+  height: 36px;
+  width: 140px;
+}
+
+.skeleton-kpi-label-wide {
+  height: 18px;
+  width: 160px;
+  margin-bottom: 12px;
+}
+
+.skeleton-kpi-value-wide {
+  height: 36px;
+  width: 180px;
+}
+
+.skeleton-kpi-label-credits {
+  height: 18px;
+  width: 120px;
+  margin-bottom: 12px;
+}
+
+/* KPI Card Container */
+.azure-invoice-kpi-cards {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  max-width: 100%;
+  align-items: center;
+}
+
+/* Individual KPI Card */
+.azure-invoice-kpi-card {
+  min-width: 0;
+  flex-shrink: 1;
+  white-space: nowrap;
+}
+
+/* KPI Card Color Variants */
+.azure-invoice-kpi-card.invoice-total {
+  border-left: 7px solid #9f177a;
+  padding: 0px 10px;
+}
+
+.azure-invoice-kpi-card.monthly-difference {
+  border-left: 7px solid #007996;
+  padding: 0px 10px;
+}
+
+.azure-invoice-kpi-card.invoice-credits {
+  border-left: 7px solid #cbc4c3;
+  padding: 0px 10px;
+
+  .redirect {
+    position: absolute;
+    color: #ae0a46;
+    margin: 5px 0;
+    font-size: 14px;
+  }
+}
+
+.azure-invoice-kpi-card.archera-link {
+  padding: 0px 10px;
+}
+
+/* KPI Card Label */
+.azure-invoice-kpi-label {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: #7f8c8d;
+  margin-bottom: 6px;
+}
+
+.archera-link .azure-invoice-kpi-label {
+  color: #ae0a46;
+}
+
+/* KPI Card Value */
+.azure-invoice-kpi-value {
+  font-size: 18px;
+}
+
+/* Info Icon */
+.info-icon {
+  margin-left: 8px;
+  cursor: pointer;
 }

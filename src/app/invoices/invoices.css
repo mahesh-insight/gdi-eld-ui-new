@@ -5,17 +5,13 @@
   padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  background-color: #f8f9fa;
-  min-height: 100vh;
+  background: #f0eeed;
 }
 
 /* Header Section - Horizontal Layout */
 .invoices-header-row {
   display: flex;
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   padding: 24px;
   align-items: center;
 }
@@ -26,10 +22,10 @@
 }
 
 .header-left h1 {
-  margin: 0;
-  color: #2c3e50;
+  font-family: "klinic-slab", Verdana, serif;
   font-size: 24px;
-  font-weight: 600;
+  font-weight: normal;
+  padding-bottom: 15px;
 }
 
 .header-right {
@@ -121,24 +117,20 @@
 /* Chart Information Section */
 .chart-info-section {
   background: white;
-  padding: 16px 24px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 0px 24px;
 }
 
 .chart-instruction {
-  margin: 0;
-  color: #6c757d;
-  font-size: 14px;
+  color: #007996;
+  padding-top: 10px;
+  font-size: 13px;
   font-style: italic;
 }
 
 /* Filters Section - 75% width */
 .invoices-filters-section {
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  padding: 24px;
+  padding: 24px 24px 0 24px;
 }
 
 .filters-container {
@@ -159,7 +151,7 @@
 }
 
 .dropdown-group label {
-  font-weight: 500;
+  font-weight: bold;
   color: #495057;
   font-size: 14px;
 }
@@ -168,8 +160,6 @@
 .invoices-additional-filters {
   background: white;
   padding: 24px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .invoices-additional-filters .dropdown-row {
@@ -215,6 +205,7 @@
 
 /* Charts Row */
 .invoices-charts-row {
+  background: #fff;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
@@ -224,8 +215,7 @@
 .invoices-trend-chart {
   background: white;
   padding: 24px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center;
 }
 
 .invoices-breakdown-chart h3,
@@ -233,7 +223,6 @@
   margin: 0 0 16px 0;
   color: #2c3e50;
   font-size: 18px;
-  font-weight: 600;
 }
 
 /* Responsive design for charts */
@@ -262,8 +251,6 @@
 .invoices-grid {
   background: white;
   padding: 24px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .invoices-grid h3 {

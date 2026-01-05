@@ -105,9 +105,14 @@ export default function CookieSync() {
             const userContextValue = encodeURIComponent(JSON.stringify(loginResponse));
             document.cookie = `user_context=${userContextValue}; path=/; max-age=${maxAge}; SameSite=Strict`;
             
+            // ✅ CRITICAL: Set soldToId cookie for SSR pages to work properly
             document.cookie = `soldToId=${soldToId}; path=/; max-age=${maxAge}; SameSite=Strict`;
             
-            console.log('✅ CookieSync: Auth cookies synced successfully');
+            console.log('✅ CookieSync: Auth cookies synced successfully', {
+                access_token: !!accessToken,
+                user_context: !!loginResponse,
+                soldToId: !!soldToId
+            });
         }
     }, [authState?.isAuthenticated]);
     

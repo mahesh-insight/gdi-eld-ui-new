@@ -18,6 +18,10 @@ import {
  * - Each API call is cached individually for optimal performance
  */
 
+export const metadata = {
+  title: 'Azure Invoice',
+};
+
 export default async function AzureInvoicePage() {
   console.log('🎯 SERVER: Rendering Azure Invoice page with SSR...');
   
@@ -27,18 +31,40 @@ export default async function AzureInvoicePage() {
   const soldToIdCookie = cookieStore.get('soldToId');
   const accessTokenCookie = cookieStore.get('access_token');
   
+  console.log('🔍 [SERVER] SSR readiness check:', {
+    hasSoldToId: !!soldToIdCookie?.value,
+    hasUserContext: !!userContextCookie?.value,
+    hasAccessToken: !!accessTokenCookie?.value,
+    accessTokenLength: accessTokenCookie?.value?.length || 0
+  });
+  
   // Check if we have enough data for SSR
-  const hasSoldToId = soldToIdCookie?.value || userContextCookie?.value;
   const hasAccessToken = accessTokenCookie?.value && accessTokenCookie.value !== '{}' && accessTokenCookie.value.length > 100;
   
+  // ✅ DEFENSIVE: Check soldToId cookie first, fallback to extracting from user_context
+  let hasSoldToId = !!soldToIdCookie?.value;
+  
+  if (!hasSoldToId && userContextCookie?.value) {
+    try {
+      const parsedUserContext = JSON.parse(userContextCookie.value);
+      hasSoldToId = !!parsedUserContext?.userProfile?.defaultContext?.[0]?.soldToId;
+      console.log('ℹ️ [SERVER] soldToId not in cookie, extracted from user_context:', hasSoldToId);
+    } catch (e) {
+      console.warn('⚠️ [SERVER] Failed to parse user_context for soldToId check');
+    }
+  }
+  
   if (!hasSoldToId || !hasAccessToken) {
-    console.log('⚠️ SERVER: Missing authentication data - rendering client fallback', {
-      hasSoldToId: !!hasSoldToId,
-      hasAccessToken: !!hasAccessToken,
+    console.log('⚠️ [SERVER] Missing authentication data - rendering client fallback', {
+      hasSoldToId,
+      hasAccessToken,
       accessTokenLength: accessTokenCookie?.value?.length || 0
     });
     return <AzureInvoiceClientContent mode="client-side" />;
   }
+  
+  console.log('✅ [SERVER] SSR prerequisites met - will use SSR');
+
 
   // Extract soldToId from cookies
   let soldToId = soldToIdCookie?.value;

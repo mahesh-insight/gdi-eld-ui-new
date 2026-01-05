@@ -56,6 +56,13 @@
     "skuDescription": "SKU Description",
     "location": "Location",
     "usageUnit": "Usage Unit",
-    "labels": "Labels"
+    "labels": "Labels",
+    "partNumber": "Part Number",
+    "partDescription": "Part Description",
+    "invoiceNumber": "Invoice Number",
+    "invoiceItem": "Invoice Item",
+    "orderNumber": "Order Number",
+    "coverageStartDate": "Coverage Start Date",
+    "coverageEndDate": "Coverage End Date"
   }
 }

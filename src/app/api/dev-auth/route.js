@@ -41,6 +41,15 @@ export async function POST() {
     secure: false // Allow HTTP in development
   });
   
+  // ✅ CRITICAL: Set soldToId cookie for SSR pages to work
+  cookieStore.set('soldToId', testSoldToId, {
+    path: '/',
+    maxAge: 1 * 60, // 2 minutes for testing
+    sameSite: 'lax',
+    httpOnly: false,
+    secure: false
+  });
+  
   // Also set a simpler persist cookie for Redux
   cookieStore.set('persist:ccr-auth', JSON.stringify({
     isAuthenticated: true,
