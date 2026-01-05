@@ -744,7 +744,7 @@ export default function AzureInvoiceClientContent(props) {
                     {isLoadingCredits ? (
                       <div className="azure-invoice-skeleton-chart-title skeleton-chart-title-margin"></div>
                     ) : (
-                      <p className="u-text-center -tiny">
+                      <p className="u-text-center">
                         Invoice Breakdown by Product Category
                       </p>
                     )}
@@ -862,7 +862,7 @@ export default function AzureInvoiceClientContent(props) {
                       📊 Loading chart data...
                     </div>
                   ) : topNExpensiveProductsChartType === "bar" ? (
-                    <Chart onRefresh={() => {}} className="chart3 chart-full-width">
+                    <Chart key={topNExpensiveProductsChartType} onRefresh={() => {}} className="chart3 chart-full-width">
                       <BasicGroupedChart
                         key={topNExpensiveProductsChartType}
                         chartType={topNExpensiveProductsChartType}
@@ -886,7 +886,7 @@ export default function AzureInvoiceClientContent(props) {
                       />
                     </Chart>
                   ) : (
-                    <Chart onRefresh={() => {}}>
+                    <Chart key={topNExpensiveProductsChartType} onRefresh={() => {}}>
                       <BasicPieDoughnutChart
                         key={topNExpensiveProductsChartType}
                         chartType={topNExpensiveProductsChartType}
