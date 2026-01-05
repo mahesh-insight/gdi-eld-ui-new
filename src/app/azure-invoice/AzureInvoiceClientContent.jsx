@@ -23,6 +23,7 @@ import { Tooltip } from '@progress/kendo-react-tooltip';
 import { ArrowUpIcon, ArrowDownIcon, ArcheraIcon, ImportIcon } from '@/lib/svg/svgList';
 import { infoCircleIcon } from '@progress/kendo-svg-icons';
 import { SvgIcon } from '@progress/kendo-react-common';
+import { formatCurrency } from '@/lib/utils';
 
 export default function AzureInvoiceClientContent(props) {
   const { mode, initialData, userContext, ssrPerformance } = props;
@@ -646,7 +647,7 @@ export default function AzureInvoiceClientContent(props) {
                         </Tooltip>
                       </div>
                       <div className="azure-invoice-kpi-value invoice-total">
-                        ${invoiceTotal.toFixed(2)}
+                        {formatCurrency(invoiceTotal)}
                       </div>
                     </>
                   )}
@@ -670,7 +671,7 @@ export default function AzureInvoiceClientContent(props) {
                         ) : null}
                       </div>
                       <div className="azure-invoice-kpi-value monthly-difference">
-                        ${Math.abs(monthlyDifference).toFixed(2)}
+                        {formatCurrency(Math.abs(monthlyDifference))}
                         <span> ({monthlyDifferencePercent.toFixed(2)}%)</span>
                       </div>
                     </>
@@ -688,7 +689,7 @@ export default function AzureInvoiceClientContent(props) {
                     <>
                       <div className="azure-invoice-kpi-label">Invoice Credits</div>
                       <div className="azure-invoice-kpi-value invoice-credits">
-                        ${invoiceCredits.toFixed(2)}
+                        {formatCurrency(invoiceCredits)}
                       </div>
                     </>
                   )}
@@ -1055,6 +1056,14 @@ export default function AzureInvoiceClientContent(props) {
                       processedData = currentMonthDetailData.content;
                     } else if (currentMonthDetailData?.items && Array.isArray(currentMonthDetailData.items)) {
                       processedData = currentMonthDetailData.items;
+                    }
+                    
+                    // Convert invoiceDate strings to Date objects for proper Kendo Grid formatting
+                    if (processedData && processedData.length > 0) {
+                      processedData = processedData.map(item => ({
+                        ...item,
+                        invoiceDate: item.invoiceDate ? new Date(item.invoiceDate) : item.invoiceDate
+                      }));
                     }
                     
                     console.log('📋 Processed Invoice Details data:', {

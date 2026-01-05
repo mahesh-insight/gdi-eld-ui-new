@@ -78,97 +78,19 @@ export const azureInvoiceDetailsColumns = (t) => [
 
 // Monthly Difference Columns
 export const monthlyDifferenceColumns = (t) => [
-  {
-    field: "startMonth",
-    title: t ? t("common.startMonth") : "Start Month",
-    minWidth: 150,
-    format: "{0:yyyy-MM-dd}",
-  },
-  {
-    field: "endMonth",
-    title: t ? t("common.endMonth") : "End Month",
-    minWidth: 150,
-    format: "{0:yyyy-MM-dd}",
-  },
-  {
-    field: "tenantName",
-    title: t ? t("common.customerName") : "Customer Name",
-    minWidth: 200,
-    format: "",
-  },
-  {
-    field: "subscriptionName",
-    title: t ? t("common.subscriptionName") : "Subscription Name",
-    minWidth: 200,
-    format: "",
-  },
-  {
-    field: "productCategory",
-    title: t ? t("common.productCategory") : "Product Category",
-    minWidth: 175,
-    format: "",
-  },
-  {
-    field: "productName",
-    title: t ? t("common.productName") : "Product Name",
-    minWidth: 200,
-    format: "",
-  },
-  {
-    field: "skuName",
-    title: t ? t("common.sku") : "SKU Name",
-    minWidth: 200,
-    format: "",
-  },
-  {
-    field: "publisherName",
-    title: t ? t("common.publisherName") : "Publisher",
-    minWidth: 150,
-    format: "",
-  },
-  {
-    field: "costDifference",
-    title: t ? t("common.costDifference") : "Cost Difference",
-    minWidth: 150,
-    format: "{0:c4}",
-    cell: (props) => {
-      if (typeof window === 'undefined') {
-        // Server-side fallback
-        return `$${props.dataItem.costDifference?.toFixed(4) || '0.0000'}`;
-      }
-      return (
-        <td className={`cost-difference ${props.dataItem.costDifference >= 0 ? 'positive' : 'negative'}`}>
-          ${props.dataItem.costDifference?.toFixed(4) || '0.0000'}
-        </td>
-      );
-    },
-  },
-  {
-    field: "currency",
-    title: t ? t("common.currency") : "Currency",
-    minWidth: 100,
-    format: "",
-  },
-  {
-    field: "changeType",
-    title: t ? t("common.changeType") : "Change Type",
-    minWidth: 150,
-    format: "",
-    cell: (props) => {
-      if (typeof window === 'undefined') {
-        // Server-side fallback
-        return props.dataItem.changeType;
-      }
-      return (
-        <td>
-          <span className={`change-type ${props.dataItem.changeType?.toLowerCase()?.replace(' ', '-')}`}>
-            {props.dataItem.changeType}
-          </span>
-        </td>
-      );
-    },
-  },
-];
+  { field: "tenantName", title: t("common.customerName"), minWidth: 200, },
+  { field: "tenantId", title: t("common.tenantId"), minWidth: 150, },
+  { field: "subscriptionId", title: t("common.subscriptionID"), minWidth: 150, },
+  { field: "subscriptionName", title: t("common.subscriptionName"), minWidth: 150, },
+  { field: "productCategory", title: t("common.productCategory"), minWidth: 150, },
+  { field: "productId", title: t("common.productId"), minWidth: 150, },
+  { field: "productName", title: t("common.productName"), minWidth: 150, },
+  { field: "skuId", title: t("common.skuId"), minWidth: 150, },
+  { field: "skuName", title: t("common.skuName"), minWidth: 150, },
+  { field: "publisherName", title: t("common.publisherName"), minWidth: 150, },
+  { field: "costDifference", title: t("common.costDifference"), minWidth: 150, format: "{0:c2}" },
+  { field: "currency", title: t("common.currency"), minWidth: 150, },
+  { field: "changeType", title: t("common.changeType"), minWidth: 150, },];
 
 export const microsoftBillableInvoiceColumns = (t) => [
   { field: "invoiceNumber", title: t("common.invoice#"), minWidth: 150, format: "" },

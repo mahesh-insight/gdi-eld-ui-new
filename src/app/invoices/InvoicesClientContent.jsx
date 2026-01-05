@@ -8,7 +8,7 @@ import { Skeleton } from '@progress/kendo-react-indicators';
 import { Grid, GridColumn } from '@progress/kendo-react-grid';
 import { Chart } from '@progress/kendo-react-charts';
 import request from '@/lib/api/request';
-import { exceptionHandler } from '@/lib/utils';
+import { exceptionHandler, formatCurrency } from '@/lib/utils';
 import ChartTitleAndButtons from '@/components/ChartTitleAndButtons';
 import { Tooltip } from '@progress/kendo-react-tooltip';
 import { infoCircleIcon } from '@progress/kendo-svg-icons';
@@ -1208,7 +1208,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
                     </Tooltip>
                   </div>
                   <div className="azure-invoice-kpi-value invoice-total">
-                    ${totalSpend.toFixed(2)}
+                    {formatCurrency(totalSpend)}
                   </div>
                 </>
               )}
@@ -1232,7 +1232,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
                     ) : null}
                   </div>
                   <div className="azure-invoice-kpi-value monthly-difference">
-                    ${Math.abs(monthlyDifference).toFixed(2)}
+                    {formatCurrency(Math.abs(monthlyDifference))}
                     {haveDifferencePercent && monthlyDifferencePercent !== null && (
                       <span> ({monthlyDifferencePercent}%)</span>
                     )}
