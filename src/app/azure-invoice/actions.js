@@ -29,7 +29,11 @@ export async function fetchConsolidatedAzureInvoiceData(accessToken, soldToId, s
       };
     }
     
-    console.log('🚀 Consolidated Azure Invoice fetch:', { soldToId, hasToken: !!finalAccessToken, selectedMonth });
+    console.log('🚀 SERVER ACTION: Consolidated Azure Invoice fetch:', { 
+      soldToId: soldToId?.substring(0, 20) + '...', 
+      hasToken: !!finalAccessToken, 
+      selectedMonth 
+    });
     
     // Create cache key for consolidated data (similar to invoices page)
     const monthValue = selectedMonth || 'current';
@@ -38,30 +42,112 @@ export async function fetchConsolidatedAzureInvoiceData(accessToken, soldToId, s
     const data = await getOrSetCached(
       cacheKey,
       async () => {
-        console.log('📥 Cache MISS - fetching consolidated Azure Invoice data from APIs');
+        console.log('📥 SERVER ACTION: Cache MISS - making SINGLE consolidated API call');
         
-        // If selectedMonth is provided, use it in locationState
-        const locationState = selectedMonth ? {
-          currentMonthObject: { value: selectedMonth }
-        } : null;
+        // If selectedMonth is provided, fetch month-specific data (doesn't refetch invoiceMonths)
+        if (selectedMonth) {
+          const moment = (await import("moment")).default;
+          const services = await import('@/lib/api/services');
+          
+          // Calculate previous month for monthly difference
+          const currentDate = new Date(`${selectedMonth.substring(0, 4)}-${selectedMonth.substring(4, 6)}-01`);
+          const prevMonth = moment(currentDate).subtract(1, "month").format("YYYYMM");
+          
+          console.log('📅 SERVER ACTION: Month-specific fetch for:', selectedMonth, 'prev:', prevMonth);
+          
+          // Get base URL from services config
+          const serviceConfig = services.default.getService('invoiceSummary');
+          const baseURL = serviceConfig.baseURL || process.env.NEXT_PUBLIC_API_BASE_URL;
+          
+          // Make all 5 API calls in parallel on the SERVER
+          const [summary, credits, trend, monthDetail, monthlyDifference] = await Promise.allSettled([
+            // Invoice Summary
+            fetch(`${baseURL}/ccr-invoice-service/summary/${selectedMonth}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${finalAccessToken}`
+              },
+              body: JSON.stringify([soldToId]),
+              cache: 'no-store'
+            }).then(res => res.ok ? res.json() : Promise.reject(new Error(`Summary: ${res.status}`))),
+            
+            // Invoice Credits (total with creditsonly=true)
+            fetch(`${baseURL}/ccr-invoice-service/total/${selectedMonth}?creditsonly=true`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${finalAccessToken}`
+              },
+              body: JSON.stringify([soldToId]),
+              cache: 'no-store'
+            }).then(res => res.ok ? res.json() : Promise.reject(new Error(`Credits: ${res.status}`))),
+            
+            // Invoice Trend
+            fetch(`${baseURL}/ccr-invoice-service/trend?months=6&limit=6`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${finalAccessToken}`
+              },
+              body: JSON.stringify([soldToId]),
+              cache: 'no-store'
+            }).then(res => res.ok ? res.json() : Promise.reject(new Error(`Trend: ${res.status}`))),
+            
+            // Month Detail (for grid tab 1)
+            fetch(`${baseURL}/ccr-invoice-service/month/${selectedMonth}?page=0&size=20`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${finalAccessToken}`
+              },
+              body: JSON.stringify([soldToId]),
+              cache: 'no-store'
+            }).then(res => res.ok ? res.json() : Promise.reject(new Error(`MonthDetail: ${res.status}`))),
+            
+            // Monthly Difference (for grid tab 2)
+            fetch(`${baseURL}/ccr-invoice-service/month/sku-difference/${prevMonth}/${selectedMonth}?page=0&size=20`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${finalAccessToken}`
+              },
+              body: JSON.stringify([soldToId]),
+              cache: 'no-store'
+            }).then(res => res.ok ? res.json() : Promise.reject(new Error(`MonthlyDiff: ${res.status}`))),
+          ]);
+          
+          console.log('✅ SERVER ACTION: All 5 parallel API calls completed');
+          
+          return {
+            pageExistsError: false,
+            summary: summary.status === 'fulfilled' ? summary.value : null,
+            credits: credits.status === 'fulfilled' ? credits.value : null,
+            trend: trend.status === 'fulfilled' ? trend.value : null,
+            monthDetail: monthDetail.status === 'fulfilled' ? monthDetail.value : null,
+            monthlyDifference: monthlyDifference.status === 'fulfilled' ? monthlyDifference.value : null,
+          };
+        }
         
+        // Initial load - fetch everything including invoiceMonths
+        console.log('📅 SERVER ACTION: Initial load - fetching all data including months');
         return await getInitialAzureInvoiceData({ 
           soldToId, 
           accessToken: finalAccessToken,
-          locationState
+          locationState: null
         });
       },
       10 * 60 * 1000 // 10 minutes cache
     );
     
-    console.log('✅ Consolidated Azure Invoice data served from cache:', data._fromCache ? 'HIT' : 'MISS');
+    console.log('✅ SERVER ACTION: Consolidated data served:', data._fromCache ? 'CACHE HIT' : 'API CALL');
     return { 
       error: null, 
       data,
       cached: data._fromCache
     };
   } catch (error) {
-    console.error('❌ fetchConsolidatedAzureInvoiceData error:', error);
+    console.error('❌ SERVER ACTION: fetchConsolidatedAzureInvoiceData error:', error);
     return { 
       error: error?.message || 'Failed to fetch consolidated Azure Invoice data', 
       data: null,

@@ -174,6 +174,15 @@ export default function AzureInvoiceClientContent(props) {
     const newMonth = event.value;
     const monthValue = getMonthValue(newMonth);
     
+    console.log('🔄 Month change triggered:', {
+      oldMonth: selectedMonth,
+      newMonth: newMonth,
+      monthValue: monthValue,
+      soldToId: selectedSoldToId,
+      hasAccessToken: !!accessToken,
+      accessTokenLength: accessToken?.length
+    });
+    
     setSelectedMonth(newMonth);
     
     if (!accessToken || !selectedSoldToId) {
@@ -192,26 +201,27 @@ export default function AzureInvoiceClientContent(props) {
     // Use setTimeout with 0 delay to ensure state updates render before API calls
     setTimeout(async () => {
       try {
-        console.log('🔄 Month changed - making single consolidated API call for:', monthValue);
+        console.log('🔄 Month changed - making SINGLE CONSOLIDATED server action call for:', monthValue);
         console.log('🔑 Access Token available:', !!accessToken);
-        console.log('🔑 Access Token type:', typeof accessToken);
-        console.log('🔑 Access Token length:', accessToken?.length || 0);
-        if (typeof accessToken === 'string' && accessToken.length > 30) {
-          console.log('🔑 Access Token preview:', accessToken.substring(0, 30) + '...');
-        }
+        console.log('🔑 soldToId:', selectedSoldToId);
       
-      // Import the month-specific fetch action (doesn't fetch invoiceMonths)
-      const { getAzureInvoiceDataForMonth } = await import('@/lib/azureInvoiceApi');
+      // Call the SERVER ACTION for consolidated data (like invoices page)
+      // This makes ONE server-side call that fetches all data together
+      const consolidatedResult = await fetchConsolidatedAzureInvoiceData(
+        accessToken,
+        selectedSoldToId,
+        monthValue // Pass the month value
+      );
       
-      // Make consolidated API call that fetches data for the selected month
-      // WITHOUT fetching invoiceMonths again
-      const consolidatedData = await getAzureInvoiceDataForMonth({
-        soldToId: selectedSoldToId,
-        currentMonthObject: newMonth,
-        accessToken
-      });
+      if (consolidatedResult.error) {
+        console.error('❌ Consolidated fetch error:', consolidatedResult.error);
+        throw new Error(consolidatedResult.error);
+      }
+      
+      const consolidatedData = consolidatedResult.data;
       
       console.log('✅ Consolidated API response received:', {
+        cached: consolidatedResult.cached,
         hasSummary: !!consolidatedData?.summary,
         hasCredits: !!consolidatedData?.credits,
         hasTrends: !!consolidatedData?.trend,
@@ -220,27 +230,42 @@ export default function AzureInvoiceClientContent(props) {
       });
       
       // Update all state from the single consolidated response
-      setCurrentSummaryData(consolidatedData?.summary);
+      if (consolidatedData?.summary) {
+        console.log('📊 Setting summary data');
+        setCurrentSummaryData(consolidatedData.summary);
+      } else {
+        console.warn('⚠️ No summary data in consolidated response');
+      }
       setIsLoadingSummary(false);
       
-      setCurrentCreditsData(consolidatedData?.credits);
+      if (consolidatedData?.credits) {
+        console.log('💳 Setting credits data');
+        setCurrentCreditsData(consolidatedData.credits);
+      } else {
+        console.warn('⚠️ No credits data in consolidated response');
+      }
       setIsLoadingCredits(false);
       
-      setCurrentTrendsData(consolidatedData?.trend);
+      if (consolidatedData?.trend) {
+        console.log('📈 Setting trends data');
+        setCurrentTrendsData(consolidatedData.trend);
+      } else {
+        console.warn('⚠️ No trends data in consolidated response');
+      }
       setIsLoadingTrends(false);
       
       // Update BOTH tab data states (not just the currently selected tab)
       // since the consolidated call fetches data for both tabs
       const monthDetailContent = consolidatedData?.monthDetail?.content || consolidatedData?.monthDetail;
-      setCurrentMonthDetailData(monthDetailContent);
-      
       const monthlyDiffContent = consolidatedData?.monthlyDifference?.content || consolidatedData?.monthlyDifference;
-      setCurrentMonthlyDifferenceData(monthlyDiffContent);
       
-      console.log('📊 Tab data updated:', {
+      console.log('📄 Setting tab data:', {
         monthDetailCount: monthDetailContent?.length || 0,
         monthlyDiffCount: monthlyDiffContent?.length || 0
       });
+      
+      setCurrentMonthDetailData(monthDetailContent);
+      setCurrentMonthlyDifferenceData(monthlyDiffContent);
       
       setIsLoadingTabData(false);
       setIsLoadingMonthData(false);
@@ -691,12 +716,7 @@ export default function AzureInvoiceClientContent(props) {
                     disabled={isLoading}
                   />
                 ) : (
-                  <span>Loading months...</span>
-                )}
-                {isLoading && (
-                  <span className="month-loading-indicator">
-                    Loading month data...
-                  </span>
+                  <div className="skeleton-loader" style={{ height: '32px', width: '200px' }}></div>
                 )}
               </div>
               <a href="#" className="azure-invoice-view-usage-link">View Billed Usage</a>

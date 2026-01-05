@@ -1898,11 +1898,6 @@ export default function AzureInvoiceClientContent({
                       className="month-selection-container"
                       disabled={monthDataLoading}
                     />
-                    {monthDataLoading && (
-                      <span className="month-loading-indicator">
-                        Loading month data...
-                      </span>
-                    )}
                   </div>
                 </div>
                 <br />
