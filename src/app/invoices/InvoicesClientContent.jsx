@@ -177,6 +177,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
   const [gridSectionLoading, setGridSectionLoading] = useState(mode !== 'ssr');
   const [filtersSectionLoading, setFiltersSectionLoading] = useState(mode !== 'ssr');
   const [chartTypeLoading, setChartTypeLoading] = useState(false);
+  const [trendChartLoading, setTrendChartLoading] = useState(false);
   
   // 🔍 DEBUG: Log initial loading states
   console.log('🔄 DEBUG: Initial loading states:', {
@@ -224,6 +225,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
 
   // Chart type controls for trending chart
   const [trendingChartType, setTrendingChartType] = useState('column');
+  const [selectedPeriod, setSelectedPeriod] = useState('Last 6 Months');
   
   const columnLineAreaOptions = [
     {
@@ -328,11 +330,11 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
     return trendData.map(item => {
       let formattedGroup = item.group;
       try {
-        // Try to parse as date and format to month/year
+        // Try to parse as date and format to month/year (3-letter month abbreviation)
         const date = new Date(item.group);
         if (!isNaN(date.getTime())) {
           formattedGroup = date.toLocaleDateString('en-US', { 
-            month: 'long', 
+            month: 'short', 
             year: 'numeric' 
           });
         }
@@ -848,6 +850,42 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
     setTrendingChartType(newType);
     setTimeout(() => setChartTypeLoading(false), 300);
   }, []);
+  
+  // Period change handler for trending monthly spend
+  const handlePeriodChange = useCallback(async (period) => {
+    console.log('📅 Period changed to:', period);
+    
+    // Update selected period state
+    setSelectedPeriod(period);
+    
+    // Calculate months based on period selection
+    const months = period === "Last 12 Months" ? 12 : 6;
+    
+    // Show skeleton only for trend chart section
+    setTrendChartLoading(true);
+    
+    try {
+      // Call the trend API with updated months parameter
+      const trendResponse = await fetchInvoiceTrendServer(
+        selectedSoldToId, 
+        apiEndpoint || selectedProvider?.abbreviation || 'microsoft',
+        months
+      );
+      
+      if (trendResponse.error) {
+        console.error('❌ Error fetching trend data:', trendResponse.error);
+        setErrorState(trendResponse.error);
+      } else {
+        console.log('✅ Trend data fetched successfully:', trendResponse.data);
+        setTrendData(trendResponse.data?.chartData || []);
+      }
+    } catch (error) {
+      console.error('❌ Error in handlePeriodChange:', error);
+      setErrorState('Failed to fetch trend data');
+    } finally {
+      setTrendChartLoading(false);
+    }
+  }, [selectedSoldToId, apiEndpoint, selectedProvider]);
   const handleApplyFilters = async () => {
     console.log('Applying filters:', {
       productCategory: selectedProductCategory,
@@ -1406,46 +1444,40 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
 
         {/* Trending Chart */}
         <div className="invoices-trend-chart">
-          {isChartsLoading ? (
-            <>
-              <div className="chart-title-skeleton">
-                <Skeleton style={{ width: '200px', height: '24px', marginBottom: '8px' }} />
-                <Skeleton style={{ width: '120px', height: '32px', marginBottom: '16px' }} />
-              </div>
-              <Skeleton style={{ width: '100%', height: '300px' }} />
-            </>
+          <ChartTitleAndButtons
+            title="Trending Monthly Spend"
+            trendingChartType={trendingChartType}
+            handleChartTypeChange={handleChartTypeChange}
+            chartOptions={columnLineAreaOptions}
+            dropDownList={true}
+            apiEndPoint={apiEndpoint}
+            pageType="invoice"
+            onPeriodChange={handlePeriodChange}
+            selectedPeriod={selectedPeriod}
+          />
+          {trendChartLoading ? (
+            <Skeleton style={{ width: '100%', height: '300px' }} />
           ) : (
-            <>
-              <ChartTitleAndButtons
-                title="Trending Monthly Spend"
-                trendingChartType={trendingChartType}
-                handleChartTypeChange={handleChartTypeChange}
-                chartOptions={columnLineAreaOptions}
-                dropDownList={true}
-                apiEndPoint=""
-                pageType="invoice"
+            <Chart seriesColors={getInsightThemeColors()}>
+              <BasicGroupedChart
+                key={trendingChartType}
+                chartType={trendingChartType}
+                title=""
+                subTitle=""
+                data={formattedTrendData}
+                categoryField="group"
+                categoryTitle=""
+                categoryFormat="MMM yyyy"
+                valueField="value"
+                valueFormat="c2"
+                groupedByField="label"
+                legendPosition="bottom"
+                legendTitle=""
+                tooltipFormat="c2"
+                showLabels={false}
+                stacked={trendingChartType === 'column'}
               />
-              <Chart style={{ height: '300px' }} seriesColors={getInsightThemeColors()}>
-                <BasicGroupedChart
-                  key={trendingChartType}
-                  chartType={trendingChartType}
-                  title=""
-                  subTitle=""
-                  data={formattedTrendData}
-                  categoryField="group"
-                  categoryTitle=""
-                  categoryFormat="MMM yyyy"
-                  valueField="value"
-                  valueFormat="c2"
-                  groupedByField="label"
-                  legendPosition="bottom"
-                  legendTitle=""
-                  tooltipFormat="c2"
-                  showLabels={false}
-                  stacked={trendingChartType === 'column'}
-                />
-              </Chart>
-            </>
+            </Chart>
           )}
         </div>
       </div>

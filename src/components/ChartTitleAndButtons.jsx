@@ -12,18 +12,23 @@ const ChartTitleAndButtons = ({
   chartOptions, 
   dropDownList, 
   apiEndPoint, 
-  pageType 
+  pageType,
+  onPeriodChange, // Callback for period changes
+  selectedPeriod: selectedPeriodProp // Controlled period value from parent
 }) => {
   const timePeriodsInvoiceHistory = ["Last 12 Months", "Yearly"];
   const timePeriodsInvoice = ["Last 6 Months", "Last 12 Months"];
   const timePeriodsToUse = pageType === "invoiceHistory" ? timePeriodsInvoiceHistory : timePeriodsInvoice;
   const desiredInitialPeriod = pageType === "invoiceHistory" ? "Last 12 Months" : "Last 6 Months";
 
-  const [selectedPeriod, setSelectedPeriod] = useState(desiredInitialPeriod);
+  // Use controlled prop if provided, otherwise use local state
+  const selectedPeriod = selectedPeriodProp || desiredInitialPeriod;
 
   const handlePeriodChange = (e) => {
-    setSelectedPeriod(e.value);
-    // Add your period change logic here
+    // Call parent's handler if provided
+    if (onPeriodChange) {
+      onPeriodChange(e.value);
+    }
   };
 
   const isDashboard = pageType === 'dashboard';

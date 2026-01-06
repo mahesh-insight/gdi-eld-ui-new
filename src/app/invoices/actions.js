@@ -61,7 +61,7 @@ export async function fetchConsolidatedInvoiceData(soldToId, provider, selectedM
           // Trend data
           (async () => {
             const serviceConfig = getService('providers'); // Get base URL
-            const url = `${serviceConfig.baseURL}/ccr-billableitem-service/${abbreviation}/trend${filterParam}`;
+            const url = `${serviceConfig.baseURL}/ccr-billableitem-service/${abbreviation}/trend?months=6&limit=6${filterParam ? '&' + filterParam.substring(1) : ''}`;
             const response = await fetch(url, {
               method: 'POST',
               headers: {
@@ -233,12 +233,40 @@ export async function fetchInvoiceSummaryServer(soldToId, abbreviation, monthVal
   return { error: null, data: result.data?.summaryResponse?.data };
 }
 
-export async function fetchInvoiceTrendServer(soldToId, abbreviation) {
-  const result = await fetchConsolidatedInvoiceData(soldToId, { abbreviation }, { value: 'current' });
-  if (result.error) {
-    return { error: result.error, data: null };
+export async function fetchInvoiceTrendServer(soldToId, abbreviation, months = 6) {
+  try {
+    console.log('🔄 Fetching Invoice Trend:', { soldToId, abbreviation, months });
+    
+    const cookieStore = await cookies();
+    const accessTokenCookie = cookieStore.get('access_token');
+    
+    if (!accessTokenCookie) {
+      return { error: 'Authentication required', data: null };
+    }
+    
+    const accessToken = accessTokenCookie.value;
+    const serviceConfig = getService('providers');
+    const url = `${serviceConfig.baseURL}/ccr-billableitem-service/${abbreviation}/trend?months=${months}&limit=6`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify([soldToId])
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Trend API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return { error: null, data };
+  } catch (error) {
+    console.error('❌ fetchInvoiceTrendServer error:', error);
+    return { error: error.message, data: null };
   }
-  return { error: null, data: result.data?.trendResponse?.data };
 }
 
 export async function fetchInvoiceDetailsServer(soldToId, abbreviation, monthValue) {
