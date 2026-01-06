@@ -65,7 +65,7 @@ const getEnvironmentConfig = () => {
       return "https://api-ccrdev.insight.com";
     case "qa":
     case "staging":
-      return "https://ccrqa.insight.com";
+      return "https://api-ccrqa.insight.com";
     case "prod":
     case "production":
       return "https://api-ccr.insight.com";
