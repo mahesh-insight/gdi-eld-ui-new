@@ -115,12 +115,14 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
           salesOrg: finalSalesOrg || null
         };
         
-        // Dispatch auth immediately and redirect - don't wait
+        // Dispatch auth immediately
         dispatch(initializeAuth(authPayload));
         console.log('✅ Auth successful - redirecting to dashboard immediately');
         
-        // Redirect immediately - dashboard will show header + skeleton loaders
-        router.replace('/dashboard');
+        // Redirect to dashboard - DO NOT clear isProcessing
+        // Keep loader visible until component unmounts during navigation
+        // This prevents flash of home screen before dashboard loads
+        router.push('/dashboard');
       } else {
         console.error('❌ Auth response validation failed');
         setProcessingMessage('Authentication failed: Invalid response. Please login again.');

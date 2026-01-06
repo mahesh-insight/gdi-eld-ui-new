@@ -181,7 +181,8 @@ const Header = () => {
   };
 
   const handleLinkClick = () => {
-    // Close dropdown when any link is clicked
+    // Close dropdowns when navigation happens
+    // Let Next.js Link handle navigation to show target page skeleton immediately
     setOpenMenuIndex(null);
     setOpenSubMenuLabel(null);
   };
@@ -268,12 +269,15 @@ const Header = () => {
     if (typeof window !== 'undefined') {
       console.log('🧹 Clearing all authentication data...');
       
-      // Clear localStorage items
+      // Clear ALL localStorage items
       const localStorageKeys = [
         'access_token',
         'token_expiry', 
         'user_context',
         'persist:ccr-auth',
+        'persist:ccr-azure-invoice',
+        'persist:ccr-dashboard',
+        'persist:ccr-user',
         'persist:root',
         'uiProps',
         'authenticationURL',
@@ -281,21 +285,26 @@ const Header = () => {
         'soldToId',
         'user_data',
         'account_selection',
-        'login_response'
+        'login_response',
+        'flags',
+        'uiproperties'
       ];
       
       localStorageKeys.forEach(key => {
         localStorage.removeItem(key);
+        console.log(`🗑️ Removed localStorage: ${key}`);
       });
       
-      // Clear sessionStorage
+      // Clear ALL sessionStorage
+      console.log('🗑️ Clearing sessionStorage');
       sessionStorage.clear();
       
-      // Clear cookies
+      // Clear ALL cookies including soldToId
       const cookiesToClear = [
         'access_token',
         'token_expiry',
         'user_context',
+        'soldToId',
         'persist:ccr-auth',
         'persist:root'
       ];
@@ -307,6 +316,7 @@ const Header = () => {
         // Also try clearing for parent domain (if subdomain)
         const domain = window.location.hostname.split('.').slice(-2).join('.');
         document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${domain};`;
+        console.log(`🗑️ Removed cookie: ${cookieName}`);
       });
       
       console.log('✅ All authentication data cleared');
@@ -538,7 +548,7 @@ const Header = () => {
                     <Link
                       href={child.href || "#"}
                       className={styles.dropdownLink}
-                      onClick={handleLinkClick}
+                      onClick={() => handleLinkClick()}
                     >
                       {child.label}
                     </Link>
@@ -552,7 +562,7 @@ const Header = () => {
                           key={grandchildIndex}
                           href={grandchild.href || "#"}
                           className={styles.subMenuLink}
-                          onClick={handleLinkClick}
+                          onClick={() => handleLinkClick()}
                         >
                           {grandchild.label}
                         </Link>

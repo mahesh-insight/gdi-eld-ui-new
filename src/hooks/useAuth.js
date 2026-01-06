@@ -81,30 +81,68 @@ export const useAuth = () => {
           console.warn('⚠️ Auth: Could not clear Azure Invoice cache:', err);
         });
         
-        // Clear all localStorage including Redux persist
-        localStorage.removeItem('persist:ccr-auth');
-        localStorage.removeItem('persist:ccr-azure-invoice');
-        localStorage.removeItem('persist:ccr-dashboard');
-        localStorage.removeItem('persist:ccr-user'); // Also clear user slice persist
-        console.log('✅ Auth: Cleared localStorage persist data');
+        // Clear ALL localStorage including Redux persist
+        const localStorageKeys = [
+          'persist:ccr-auth',
+          'persist:ccr-azure-invoice',
+          'persist:ccr-dashboard',
+          'persist:ccr-user',
+          'persist:root',
+          'access_token',
+          'token_expiry',
+          'user_context',
+          'soldToId',
+          'uiProps',
+          'authenticationURL',
+          'logged_in',
+          'user_data',
+          'account_selection',
+          'login_response',
+          'flags',
+          'uiproperties'
+        ];
+        
+        localStorageKeys.forEach(key => {
+          localStorage.removeItem(key);
+        });
+        console.log('✅ Auth: Cleared ALL localStorage persist data');
+        
+        // Clear sessionStorage
+        sessionStorage.clear();
+        console.log('✅ Auth: Cleared sessionStorage');
       } catch (err) {
         console.warn('⚠️ Auth: localStorage clear error:', err);
       }
     }
     
-    // Also clear cookies if they exist (client-side)
+    // Also clear ALL cookies if they exist (client-side)
     if (typeof window !== 'undefined') {
-      // Use dynamic import to avoid SSR issues
-      import('js-cookie').then((Cookies) => {
-        Cookies.default.remove('user_context');
-        Cookies.default.remove('access_token');
-        console.log('✅ Auth: Cookies cleared');
-      }).catch(err => {
+      try {
+        const cookiesToClear = [
+          'access_token',
+          'token_expiry',
+          'user_context',
+          'soldToId',
+          'persist:ccr-auth',
+          'persist:root'
+        ];
+        
+        cookiesToClear.forEach(cookieName => {
+          // Clear for current path
+          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+          // Clear with domain
+          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
+          // Clear for parent domain
+          const domain = window.location.hostname.split('.').slice(-2).join('.');
+          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${domain};`;
+        });
+        console.log('✅ Auth: ALL Cookies cleared');
+      } catch (err) {
         console.warn('⚠️ Auth: Could not clear cookies:', err);
-      });
+      }
     }
     
-    console.log('✅ Auth: Logout completed - all cache and Redux store cleared');
+    console.log('✅ Auth: Logout completed - ALL cache, cookies, and Redux store cleared');
   };
 
   const updateUser = (userData) => {
