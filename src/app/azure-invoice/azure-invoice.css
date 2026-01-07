@@ -25,6 +25,7 @@
 .label-text-bold {
   font-weight: bold;
   display: block;
+  margin-bottom: 5px;
 }
 
 .k-dropdown {
@@ -1065,6 +1066,29 @@
 }
 
 /* Skeleton Loader Variants */
+.skeleton-kpi-card-wrapper {
+  padding: 12px 16px;
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  min-height: 70px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.skeleton-kpi-card-wrapper.invoice-total {
+  border-left: 7px solid #9f177a;
+}
+
+.skeleton-kpi-card-wrapper.monthly-difference {
+  border-left: 7px solid #007996;
+}
+
+.skeleton-kpi-card-wrapper.invoice-credits {
+  border-left: 7px solid #cbc4c3;
+}
+
 .skeleton-kpi-label {
   height: 18px;
   width: 100px;
@@ -1098,9 +1122,10 @@
 }
 
 .skeleton-chart-body-large {
-  height: 300px;
+  height: 400px;
   width: 100%;
   margin-top: 16px;
+  flex: 1;
 }
 
 .skeleton-chart-title-180 {
@@ -1134,6 +1159,52 @@
 .skeleton-filter-button-download {
   width: 48px;
   height: 36px;
+}
+
+/* Month Selector Skeletons */
+.skeleton-month-label {
+  width: 100px;
+  height: 16px;
+  margin-bottom: 8px;
+}
+
+.skeleton-month-dropdown {
+  width: 200px;
+  height: 36px;
+}
+
+/* View Usage Link Skeleton */
+.skeleton-view-usage-link {
+  width: 120px;
+  height: 16px;
+  margin-top: 12px;
+}
+
+/* Chart Section Skeletons */
+.skeleton-chart-title {
+  height: 20px;
+  margin-bottom: 16px;
+}
+
+.skeleton-chart-body {
+  height: 400px;
+  width: 100%;
+}
+
+/* Carousel Slide Skeleton */
+.skeleton-carousel-slide {
+  width: 100%;
+  display: flex;
+  gap: 20px;
+}
+
+.skeleton-chart-container-half {
+  flex: 1;
+  min-width: 0;
+}
+
+.skeleton-chart-container-full {
+  width: 100%;
 }
 
 /* Chart Header Layouts */

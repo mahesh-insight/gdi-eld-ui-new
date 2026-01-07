@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSelector } from 'react-redux';
+import { flushSync } from 'react-dom';
+import store from '@/store/store';
 import { useTranslation } from 'react-i18next';
 import { DropDownList, MultiSelect } from '@progress/kendo-react-dropdowns';
 import { Skeleton } from '@progress/kendo-react-indicators';
@@ -13,6 +15,7 @@ import ChartTitleAndButtons from '@/components/ChartTitleAndButtons';
 import { Tooltip } from '@progress/kendo-react-tooltip';
 import { infoCircleIcon } from '@progress/kendo-svg-icons';
 import { SvgIcon } from '@progress/kendo-react-common';
+import GridTable from '@/components/GridTable/GridTable';
 import { ArrowUpIcon, ArrowDownIcon } from '@/lib/svg/svgList';
 import { BasicGroupedChart } from '@/common/Charts/BasicGroupedChart';
 import { getInsightThemeColors } from '@/lib/chartColors';
@@ -306,6 +309,10 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
   const [trendData, setTrendData] = useState(mode === 'ssr' ? (initialData?.trendResponse?.data?.chartData || []) : []);
   const [gridData, setGridData] = useState(mode === 'ssr' ? (initialData?.detailsResponse?.data?.content || initialData?.detailsResponse?.data || []) : []);
   const [gridTotal, setGridTotal] = useState(mode === 'ssr' ? (initialData?.detailsResponse?.data?.totalElements || initialData?.detailsResponse?.data?.length || 0) : 0);
+  
+  // Pagination states for grid
+  const [gridDataState, setGridDataState] = useState({ skip: 0, take: 20 });
+  const [isLoadingGridPagination, setIsLoadingGridPagination] = useState(false);
 
   // Dynamic grid columns based on selected provider
   const gridColumns = useMemo(() => {
@@ -499,6 +506,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         } finally {
           // Clear ALL section loading states after initial data load is complete
           setSectionLoadingStates(false);
+          setTrendChartLoading(false);
         }
       }
     } catch (error) {
@@ -506,6 +514,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       setErrorState(exceptionHandler(error));
       // Clear loading states even on error
       setSectionLoadingStates(false);
+      setTrendChartLoading(false);
     }
   }, [selectedSoldToId, apiEndpoint]);
 
@@ -532,8 +541,9 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
     setTrendData([]);
     setGridData([]);
 
-    // Show skeletons for ALL sections EXCEPT provider section
+    // Show skeletons for ALL sections EXCEPT provider section, including trending chart
     setSectionLoadingStates(true, ['provider']);
+    setTrendChartLoading(true);
 
     // Client-side API call triggered by user interaction
     console.log('🔄 Fetching data for user-selected provider:', newProvider.abbreviation);
@@ -844,6 +854,133 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
     setSelectedSubscriptionId(newSubscription);
     console.log('Selected subscription ID:', newSubscription);
   };
+  
+  // Handle grid pagination changes
+  const handleGridDataStateChange = useCallback(async (event) => {
+    const newDataState = event.dataState;
+    
+    // Force immediate state update to show loading indicator
+    flushSync(() => {
+      setGridDataState(newDataState);
+      setIsLoadingGridPagination(true);
+    });
+    
+    console.log('🔄 Grid pagination: Loading state set to TRUE');
+
+    try {
+      // Read fresh values from store
+      const authState = store.getState().auth;
+      const accessToken = authState?.loginResponse?.tokens?.bearerToken || authState?.accessToken;
+      
+      // Extract soldToId using comprehensive path
+      const soldToId = authState?.loginResponse?.userProfile?.defaultContext?.[0]?.soldToId ||
+                       authState?.loginResponse?.userProfile?.defaultContext?.soldToId ||
+                       authState?.loginResponse?.soldToId ||
+                       authState?.loginResponse?.userProfile?.soldToId ||
+                       authState?.soldTo ||
+                       authState?.user?.soldToId;
+      
+      const monthValue = selectedMonth?.value || selectedMonth?.date || selectedMonth?.display;
+      
+      console.log('🔑 Pagination auth check:', { 
+        hasAccessToken: !!accessToken, 
+        tokenLength: accessToken?.length,
+        soldToIdValue: soldToId,
+        soldToIdType: typeof soldToId,
+        hasSelectedMonth: !!selectedMonth,
+        monthValue: monthValue
+      });
+      
+      if (!accessToken || !soldToId || !monthValue) {
+        console.error('Missing required data for pagination:', { 
+          hasAccessToken: !!accessToken, 
+          soldToIdValue: soldToId,
+          hasSelectedMonth: !!selectedMonth,
+          monthValue: monthValue
+        });
+        return;
+      }
+
+      const formattedMonth = monthValue.replace(/-/g, '');
+      const pageNumber = Math.floor(newDataState.skip / newDataState.take);
+      
+      // Build filter query string
+      const filterParams = [];
+      if (selectedProductCategory && selectedProductCategory.length > 0) {
+        selectedProductCategory.forEach(category => {
+          const categoryValue = typeof category === 'object' ? category.value : category;
+          if (categoryValue !== 'all') {
+            filterParams.push(`filter=productcategory equals ${categoryValue}`);
+          }
+        });
+      }
+      if (selectedProductName && selectedProductName.length > 0) {
+        selectedProductName.forEach(name => {
+          const nameValue = typeof name === 'object' ? name.value : name;
+          if (nameValue !== 'all') {
+            filterParams.push(`filter=productname equals ${nameValue}`);
+          }
+        });
+      }
+      if (selectedSubscriptionId && selectedSubscriptionId.length > 0) {
+        selectedSubscriptionId.forEach(sub => {
+          const subValue = typeof sub === 'object' ? sub.value : sub;
+          if (subValue !== 'all') {
+            filterParams.push(`filter=subscriptionid equals ${subValue}`);
+          }
+        });
+      }
+      const filterQueryString = filterParams.length > 0 ? `&${filterParams.join('&')}` : '';
+
+      const services = (await import('@/lib/api/services')).default;
+      const serviceConfig = services.getService('invoiceMonthDetail');
+      const baseURL = serviceConfig.baseURL;
+      
+      const apiUrl = `${baseURL}/ccr-billableitem-service/${apiEndpoint}/month/${formattedMonth}?page=${pageNumber}&size=${newDataState.take}${filterQueryString}`;
+      
+      const requestHeaders = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      };
+      
+      const requestBody = Array.isArray(soldToId) ? soldToId : [soldToId];
+      
+      console.log('📄 Fetching Grid page:', { 
+        pageNumber, 
+        size: newDataState.take, 
+        url: apiUrl,
+        hasAuthHeader: !!requestHeaders.Authorization,
+        authHeaderValue: requestHeaders.Authorization ? `Bearer ...${accessToken?.slice(-10)}` : 'MISSING',
+        requestBody
+      });
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: requestHeaders,
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        throw new Error(`API call failed: ${response.status}`);
+      }
+
+      const detailsResponse = await response.json();
+      
+      if (detailsResponse?.data) {
+        setGridData(detailsResponse.data?.content || detailsResponse.data || []);
+        setGridTotal(detailsResponse.data?.totalElements || detailsResponse.data?.length || 0);
+      }
+      
+      console.log('✅ Grid pagination: Data loaded, setting loading to FALSE');
+      
+    } catch (error) {
+      console.error('❌ Error changing page:', error);
+      setErrorState(`Failed to load page: ${error.message}`);
+    } finally {
+      setIsLoadingGridPagination(false);
+    }
+  }, [selectedMonth, selectedProductCategory, selectedProductName, selectedSubscriptionId, apiEndpoint]);
+  
   // Chart type change handler
   const handleChartTypeChange = useCallback(async (newType) => {
     setChartTypeLoading(true);
@@ -886,6 +1023,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       setTrendChartLoading(false);
     }
   }, [selectedSoldToId, apiEndpoint, selectedProvider]);
+
   const handleApplyFilters = async () => {
     console.log('Applying filters:', {
       productCategory: selectedProductCategory,
@@ -1444,40 +1582,45 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
 
         {/* Trending Chart */}
         <div className="invoices-trend-chart">
-          <ChartTitleAndButtons
-            title="Trending Monthly Spend"
-            trendingChartType={trendingChartType}
-            handleChartTypeChange={handleChartTypeChange}
-            chartOptions={columnLineAreaOptions}
-            dropDownList={true}
-            apiEndPoint={apiEndpoint}
-            pageType="invoice"
-            onPeriodChange={handlePeriodChange}
-            selectedPeriod={selectedPeriod}
-          />
           {trendChartLoading ? (
-            <Skeleton style={{ width: '100%', height: '300px' }} />
+            <>
+              <Skeleton style={{ width: '100%', height: '50px', marginBottom: '16px' }} />
+              <Skeleton style={{ width: '100%', height: '300px' }} />
+            </>
           ) : (
-            <Chart seriesColors={getInsightThemeColors()}>
-              <BasicGroupedChart
-                key={trendingChartType}
-                chartType={trendingChartType}
-                title=""
-                subTitle=""
-                data={formattedTrendData}
-                categoryField="group"
-                categoryTitle=""
-                categoryFormat="MMM yyyy"
-                valueField="value"
-                valueFormat="c2"
-                groupedByField="label"
-                legendPosition="bottom"
-                legendTitle=""
-                tooltipFormat="c2"
-                showLabels={false}
-                stacked={trendingChartType === 'column'}
+            <>
+              <ChartTitleAndButtons
+                title="Trending Monthly Spend"
+                trendingChartType={trendingChartType}
+                handleChartTypeChange={handleChartTypeChange}
+                chartOptions={columnLineAreaOptions}
+                dropDownList={true}
+                apiEndPoint={apiEndpoint}
+                pageType="invoice"
+                onPeriodChange={handlePeriodChange}
+                selectedPeriod={selectedPeriod}
               />
-            </Chart>
+              <Chart seriesColors={getInsightThemeColors()}>
+                <BasicGroupedChart
+                  key={trendingChartType}
+                  chartType={trendingChartType}
+                  title=""
+                  subTitle=""
+                  data={formattedTrendData}
+                  categoryField="group"
+                  categoryTitle=""
+                  categoryFormat="MMM yyyy"
+                  valueField="value"
+                  valueFormat="c2"
+                  groupedByField="label"
+                  legendPosition="bottom"
+                  legendTitle=""
+                  tooltipFormat="c2"
+                  showLabels={false}
+                  stacked={trendingChartType === 'column'}
+                />
+              </Chart>
+            </>
           )}
         </div>
       </div>
@@ -1582,25 +1725,48 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
           </>
         ) : (
           <>
-            <Grid
-              data={gridData}
-              sortable={true}
-              pageable={true}
-              pageSize={20}
-              sort={initialSort}
-              style={{ height: '400px' }}
-            >
-              {gridColumns.map((column) => (
-                <GridColumn
-                  key={column.field}
-                  field={column.field}
-                  title={column.title}
-                  width={`${column.minWidth}px`}
-                  format={column.format}
-                  cell={column.cell}
+            {(() => {
+              // Process data to handle different response structures
+              let processedData = null;
+              
+              if (Array.isArray(gridData)) {
+                processedData = gridData;
+              } else if (gridData?.data && Array.isArray(gridData.data)) {
+                processedData = gridData.data;
+              } else if (gridData?.content && Array.isArray(gridData.content)) {
+                processedData = gridData.content;
+              }
+              
+              // Calculate dynamic grid height based on actual row count
+              const rowCount = processedData?.length || 0;
+              const gridHeight = rowCount === 0 ? '200px' : (rowCount > 8 ? '400px' : 'auto');
+              
+              console.log('📊 Invoices Grid Data:', {
+                processedData,
+                processedLength: processedData?.length || 0,
+                totalElements: gridTotal,
+                rowCount,
+                gridHeight
+              });
+              
+              // Prepare data structure for GridTable with pagination info
+              const gridDataForTable = {
+                data: processedData || [],
+                total: gridTotal
+              };
+              
+              return (
+                <GridTable 
+                  data={gridDataForTable}
+                  columns={gridColumns}
+                  className="invoices-details-grid"
+                  loading={isLoadingGridPagination}
+                  gridHeight={gridHeight}
+                  dataState={gridDataState}
+                  dataStateChange={handleGridDataStateChange}
                 />
-              ))}
-            </Grid>
+              );
+            })()}
           </>
         )}
       </div>

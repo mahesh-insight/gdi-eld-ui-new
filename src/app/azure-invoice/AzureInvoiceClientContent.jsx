@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { flushSync } from 'react-dom';
 import { useSelector } from 'react-redux';
+import { store } from '@/store/store';
 import { BasicChart } from '@/common/Charts/BasicChart';
 import { BasicGroupedChart } from '@/common/Charts/BasicGroupedChart';
 import { BasicPieDoughnutChart } from '@/common/Charts/BasicPieDoughnutChart';
@@ -13,6 +15,7 @@ import Carousel from '@/components/Carousel/Carousel';
 import { DropDownList, MultiSelect } from '@progress/kendo-react-dropdowns';
 import { TabStrip, TabStripTab } from '@progress/kendo-react-layout';
 import { Button } from '@progress/kendo-react-buttons';
+import { Skeleton } from '@progress/kendo-react-indicators';
 import GridTable from '@/components/GridTable/GridTable';
 import { azureInvoiceDetailsColumns, monthlyDifferenceColumns } from '@/common/gridColumnDefinitions';
 import { fetchConsolidatedAzureInvoiceData } from './actions';
@@ -92,6 +95,14 @@ export default function AzureInvoiceClientContent(props) {
   
   // Tab state
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
+  
+  // Pagination states for Invoice Details tab
+  const [invoiceDetailsDataState, setInvoiceDetailsDataState] = useState({ skip: 0, take: 20 });
+  const [isLoadingInvoiceDetails, setIsLoadingInvoiceDetails] = useState(false);
+  
+  // Pagination states for Monthly Differences tab
+  const [monthlyDiffDataState, setMonthlyDiffDataState] = useState({ skip: 0, take: 20 });
+  const [isLoadingMonthlyDiff, setIsLoadingMonthlyDiff] = useState(false);
 
   // Error and loading states
   const [errorState, setErrorState] = useState(null);
@@ -122,22 +133,19 @@ export default function AzureInvoiceClientContent(props) {
       const monthDetail = initialData.monthDetailResponse?.data || initialData.monthDetail?.data || initialData.monthDetail;
       const monthlyDifference = initialData.monthlyDifferenceResponse?.data || initialData.monthlyDifference?.data || initialData.monthlyDifference;
       
-      // Extract content array from pagination response
-      const monthDetailContent = monthDetail?.content || monthDetail;
-      const monthlyDifferenceContent = monthlyDifference?.content || monthlyDifference;
-      
       console.log('🔍 SSR Data extraction debug:', {
         monthDetail,
-        monthDetailContent,
-        monthDetailContentLength: monthDetailContent?.length || 0,
+        monthDetailHasContent: !!monthDetail?.content,
+        monthDetailTotalElements: monthDetail?.totalElements,
         monthlyDifference,
-        monthlyDifferenceContent,
-        monthlyDifferenceContentLength: monthlyDifferenceContent?.length || 0,
+        monthlyDifferenceHasContent: !!monthlyDifference?.content,
+        monthlyDifferenceTotalElements: monthlyDifference?.totalElements,
         hasSelectLists: !!monthDetail?.selectLists
       });
       
-      setCurrentMonthDetailData(monthDetailContent);
-      setCurrentMonthlyDifferenceData(monthlyDifferenceContent);
+      // Store complete pagination response, not just content array
+      setCurrentMonthDetailData(monthDetail);
+      setCurrentMonthlyDifferenceData(monthlyDifference);
       setIsLoading(false);
     }
   }, [mode, initialData]);
@@ -167,7 +175,15 @@ export default function AzureInvoiceClientContent(props) {
   };
 
   const getMonthValue = (monthData) => {
-    return monthData?.value || monthData?.date || monthData?.display;
+    const value = monthData?.value || monthData?.date || monthData?.display;
+    console.log('🗓️ getMonthValue:', {
+      input: monthData,
+      extractedValue: value,
+      hasValue: !!monthData?.value,
+      hasDate: !!monthData?.date,
+      hasDisplay: !!monthData?.display
+    });
+    return value;
   };
 
   // Month change handler
@@ -179,6 +195,7 @@ export default function AzureInvoiceClientContent(props) {
       oldMonth: selectedMonth,
       newMonth: newMonth,
       monthValue: monthValue,
+      monthValueType: typeof monthValue,
       soldToId: selectedSoldToId,
       hasAccessToken: !!accessToken,
       accessTokenLength: accessToken?.length
@@ -191,20 +208,20 @@ export default function AzureInvoiceClientContent(props) {
       return;
     }
 
-    // Show skeleton loaders IMMEDIATELY for ALL UI elements
-    setIsLoadingMonthData(true);
-    setIsLoadingSummary(true);
-    setIsLoadingCredits(true);
-    setIsLoadingTrends(true);
-    setIsLoadingTabData(true);
-    setIsLoading(true); // Master loading state for filters and other UI
+    // Use flushSync to force immediate rendering of skeleton states
+    flushSync(() => {
+      setIsLoadingMonthData(true);
+      setIsLoadingSummary(true);
+      setIsLoadingCredits(true);
+      setIsLoadingTrends(true);
+      setIsLoadingTabData(true);
+      setIsLoading(true);
+    });
     
-    // Use setTimeout with 0 delay to ensure state updates render before API calls
-    setTimeout(async () => {
-      try {
-        console.log('🔄 Month changed - making SINGLE CONSOLIDATED server action call for:', monthValue);
-        console.log('🔑 Access Token available:', !!accessToken);
-        console.log('🔑 soldToId:', selectedSoldToId);
+    try {
+      console.log('🔄 Month changed - making SINGLE CONSOLIDATED server action call for:', monthValue);
+      console.log('🔑 Access Token available:', !!accessToken);
+      console.log('🔑 soldToId:', selectedSoldToId);
       
       // Call the SERVER ACTION for consolidated data (like invoices page)
       // This makes ONE server-side call that fetches all data together
@@ -257,33 +274,32 @@ export default function AzureInvoiceClientContent(props) {
       
       // Update BOTH tab data states (not just the currently selected tab)
       // since the consolidated call fetches data for both tabs
-      const monthDetailContent = consolidatedData?.monthDetail?.content || consolidatedData?.monthDetail;
-      const monthlyDiffContent = consolidatedData?.monthlyDifference?.content || consolidatedData?.monthlyDifference;
-      
+      // Store complete response with pagination metadata
       console.log('📄 Setting tab data:', {
-        monthDetailCount: monthDetailContent?.length || 0,
-        monthlyDiffCount: monthlyDiffContent?.length || 0
+        monthDetailTotalElements: consolidatedData?.monthDetail?.totalElements,
+        monthDetailContentLength: consolidatedData?.monthDetail?.content?.length || 0,
+        monthlyDiffTotalElements: consolidatedData?.monthlyDifference?.totalElements,
+        monthlyDiffContentLength: consolidatedData?.monthlyDifference?.content?.length || 0
       });
       
-      setCurrentMonthDetailData(monthDetailContent);
-      setCurrentMonthlyDifferenceData(monthlyDiffContent);
+      setCurrentMonthDetailData(consolidatedData?.monthDetail);
+      setCurrentMonthlyDifferenceData(consolidatedData?.monthlyDifference);
       
       setIsLoadingTabData(false);
       setIsLoadingMonthData(false);
       setIsLoading(false); // Hide master loading state
       
-      } catch (error) {
-        console.error('❌ Month change error:', error);
-        setErrorState('Failed to load data for selected month');
-        // Hide all loaders on error
-        setIsLoadingMonthData(false);
-        setIsLoadingSummary(false);
-        setIsLoadingCredits(false);
-        setIsLoading(false);
-        setIsLoadingTrends(false);
-        setIsLoadingTabData(false);
-      }
-    }, 0); // End setTimeout
+    } catch (error) {
+      console.error('❌ Month change error:', error);
+      setErrorState('Failed to load data for selected month');
+      // Hide all loaders on error
+      setIsLoadingMonthData(false);
+      setIsLoadingSummary(false);
+      setIsLoadingCredits(false);
+      setIsLoading(false);
+      setIsLoadingTrends(false);
+      setIsLoadingTabData(false);
+    }
   };
 
   const handleChartRefresh = (chartOptions, themeOptions, chartInstance) => {
@@ -311,7 +327,337 @@ export default function AzureInvoiceClientContent(props) {
       productName: filterProductName,
       skuName: filterSkuName
     });
-  }, [filterProductCategory, filterProductName, filterSkuName]);
+
+    if (!accessToken || !selectedSoldToId || !selectedMonth) {
+      console.error('❌ Missing required data for filtered API call');
+      return;
+    }
+
+    try {
+      setIsLoadingTabData(true);
+
+      // Build filter query string - extract value from objects
+      const filterParams = [];
+      
+      // Add product category filters
+      if (filterProductCategory && filterProductCategory.length > 0) {
+        filterProductCategory.forEach(category => {
+          const categoryValue = typeof category === 'object' ? category.value : category;
+          filterParams.push(`filter=productcategory equals ${categoryValue}`);
+        });
+      }
+      
+      // Add product name filters
+      if (filterProductName && filterProductName.length > 0) {
+        filterProductName.forEach(name => {
+          const nameValue = typeof name === 'object' ? name.value : name;
+          filterParams.push(`filter=productname equals ${nameValue}`);
+        });
+      }
+      
+      // Add SKU name filters
+      if (filterSkuName && filterSkuName.length > 0) {
+        filterSkuName.forEach(sku => {
+          const skuValue = typeof sku === 'object' ? sku.value : sku;
+          filterParams.push(`filter=skuname equals ${skuValue}`);
+        });
+      }
+
+      const filterQueryString = filterParams.length > 0 ? `&${filterParams.join('&')}` : '';
+      
+      console.log('🔍 Filter query string:', filterQueryString);
+
+      // Call the API with filters using service configuration
+      const monthValue = getMonthValue(selectedMonth);
+      const moment = (await import('moment')).default;
+      const formattedMonth = moment(monthValue, 'YYYYMM').format('YYYYMM');
+      
+      // Get base URL from services configuration
+      const services = (await import('@/lib/api/services')).default;
+      const serviceConfig = services.getService('invoiceMonthDetail');
+      const baseURL = serviceConfig.baseURL;
+      
+      // Construct the full URL with the service path
+      const apiUrl = `${baseURL}/ccr-invoice-service/month/${formattedMonth}?page=0&size=20${filterQueryString}`;
+      
+      console.log('🌐 Calling filtered invoice details API:', apiUrl);
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify(Array.isArray(selectedSoldToId) ? selectedSoldToId : [selectedSoldToId])
+      });
+
+      if (!response.ok) {
+        throw new Error(`API call failed: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ Filtered invoice details received:', data);
+
+      // Store the complete response with pagination metadata
+      setCurrentMonthDetailData(data);
+      
+      // Reset Monthly Differences data so it refetches with filters when tab is switched
+      setCurrentMonthlyDifferenceData(null);
+      
+    } catch (error) {
+      console.error('❌ Error applying filters:', error);
+      setErrorState(`Failed to apply filters: ${error.message}`);
+    } finally {
+      setIsLoadingTabData(false);
+    }
+  }, [filterProductCategory, filterProductName, filterSkuName, accessToken, selectedSoldToId, selectedMonth]);
+
+  // Handle Invoice Details pagination changes
+  const handleInvoiceDetailsDataStateChange = useCallback(async (event) => {
+    const newDataState = event.dataState;
+    
+    // Force immediate state update to show loading indicator
+    flushSync(() => {
+      setInvoiceDetailsDataState(newDataState);
+      setIsLoadingInvoiceDetails(true);
+    });
+    
+    console.log('🔄 Invoice Details pagination: Loading state set to TRUE');
+
+    try {
+      // Read fresh values from store - use same extraction order as component's useSelector
+      const authState = store.getState().auth;
+      const accessToken = authState?.loginResponse?.tokens?.bearerToken || authState?.accessToken;
+      
+      // Extract soldToId using comprehensive path
+      const selectedSoldToId = authState?.loginResponse?.userProfile?.defaultContext?.[0]?.soldToId ||
+                               authState?.loginResponse?.userProfile?.defaultContext?.soldToId ||
+                               authState?.loginResponse?.soldToId ||
+                               authState?.loginResponse?.userProfile?.soldToId ||
+                               authState?.soldTo ||
+                               authState?.user?.soldToId;
+      
+      const monthValue = selectedMonth?.value || selectedMonth?.date || selectedMonth?.display;
+      
+      console.log('🔑 Pagination auth check:', { 
+        hasAccessToken: !!accessToken, 
+        tokenLength: accessToken?.length,
+        soldToIdValue: selectedSoldToId,
+        soldToIdType: typeof selectedSoldToId,
+        hasSelectedMonth: !!selectedMonth,
+        monthValue: monthValue
+      });
+      
+      if (!accessToken || !selectedSoldToId || !monthValue) {
+        console.error('Missing required data for pagination:', { 
+          hasAccessToken: !!accessToken, 
+          soldToIdValue: selectedSoldToId,
+          hasSelectedMonth: !!selectedMonth,
+          monthValue: monthValue
+        });
+        return;
+      }
+
+      const formattedMonth = monthValue.replace(/-/g, '');
+      const pageNumber = Math.floor(newDataState.skip / newDataState.take);
+      
+      // Build filter query string if filters are applied
+      let filterQueryString = '';
+      if (filterProductCategory.length > 0 || filterProductName.length > 0 || filterSkuName.length > 0) {
+        const filterParams = [];
+        
+        if (filterProductCategory.length > 0) {
+          filterProductCategory.forEach(category => {
+            const categoryValue = typeof category === 'object' ? category.value : category;
+            filterParams.push(`filter=productcategory equals ${encodeURIComponent(categoryValue)}`);
+          });
+        }
+        
+        if (filterProductName.length > 0) {
+          filterProductName.forEach(name => {
+            const nameValue = typeof name === 'object' ? name.value : name;
+            filterParams.push(`filter=productname equals ${encodeURIComponent(nameValue)}`);
+          });
+        }
+        
+        if (filterSkuName.length > 0) {
+          filterSkuName.forEach(sku => {
+            const skuValue = typeof sku === 'object' ? sku.value : sku;
+            filterParams.push(`filter=skuname equals ${encodeURIComponent(skuValue)}`);
+          });
+        }
+        
+        if (filterParams.length > 0) {
+          filterQueryString = '&' + filterParams.join('&');
+        }
+      }
+
+      const services = (await import('@/lib/api/services')).default;
+      const serviceConfig = services.getService('invoiceMonthDetail');
+      const baseURL = serviceConfig.baseURL;
+      
+      const apiUrl = `${baseURL}/ccr-invoice-service/month/${formattedMonth}?page=${pageNumber}&size=${newDataState.take}${filterQueryString}`;
+      
+      const requestHeaders = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      };
+      
+      const requestBody = Array.isArray(selectedSoldToId) ? selectedSoldToId : [selectedSoldToId];
+      
+      console.log('📄 Fetching Invoice Details page:', { 
+        pageNumber, 
+        size: newDataState.take, 
+        url: apiUrl,
+        hasAuthHeader: !!requestHeaders.Authorization,
+        authHeaderValue: requestHeaders.Authorization ? `Bearer ...${accessToken?.slice(-10)}` : 'MISSING',
+        requestBody
+      });
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: requestHeaders,
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        throw new Error(`API call failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setCurrentMonthDetailData(data);
+      console.log('✅ Invoice Details pagination: Data loaded, setting loading to FALSE');
+      
+    } catch (error) {
+      console.error('❌ Error changing page:', error);
+      setErrorState(`Failed to load page: ${error.message}`);
+    } finally {
+      setIsLoadingInvoiceDetails(false);
+    }
+  }, [selectedMonth, filterProductCategory, filterProductName, filterSkuName]);
+
+  // Handle Monthly Differences pagination changes
+  const handleMonthlyDiffDataStateChange = useCallback(async (event) => {
+    const newDataState = event.dataState;
+    
+    // Force immediate state update to show loading indicator
+    flushSync(() => {
+      setMonthlyDiffDataState(newDataState);
+      setIsLoadingMonthlyDiff(true);
+    });
+    
+    console.log('🔄 Monthly Diff pagination: Loading state set to TRUE');
+
+    try {
+      // Read fresh values from store - use same extraction order as component's useSelector
+      const authState = store.getState().auth;
+      const accessToken = authState?.loginResponse?.tokens?.bearerToken || authState?.accessToken;
+      
+      // Extract soldToId using comprehensive path
+      const selectedSoldToId = authState?.loginResponse?.userProfile?.defaultContext?.[0]?.soldToId ||
+                               authState?.loginResponse?.userProfile?.defaultContext?.soldToId ||
+                               authState?.loginResponse?.soldToId ||
+                               authState?.loginResponse?.userProfile?.soldToId ||
+                               authState?.soldTo ||
+                               authState?.user?.soldToId;
+      
+      const monthValue = selectedMonth?.value || selectedMonth?.date || selectedMonth?.display;
+      
+      console.log('🔑 Pagination auth check:', { 
+        hasAccessToken: !!accessToken, 
+        tokenLength: accessToken?.length,
+        soldToIdValue: selectedSoldToId,
+        soldToIdType: typeof selectedSoldToId,
+        hasSelectedMonth: !!selectedMonth,
+        monthValue: monthValue
+      });
+      
+      if (!accessToken || !selectedSoldToId || !monthValue) {
+        console.error('Missing required data for pagination:', { 
+          hasAccessToken: !!accessToken, 
+          soldToIdValue: selectedSoldToId,
+          hasSelectedMonth: !!selectedMonth,
+          monthValue: monthValue
+        });
+        return;
+      }
+
+      const formattedMonth = monthValue.replace(/-/g, '');
+      const pageNumber = Math.floor(newDataState.skip / newDataState.take);
+
+      // Calculate previous month for sku-difference endpoint
+      const moment = (await import('moment')).default;
+      const currentDate = new Date(selectedMonth.date || selectedMonth.value);
+      const previousMonthValue = moment(currentDate).subtract(1, 'month').format('YYYYMM');
+
+      // Build filter query string
+      const filterParams = [];
+      if (filterProductCategory && filterProductCategory.length > 0) {
+        filterProductCategory.forEach(category => {
+          const categoryValue = typeof category === 'object' ? category.value : category;
+          filterParams.push(`filter=productcategory equals ${categoryValue}`);
+        });
+      }
+      if (filterProductName && filterProductName.length > 0) {
+        filterProductName.forEach(name => {
+          const nameValue = typeof name === 'object' ? name.value : name;
+          filterParams.push(`filter=productname equals ${nameValue}`);
+        });
+      }
+      if (filterSkuName && filterSkuName.length > 0) {
+        filterSkuName.forEach(sku => {
+          const skuValue = typeof sku === 'object' ? sku.value : sku;
+          filterParams.push(`filter=skuname equals ${skuValue}`);
+        });
+      }
+      const filterQueryString = filterParams.length > 0 ? `&${filterParams.join('&')}` : '';
+
+      const services = (await import('@/lib/api/services')).default;
+      const serviceConfig = services.getService('invoiceMonthlyDifferenceDetail');
+      const baseURL = serviceConfig.baseURL;
+      
+      const apiUrl = `${baseURL}/ccr-invoice-service/month/sku-difference/${previousMonthValue}/${formattedMonth}?page=${pageNumber}&size=${newDataState.take}${filterQueryString}`;
+      
+      const requestHeaders = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      };
+      
+      const requestBody = Array.isArray(selectedSoldToId) ? selectedSoldToId : [selectedSoldToId];
+      
+      console.log('📊 Fetching Monthly Differences page:', { 
+        pageNumber, 
+        size: newDataState.take,
+        previousMonth: previousMonthValue,
+        currentMonth: formattedMonth,
+        filters: filterQueryString || 'none',
+        url: apiUrl,
+        hasAuthHeader: !!requestHeaders.Authorization,
+        authHeaderValue: requestHeaders.Authorization ? `Bearer ...${accessToken?.slice(-10)}` : 'MISSING',
+        requestBody
+      });
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: requestHeaders,
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        throw new Error(`API call failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setCurrentMonthlyDifferenceData(data);
+      console.log('✅ Monthly Diff pagination: Data loaded, setting loading to FALSE');
+      
+    } catch (error) {
+      console.error('❌ Error changing page:', error);
+      setErrorState(`Failed to load page: ${error.message}`);
+    } finally {
+      setIsLoadingMonthlyDiff(false);
+    }
+  }, [selectedMonth, filterProductCategory, filterProductName, filterSkuName]);
 
   const handleDownload = useCallback(() => {
     console.log('💾 Download triggered');
@@ -322,9 +668,14 @@ export default function AzureInvoiceClientContent(props) {
     const newTabIndex = e.selected;
     setSelectedTabIndex(newTabIndex);
     
-    // If Monthly Differences tab is selected (index 1) and we don't have data yet
-    if (newTabIndex === 1 && (!currentMonthlyDifferenceData || currentMonthlyDifferenceData.length === 0)) {
-      console.log('📊 Monthly Differences tab selected - fetching data...');
+    // Check if any filters are active
+    const hasActiveFilters = (filterProductCategory && filterProductCategory.length > 0) ||
+                            (filterProductName && filterProductName.length > 0) ||
+                            (filterSkuName && filterSkuName.length > 0);
+    
+    // If Monthly Differences tab is selected and (no data OR filters are active)
+    if (newTabIndex === 1 && (!currentMonthlyDifferenceData || hasActiveFilters)) {
+      console.log('📊 Monthly Differences tab selected - fetching data...', { hasActiveFilters });
       
       if (!accessToken || !selectedSoldToId || !selectedMonth) {
         console.error('❌ Missing required data for monthly difference API call');
@@ -340,20 +691,42 @@ export default function AzureInvoiceClientContent(props) {
         const currentDate = new Date(selectedMonth.date || selectedMonth.value);
         const previousMonthValue = moment(currentDate).subtract(1, 'month').format('YYYYMM');
         
+        // Build filter array from current filter selections
+        const filters = [];
+        if (filterProductCategory && filterProductCategory.length > 0) {
+          filterProductCategory.forEach(category => {
+            const categoryValue = typeof category === 'object' ? category.value : category;
+            filters.push(`productcategory equals ${categoryValue}`);
+          });
+        }
+        if (filterProductName && filterProductName.length > 0) {
+          filterProductName.forEach(name => {
+            const nameValue = typeof name === 'object' ? name.value : name;
+            filters.push(`productname equals ${nameValue}`);
+          });
+        }
+        if (filterSkuName && filterSkuName.length > 0) {
+          filterSkuName.forEach(sku => {
+            const skuValue = typeof sku === 'object' ? sku.value : sku;
+            filters.push(`skuname equals ${skuValue}`);
+          });
+        }
+        
         console.log('📅 Monthly difference months:', {
           previousMonth: previousMonthValue,
           currentMonth: monthValue,
-          apiPath: `${previousMonthValue}/${monthValue}`
+          apiPath: `${previousMonthValue}/${monthValue}`,
+          filters
         });
         
         // Import the API function
         const { fetchInvoiceMonthlyDifferenceDetail } = await import('@/lib/azureInvoiceApi');
         
-        // Call monthly difference API with both previous and current month
+        // Call monthly difference API with both previous and current month and filters
         const response = await fetchInvoiceMonthlyDifferenceDetail({
           soldToId: selectedSoldToId,
           value: `${previousMonthValue}/${monthValue}?page=0&size=20`,
-          filter: [],
+          filter: filters,
           accessToken
         });
         
@@ -376,7 +749,7 @@ export default function AzureInvoiceClientContent(props) {
         setIsLoading(false);
       }
     }
-  }, [currentMonthlyDifferenceData, accessToken, selectedSoldToId, selectedMonth]);
+  }, [currentMonthlyDifferenceData, accessToken, selectedSoldToId, selectedMonth, filterProductCategory, filterProductName, filterSkuName]);
 
   // Calculate summary values
   const invoiceTotal = useMemo(() => {
@@ -611,13 +984,12 @@ export default function AzureInvoiceClientContent(props) {
               
               <div className="azure-invoice-kpi-cards">
                 {/* Archera Link */}
-                <div className="azure-invoice-kpi-card archera-link">
-                  {isLoadingSummary ? (
-                    <>
-                      <div className="skeleton-loader" style={{ height: '18px', width: '100px', marginBottom: '12px' }}></div>
-                      <div className="skeleton-loader" style={{ height: '36px', width: '140px' }}></div>
-                    </>
-                  ) : (
+                {isLoadingSummary ? (
+                  <div style={{ width: '180px', height: '80px', flexShrink: 0 }}>
+                    <Skeleton style={{ width: '100%', height: '100%' }} />
+                  </div>
+                ) : (
+                  <div className="azure-invoice-kpi-card archera-link">
                     <>
                       <div className="azure-invoice-kpi-label">
                         <Tooltip anchorElement="target" position="right">
@@ -628,17 +1000,16 @@ export default function AzureInvoiceClientContent(props) {
                         Archera RI Reporting
                       </div>
                     </>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {/* Invoice Total */}
-                <div className="azure-invoice-kpi-card invoice-total">
-                  {isLoadingSummary ? (
-                    <>
-                      <div className="skeleton-loader skeleton-kpi-label"></div>
-                      <div className="skeleton-loader skeleton-kpi-value"></div>
-                    </>
-                  ) : (
+                {isLoadingSummary ? (
+                  <div style={{ width: '180px', height: '80px', flexShrink: 0 }}>
+                    <Skeleton style={{ width: '100%', height: '100%' }} />
+                  </div>
+                ) : (
+                  <div className="azure-invoice-kpi-card invoice-total">
                     <>
                       <div className="azure-invoice-kpi-label">
                         Invoice Total
@@ -650,17 +1021,16 @@ export default function AzureInvoiceClientContent(props) {
                         {formatCurrency(invoiceTotal)}
                       </div>
                     </>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {/* Monthly Difference */}
-                <div className="azure-invoice-kpi-card monthly-difference">
-                  {isLoadingSummary ? (
-                    <>
-                      <div className="skeleton-loader skeleton-kpi-label-wide"></div>
-                      <div className="skeleton-loader skeleton-kpi-value-wide"></div>
-                    </>
-                  ) : (
+                {isLoadingSummary ? (
+                  <div style={{ width: '180px', height: '80px', flexShrink: 0 }}>
+                    <Skeleton style={{ width: '100%', height: '100%' }} />
+                  </div>
+                ) : (
+                  <div className="azure-invoice-kpi-card monthly-difference">
                     <>
                       <div className="azure-invoice-kpi-label">
                         Monthly Difference
@@ -675,25 +1045,24 @@ export default function AzureInvoiceClientContent(props) {
                         <span> ({monthlyDifferencePercent.toFixed(2)}%)</span>
                       </div>
                     </>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {/* Invoice Credits */}
-                <div className="azure-invoice-kpi-card invoice-credits">
-                  {isLoadingCredits ? (
-                    <>
-                      <div className="skeleton-loader skeleton-kpi-label-credits"></div>
-                      <div className="skeleton-loader skeleton-kpi-value"></div>
-                    </>
-                  ) : (
+                {isLoadingCredits ? (
+                  <div style={{ width: '180px', height: '80px', flexShrink: 0 }}>
+                    <Skeleton style={{ width: '100%', height: '100%' }} />
+                  </div>
+                ) : (
+                  <div className="azure-invoice-kpi-card invoice-credits">
                     <>
                       <div className="azure-invoice-kpi-label">Invoice Credits</div>
                       <div className="azure-invoice-kpi-value invoice-credits">
                         {formatCurrency(invoiceCredits)}
                       </div>
                     </>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
             
@@ -717,7 +1086,7 @@ export default function AzureInvoiceClientContent(props) {
                     disabled={isLoading}
                   />
                 ) : (
-                  <div className="skeleton-loader" style={{ height: '32px', width: '200px' }}></div>
+                  <Skeleton style={{ height: '36px', width: '200px' }} />
                 )}
               </div>
               <a href="#" className="azure-invoice-view-usage-link">View Billed Usage</a>
@@ -741,60 +1110,54 @@ export default function AzureInvoiceClientContent(props) {
                 <div className="azure-invoice-chart-slide o-grid o-grid--gutters">
                   <div className="o-grid__item u-1/1 u-1/2@desktop invoiceBreakdown azure-invoice-chart-container">
                     <div className="azure-invoice-chart-box">
-                    {isLoadingCredits ? (
-                      <div className="azure-invoice-skeleton-chart-title skeleton-chart-title-margin"></div>
+                    {isLoadingTrends ? (
+                      <Skeleton shape={"rectangle"} style={{height: 500}} className="azure-invoice-loading-skeleton-chart" />
                     ) : (
-                      <p className="u-text-center">
-                        Invoice Breakdown by Product Category
-                      </p>
-                    )}
-                    {isLoadingCredits ? (
-                      <div className="skeleton-loader skeleton-chart-body-large"></div>
-                    ) : invoiceBreakdownData.length > 0 ? (
-
-                      <Chart
-                        onRefresh={handleChartRefresh}
-                        className="chart1 clickableChart"
-                      >
-                        <BasicGroupedChart
-                          chartType="column"
-                          title=""
-                          subTitle=""
-                          data={invoiceBreakdownData}
-                          categoryField="group"
-                          valueField="value"
-                          groupedByField="label"
-                          categoryTitle=""
-                          showCategoryLabels={false}
-                          legendPosition="bottom"
-                          legendTitle=""
-                          legendVisible={false}
-                          tooltipFormat="c2"
-                          showLabels={true}
-                          valueFormat="c2"
-                          labelFormat="c2"
-                          labelIncludeGroup={true}
-                          locale={'en_US'}
-                        />
-                      </Chart>
-                    ) : (
-                      <div className="chart-content chart-loading">
-                        📊 Loading chart data...
-                      </div>
+                      <>
+                        <p className="u-text-center">
+                          Invoice Breakdown by Product Category
+                        </p>
+                        {invoiceBreakdownData.length > 0 ? (
+                          <Chart
+                            onRefresh={handleChartRefresh}
+                            className="chart1 clickableChart"
+                          >
+                            <BasicGroupedChart
+                              chartType="column"
+                              title=""
+                              subTitle=""
+                              data={invoiceBreakdownData}
+                              categoryField="group"
+                              valueField="value"
+                              groupedByField="label"
+                              categoryTitle=""
+                              showCategoryLabels={false}
+                              legendPosition="bottom"
+                              legendTitle=""
+                              legendVisible={false}
+                              tooltipFormat="c2"
+                              showLabels={true}
+                              valueFormat="c2"
+                              labelFormat="c2"
+                              labelIncludeGroup={true}
+                              locale={'en_US'}
+                            />
+                          </Chart>
+                        ) : (
+                          <div className="chart-content chart-loading">
+                            📊 Loading chart data...
+                          </div>
+                        )}
+                      </>
                     )}
                     </div>
                   </div>
                   <div className="o-grid__item u-1/1 u-1/2@desktop trending6MonthSpend azure-invoice-chart-container">
                     <div className="azure-invoice-chart-box">
                     {isLoadingTrends ? (
-                      <div className="chart-header-layout">
-                        <div className="azure-invoice-skeleton-chart-title skeleton-chart-title-180"></div>
-                        <div className="skeleton-button-group">
-                          <div className="azure-invoice-skeleton-filter-button skeleton-filter-button-120"></div>
-                          <div className="azure-invoice-skeleton-filter-button skeleton-filter-button-100"></div>
-                        </div>
-                      </div>
+                      <Skeleton shape={"rectangle"} style={{height: 500}} className="azure-invoice-loading-skeleton-chart" />
                     ) : (
+                      <>
                       <ChartTitleAndButtons
                         title="Trending Monthly Spend"
                         trendingChartType={trendingChartType}
@@ -808,10 +1171,6 @@ export default function AzureInvoiceClientContent(props) {
                         apiEndPoint={''}
                         pageType="invoice"
                       />
-                    )}
-                    {isLoadingTrends ? (
-                      <div className="skeleton-loader skeleton-chart-body-large"></div>
-                    ) : (
                       <Chart key={trendingChartType} onRefresh={() => {}} className="clickableChart">
                         <BasicGroupedChart
                           chartType={trendingChartType}
@@ -833,6 +1192,7 @@ export default function AzureInvoiceClientContent(props) {
                           stacked={trendingChartType === "column"}
                         />
                       </Chart>
+                      </>
                     )}
                     </div>
                   </div>
@@ -841,11 +1201,9 @@ export default function AzureInvoiceClientContent(props) {
                 <div className="azure-invoice-chart-container full-width">
                   <div className="azure-invoice-chart-box">
                   {isLoadingTrends ? (
-                    <div className="chart-header-layout">
-                      <div className="azure-invoice-skeleton-chart-title skeleton-chart-title-200"></div>
-                      <div className="azure-invoice-skeleton-filter-button skeleton-filter-button-100"></div>
-                    </div>
+                    <Skeleton className="azure-invoice-loading-skeleton-chart" />
                   ) : (
+                    <>
                     <ChartTitleAndButtons
                       title="Top Expensive Products"
                       trendingChartType={topNExpensiveProductsChartType}
@@ -856,12 +1214,9 @@ export default function AzureInvoiceClientContent(props) {
                         { type: 'donut', icon: 'chartDoughnutIcon', title: 'Doughnut Chart' }
                       ]}
                     />
+                  </>
                   )}
-                  {isLoadingTrends ? (
-                    <div className="chart-content chart-loading">
-                      📊 Loading chart data...
-                    </div>
-                  ) : topNExpensiveProductsChartType === "bar" ? (
+                  {isLoadingTrends ? null : topNExpensiveProductsChartType === "bar" ? (
                     <Chart key={topNExpensiveProductsChartType} onRefresh={() => {}} className="chart3 chart-full-width">
                       <BasicGroupedChart
                         key={topNExpensiveProductsChartType}
@@ -914,7 +1269,7 @@ export default function AzureInvoiceClientContent(props) {
         <div className="azure-invoice-container">
           {/* Filters Section */}
           <div className="azure-invoice-filters-section">
-            {isLoading || isLoadingSummary ? (
+            {isLoadingSummary ? (
               // Skeleton loaders for filters
               <div className="filter-container">
                 <div className="filter-item">
@@ -1005,37 +1360,55 @@ export default function AzureInvoiceClientContent(props) {
 
           {/* Tabs Section */}
           <div className="azure-invoice-tabs-section">
-            {isLoading || isLoadingTabData ? (
-              <div>
-                <div className="tab-skeleton-header">
-                  <div className="azure-invoice-skeleton-filter-button tab-skeleton-item-1"></div>
-                  <div className="azure-invoice-skeleton-filter-button tab-skeleton-item-2"></div>
+            {isLoadingTabData ? (
+              <>
+                {/* Tab headers skeleton */}
+                <div className="azure-invoice-skeleton-tabs" style={{ borderBottom: '1px solid #e0e0e0', paddingBottom: '8px', marginBottom: '16px' }}>
+                  <Skeleton style={{ width: '130px', height: '36px', marginRight: '8px', display: 'inline-block' }} />
+                  <Skeleton style={{ width: '170px', height: '36px', display: 'inline-block' }} />
                 </div>
-                <div className="tab-content-padding">
-                  <div className="skeleton-loader skeleton-row"></div>
-                  <div className="skeleton-loader skeleton-row"></div>
-                  <div className="skeleton-loader skeleton-row"></div>
-                  <div className="skeleton-loader skeleton-row"></div>
-                  <div className="skeleton-loader skeleton-row-last"></div>
+                {/* Grid-like skeleton content */}
+                <div className="azure-invoice-skeleton-tab-content">
+                  {/* Grid header row */}
+                  <div style={{ display: 'flex', gap: '16px', marginBottom: '12px', padding: '12px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
+                    <Skeleton style={{ flex: 1, height: '20px' }} />
+                    <Skeleton style={{ flex: 1, height: '20px' }} />
+                    <Skeleton style={{ flex: 1, height: '20px' }} />
+                    <Skeleton style={{ flex: 1, height: '20px' }} />
+                    <Skeleton style={{ flex: 1, height: '20px' }} />
+                  </div>
+                  {/* Grid data rows */}
+                  {[...Array(8)].map((_, index) => (
+                    <div key={index} style={{ display: 'flex', gap: '16px', marginBottom: '8px', padding: '12px', borderBottom: '1px solid #e0e0e0' }}>
+                      <Skeleton style={{ flex: 1, height: '16px' }} />
+                      <Skeleton style={{ flex: 1, height: '16px' }} />
+                      <Skeleton style={{ flex: 1, height: '16px' }} />
+                      <Skeleton style={{ flex: 1, height: '16px' }} />
+                      <Skeleton style={{ flex: 1, height: '16px' }} />
+                    </div>
+                  ))}
+                  {/* Pagination skeleton */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', padding: '12px' }}>
+                    <Skeleton style={{ width: '120px', height: '32px' }} />
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <Skeleton style={{ width: '32px', height: '32px' }} />
+                      <Skeleton style={{ width: '32px', height: '32px' }} />
+                      <Skeleton style={{ width: '32px', height: '32px' }} />
+                      <Skeleton style={{ width: '32px', height: '32px' }} />
+                    </div>
+                    <Skeleton style={{ width: '100px', height: '32px' }} />
+                  </div>
                 </div>
-              </div>
+              </>
             ) : (
               <TabStrip 
                 selected={selectedTabIndex} 
                 onSelect={handleTabSelect}
                 className="azure-invoice-tabstrip tabstrip"
               >
-              <TabStripTab title="Invoice Details">
+                <TabStripTab title="Invoice Details">
                 <div className="azure-invoice-tab-content">
-                  {isLoadingTabData ? (
-                    <div className="tab-content-padding">
-                      <div className="skeleton-loader skeleton-row"></div>
-                      <div className="skeleton-loader skeleton-row"></div>
-                      <div className="skeleton-loader skeleton-row"></div>
-                      <div className="skeleton-loader skeleton-row"></div>
-                      <div className="skeleton-loader skeleton-row"></div>
-                    </div>
-                  ) : (() => {
+                  {(() => {
                     // Enhanced data processing for Invoice Details
                     console.log('📋 Invoice Details tab data:', {
                       currentMonthDetailData,
@@ -1046,16 +1419,22 @@ export default function AzureInvoiceClientContent(props) {
                       firstItem: currentMonthDetailData?.[0] || 'N/A'
                     });
                     
-                    // Handle different data structures
+                    // Handle different data structures and extract pagination info
                     let processedData = null;
-                    if (Array.isArray(currentMonthDetailData) && currentMonthDetailData.length > 0) {
+                    let totalElements = 0;
+                    
+                    if (Array.isArray(currentMonthDetailData)) {
                       processedData = currentMonthDetailData;
-                    } else if (currentMonthDetailData?.data && Array.isArray(currentMonthDetailData.data)) {
-                      processedData = currentMonthDetailData.data;
+                      totalElements = currentMonthDetailData.length;
                     } else if (currentMonthDetailData?.content && Array.isArray(currentMonthDetailData.content)) {
                       processedData = currentMonthDetailData.content;
+                      totalElements = currentMonthDetailData.totalElements || currentMonthDetailData.content.length;
+                    } else if (currentMonthDetailData?.data && Array.isArray(currentMonthDetailData.data)) {
+                      processedData = currentMonthDetailData.data;
+                      totalElements = currentMonthDetailData.totalElements || currentMonthDetailData.data.length;
                     } else if (currentMonthDetailData?.items && Array.isArray(currentMonthDetailData.items)) {
                       processedData = currentMonthDetailData.items;
+                      totalElements = currentMonthDetailData.totalElements || currentMonthDetailData.items.length;
                     }
                     
                     // Convert invoiceDate strings to Date objects for proper Kendo Grid formatting
@@ -1068,33 +1447,43 @@ export default function AzureInvoiceClientContent(props) {
                     
                     console.log('📋 Processed Invoice Details data:', {
                       processedData,
-                      processedLength: processedData?.length || 0
+                      processedLength: processedData?.length || 0,
+                      totalElements
                     });
                     
-                    if (processedData && processedData.length > 0) {``
-                      return (
-                        <GridTable 
-                          data={processedData}
-                          columns={azureInvoiceDetailsColumns(t)}
-                          className="azure-invoice-details-grid"
-                          loading={isLoading}
-                        />
-                      );
-                    }
+                    console.log('🔵 Invoice Details Grid State:', {
+                      isLoadingInvoiceDetails,
+                      hasData: !!processedData,
+                      dataLength: processedData?.length
+                    });
+                    
+                    // Calculate dynamic grid height
+                    const rowCount = processedData?.length || 0;
+                    const gridHeight = rowCount === 0 ? '200px' : (rowCount > 8 ? '400px' : 'auto');
+                    
+                    // Prepare data structure for GridTable with pagination info
+                    const gridData = {
+                      data: processedData || [],
+                      total: totalElements
+                    };
+                    
+                    return (
+                      <GridTable 
+                        data={gridData}
+                        columns={azureInvoiceDetailsColumns(t)}
+                        className="azure-invoice-details-grid"
+                        loading={isLoadingInvoiceDetails}
+                        gridHeight={gridHeight}
+                        dataState={invoiceDetailsDataState}
+                        dataStateChange={handleInvoiceDetailsDataStateChange}
+                      />
+                    );
                   })()}
                 </div>
               </TabStripTab>
               <TabStripTab title="Monthly Differences">
                 <div className="azure-invoice-tab-content">
-                  {isLoadingTabData ? (
-                    <div className="tab-content-padding">
-                      <div className="skeleton-loader skeleton-row"></div>
-                      <div className="skeleton-loader skeleton-row"></div>
-                      <div className="skeleton-loader skeleton-row"></div>
-                      <div className="skeleton-loader skeleton-row"></div>
-                      <div className="skeleton-loader skeleton-row"></div>
-                    </div>
-                  ) : (() => {
+                  {(() => {
                     // Enhanced data processing for Monthly Differences
                     console.log('📊 Monthly Differences tab data:', {
                       currentMonthlyDifferenceData,
@@ -1104,47 +1493,45 @@ export default function AzureInvoiceClientContent(props) {
                       length: currentMonthlyDifferenceData?.length || 'N/A'
                     });
                     
-                    // Handle different data structures
+                    // Handle different data structures and extract pagination info
                     let processedData = null;
-                    if (Array.isArray(currentMonthlyDifferenceData) && currentMonthlyDifferenceData.length > 0) {
+                    let totalElements = 0;
+                    
+                    if (Array.isArray(currentMonthlyDifferenceData)) {
                       processedData = currentMonthlyDifferenceData;
-                    } else if (currentMonthlyDifferenceData?.data && Array.isArray(currentMonthlyDifferenceData.data)) {
-                      processedData = currentMonthlyDifferenceData.data;
+                      totalElements = currentMonthlyDifferenceData.length;
                     } else if (currentMonthlyDifferenceData?.content && Array.isArray(currentMonthlyDifferenceData.content)) {
                       processedData = currentMonthlyDifferenceData.content;
+                      totalElements = currentMonthlyDifferenceData.totalElements || currentMonthlyDifferenceData.content.length;
+                    } else if (currentMonthlyDifferenceData?.data && Array.isArray(currentMonthlyDifferenceData.data)) {
+                      processedData = currentMonthlyDifferenceData.data;
+                      totalElements = currentMonthlyDifferenceData.totalElements || currentMonthlyDifferenceData.data.length;
                     } else if (currentMonthlyDifferenceData?.items && Array.isArray(currentMonthlyDifferenceData.items)) {
                       processedData = currentMonthlyDifferenceData.items;
+                      totalElements = currentMonthlyDifferenceData.totalElements || currentMonthlyDifferenceData.items.length;
                     }
                     
-                    if (processedData && processedData.length > 0) {
-                      return (
-                        <GridTable 
-                          data={processedData}
-                          columns={monthlyDifferenceColumns(t)}
-                          className="azure-invoice-differences-grid"
-                          loading={isLoading}
-                        />
-                      );
-                    } else {
-                      return (
-                        <div className="no-data-message">
-                          <p>No monthly difference data available</p>
-                          <small>
-                            Data available: {currentMonthlyDifferenceData ? 'Yes' : 'No'}
-                            <br />
-                            Data type: {typeof currentMonthlyDifferenceData}
-                            <br />
-                            Is Array: {Array.isArray(currentMonthlyDifferenceData) ? 'Yes' : 'No'}
-                            <br />
-                            Items count: {processedData?.length || 0}
-                            <br />
-                            Loading: {isLoading ? 'Yes' : 'No'}
-                            <br />
-                            Raw data keys: {currentMonthlyDifferenceData ? Object.keys(currentMonthlyDifferenceData).join(', ') : 'N/A'}
-                          </small>
-                        </div>
-                      );
-                    }
+                    // Calculate dynamic grid height based on row count
+                    const rowCount = processedData?.length || 0;
+                    const gridHeight = rowCount === 0 ? '200px' : (rowCount > 8 ? '400px' : 'auto');
+                    
+                    // Prepare data structure for GridTable with pagination info
+                    const gridData = {
+                      data: processedData || [],
+                      total: totalElements
+                    };
+                    
+                    return (
+                      <GridTable 
+                        data={gridData}
+                        columns={monthlyDifferenceColumns(t)}
+                        className="azure-invoice-differences-grid"
+                        loading={isLoadingMonthlyDiff}
+                        gridHeight={gridHeight}
+                        dataState={monthlyDiffDataState}
+                        dataStateChange={handleMonthlyDiffDataStateChange}
+                      />
+                    );
                   })()}
                 </div>
               </TabStripTab>

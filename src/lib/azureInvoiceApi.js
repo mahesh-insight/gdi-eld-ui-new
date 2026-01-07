@@ -374,11 +374,12 @@ export async function fetchInvoiceMonthlyDifferenceDetail({
   
   const serviceName = "invoiceMonthlyDifferenceDetail";
 
-  // Build URL params: month/sku-difference/{value}?filter={filter}
+  // Build URL params: month/sku-difference/{value}&filter={filter}
   let urlParams = value;
   if (filter && filter.length > 0) {
     const filterParam = Array.isArray(filter) ? filter.join(',') : filter;
-    urlParams = `${value}?filter=${encodeURIComponent(filterParam)}`;
+    // Use & instead of ? since value already contains query parameters
+    urlParams = `${value}&filter=${encodeURIComponent(filterParam)}`;
   }
 
   return callAzureInvoiceAPI(serviceName, {

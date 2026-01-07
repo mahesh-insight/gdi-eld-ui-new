@@ -30,7 +30,7 @@ export default function DashboardClient({ mode = 'client-side', ssrData = null, 
   const [mpsaError, setMpsaError] = useState(error);
   const [mpsaLoading, setMpsaLoading] = useState(mode === 'client-side');
   const [dashboardData, setDashboardData] = useState(ssrData);
-  const hasFetchedMpsa = useRef(mode === 'ssr'); // Skip client fetch if SSR data provided
+  const hasFetchedMpsa = useRef(mode === 'ssr' && ssrData?.mpsaStatus); // Only skip if we actually have SSR mpsaStatus data
 
   // Initialize Redux store with SSR data on mount
   useEffect(() => {

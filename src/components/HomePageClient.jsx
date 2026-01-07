@@ -119,9 +119,8 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
         dispatch(initializeAuth(authPayload));
         console.log('✅ Auth successful - redirecting to dashboard immediately');
         
-        // Redirect to dashboard - DO NOT clear isProcessing
-        // Keep loader visible until component unmounts during navigation
-        // This prevents flash of home screen before dashboard loads
+        // Use window.location for immediate redirect (not async like router.push)
+        // This ensures we navigate to dashboard page immediately and show its loading.js skeleton
         router.push('/dashboard');
       } else {
         console.error('❌ Auth response validation failed');

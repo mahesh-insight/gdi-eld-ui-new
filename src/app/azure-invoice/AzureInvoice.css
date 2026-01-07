@@ -5,10 +5,12 @@
 
 /* Skeleton Loader Styles */
 .skeleton-loader {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  display: block !important;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%) !important;
   background-size: 200% 100%;
   animation: skeleton-loading 1.5s ease-in-out infinite;
   border-radius: 4px;
+  min-height: 10px;
 }
 
 @keyframes skeleton-loading {
@@ -94,18 +96,39 @@
 }
 
 .azure-invoice-kpi-card.invoice-total {
+  padding: 12px 16px;
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
   border-left: 7px solid #9f177a;
-  padding: 0px 10px;
+  border-radius: 8px;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .azure-invoice-kpi-card.monthly-difference {
+  padding: 12px 16px;
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
   border-left: 7px solid #007996;
-  padding: 0px 10px;
+  border-radius: 8px;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .azure-invoice-kpi-card.invoice-credits {
+  padding: 12px 16px;
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
   border-left: 7px solid #cbc4c3;
-  padding: 0px 10px;
+  border-radius: 8px;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .azure-invoice-kpi-label {
@@ -201,8 +224,10 @@
   flex: 1;
   min-width: 0;
   max-width: 100%;
-  overflow: hidden;
+  overflow: visible;
   width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .azure-invoice-chart-box {
@@ -211,6 +236,9 @@
   box-sizing: border-box;
   overflow: hidden;
   min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 /* Filter Section Styling */
@@ -303,14 +331,17 @@
   max-width: 100%;
   box-sizing: border-box;
   padding: 0 10px;
+  align-items: stretch;
 }
 
 .azure-invoice-chart-container {
   flex: 1;
   min-width: 0;
   max-width: 50%;
-  overflow: hidden;
+  overflow: visible;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
 .azure-invoice-chart-container.full-width {
