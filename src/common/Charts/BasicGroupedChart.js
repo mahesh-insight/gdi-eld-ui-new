@@ -4,14 +4,17 @@
     - column
     - area
     - line
+  
+  Supports both grouped data (multiple series) and single series with individual colors
 */
 
-import React from 'react';
-import { Chart, ChartLegend, ChartTitle, ChartSubtitle, ChartSeries, ChartSeriesItem, ChartCategoryAxis, ChartCategoryAxisItem, ChartAxisDefaults, ChartTooltip, ChartSeriesItemTooltip, ChartLegendTitle, ChartNoDataOverlay, ChartArea } from '@progress/kendo-react-charts';
+import React, { useMemo } from 'react';
+import { Chart, ChartLegend, ChartTitle, ChartSubtitle, ChartSeries, ChartSeriesItem, ChartCategoryAxis, ChartCategoryAxisItem, ChartValueAxis, ChartValueAxisItem, ChartTooltip, ChartSeriesItemTooltip, ChartLegendTitle, ChartNoDataOverlay, ChartArea } from '@progress/kendo-react-charts';
 import { SvgIcon } from '@progress/kendo-react-common';
 import { xCircleIcon } from '@progress/kendo-svg-icons';
 import { groupBy } from '@progress/kendo-data-query';
 import { useTranslation } from 'react-i18next';
+import { getInsightThemeColors } from '@/lib/chartColors';
 
 export const BasicGroupedChart = (props) => {
   const { t } = useTranslation();
@@ -37,6 +40,8 @@ export const BasicGroupedChart = (props) => {
   const labelIncludeGroup = props.labelIncludeGroup ?? false;
   const categoryFormat = props.categoryFormat;
   const yAxisLabelStep = props.yAxisLabelStep;
+  const useColors = props.useColors ?? false; // New prop to enable individual colors
+  const customTooltip = props.customTooltip ?? false; // Enable custom tooltip with label
 
   let minValue = Infinity;
   let maxValue = -Infinity;
@@ -77,9 +82,26 @@ export const BasicGroupedChart = (props) => {
      dynamicMax = 1;
   }
 
-  const series = groupBy(data || [], [
-    { field: groupedByField, },
-  ]);
+  // Check if data needs grouping or individual colors
+  const needsGrouping = groupedByField && !useColors;
+  
+  // Memoize processed data to prevent infinite re-renders
+  const processedData = useMemo(() => {
+    if (useColors && hasData) {
+      const colors = getInsightThemeColors();
+      return data.map((item, index) => ({
+        ...item,
+        color: colors[index]
+      }));
+    }
+    return data;
+  }, [data, useColors, hasData]);
+
+  const series = useMemo(() => {
+    return needsGrouping ? groupBy(data || [], [
+      { field: groupedByField, },
+    ]) : null;
+  }, [needsGrouping, data, groupedByField]);
 
   const mapSeries = (item, idx) => (
     <ChartSeriesItem
@@ -107,6 +129,27 @@ export const BasicGroupedChart = (props) => {
       </ChartLegend>
       <ChartTitle text={title} />
       <ChartSubtitle text={subTitle} />
+      
+      {/* Custom tooltip for single series with label names */}
+      {customTooltip && !needsGrouping && (
+        <ChartTooltip 
+          render={(context) => {
+            const { point } = context;
+            const label = point.dataItem.label || point.category;
+            const formattedValue = point.value.toLocaleString('en-US', { 
+              style: tooltipFormat?.includes('c') ? 'currency' : 'decimal', 
+              currency: 'USD',
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            });
+            return `${label} - ${formattedValue}`;
+          }}
+        />
+      )}
+      
+      {/* Default tooltip for grouped series */}
+      {!customTooltip && needsGrouping && <ChartTooltip format={tooltipFormat} />}
+      
       <ChartCategoryAxis>
         <ChartCategoryAxisItem
           title={{ text: categoryTitle }}
@@ -115,27 +158,57 @@ export const BasicGroupedChart = (props) => {
             format: categoryFormat,
             step: 1,
           }}
-          justified={true}
         />
       </ChartCategoryAxis>
-      <ChartAxisDefaults
-        labels={{
-          format: valueFormatToUse,
-          visible: showValueLabels,
-          step: yAxisLabelStep,
-        }}
-        min={dynamicMin}
-        max={dynamicMax}
-        majorUnit={dynamicMajorUnit}
-      />
-      <ChartTooltip format={tooltipFormat} />
-      <ChartSeries>{series.map(mapSeries)}</ChartSeries>
-        <ChartNoDataOverlay>
-            <div>
-                <SvgIcon icon={xCircleIcon} themeColor="error" size="xxlarge"></SvgIcon>
-                <p style={{ paddingTop: '8px' }}>{t("common.noData")}</p>
-            </div>
-        </ChartNoDataOverlay>
+      
+      {/* Use ChartValueAxis for better control */}
+      <ChartValueAxis>
+        <ChartValueAxisItem
+          labels={{
+            format: valueFormatToUse,
+            visible: showValueLabels,
+            step: yAxisLabelStep,
+          }}
+          min={dynamicMin}
+          max={dynamicMax}
+          majorUnit={dynamicMajorUnit}
+        />
+      </ChartValueAxis>
+      
+      <ChartSeries>
+        {needsGrouping ? (
+          // Grouped series (existing behavior)
+          series.map(mapSeries)
+        ) : (
+          // Single series with optional individual colors
+          <ChartSeriesItem
+            type={chartType}
+            data={processedData}
+            categoryField={categoryField}
+            field={valueField}
+            colorField={useColors ? "color" : undefined}
+            labels={{
+              visible: showLabels,
+              content: labelIncludeGroup 
+                ? (e) => `${e.dataItem.label || e.category}\n${e.value.toLocaleString('en-US', { 
+                    style: labelFormat?.includes('c') ? 'currency' : 'decimal',
+                    currency: 'USD',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  })}`
+                : labelFormat,
+            }}
+            stack={stacked}
+          />
+        )}
+      </ChartSeries>
+      
+      <ChartNoDataOverlay>
+        <div>
+          <SvgIcon icon={xCircleIcon} themeColor="error" size="xxlarge"></SvgIcon>
+          <p style={{ paddingTop: '8px' }}>{t("common.noData")}</p>
+        </div>
+      </ChartNoDataOverlay>
     </>
   );
 };

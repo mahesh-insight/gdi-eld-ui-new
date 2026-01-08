@@ -7,7 +7,7 @@ import { store } from '@/store/store';
 import { BasicChart } from '@/common/Charts/BasicChart';
 import { BasicGroupedChart } from '@/common/Charts/BasicGroupedChart';
 import { BasicPieDoughnutChart } from '@/common/Charts/BasicPieDoughnutChart';
-import { Chart } from '@progress/kendo-react-charts';
+import { Chart, ChartCategoryAxis, ChartCategoryAxisItem, ChartSeries, ChartSeriesItem, ChartValueAxis, ChartValueAxisItem, ChartSeriesItemTooltip, ChartTooltip } from '@progress/kendo-react-charts';
 import { getInsightThemeColors } from '@/lib/chartColors';
 import ChartTitleAndButtons from '@/components/ChartTitleAndButtons';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -1124,23 +1124,18 @@ export default function AzureInvoiceClientContent(props) {
                           >
                             <BasicGroupedChart
                               chartType="column"
-                              title=""
-                              subTitle=""
                               data={invoiceBreakdownData}
                               categoryField="group"
                               valueField="value"
-                              groupedByField="label"
-                              categoryTitle=""
+                              useColors={true}
+                              customTooltip={true}
                               showCategoryLabels={false}
-                              legendPosition="bottom"
-                              legendTitle=""
                               legendVisible={false}
                               tooltipFormat="c2"
                               showLabels={true}
                               valueFormat="c2"
                               labelFormat="c2"
                               labelIncludeGroup={true}
-                              locale={'en_US'}
                             />
                           </Chart>
                         ) : (
