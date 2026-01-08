@@ -22,6 +22,9 @@ export const metadata = {
   description: 'User dashboard with authentication.',
 };
 
+// Force dynamic rendering to disable caching and see loading.js
+// export const dynamic = 'force-dynamic';
+
 export default async function DashboardPage() {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('🎯 [SERVER PAGE.JS] Dashboard page render started');
@@ -87,6 +90,9 @@ export default async function DashboardPage() {
   console.log('🚀 SERVER PAGE: About to call fetchConsolidatedDashboardData');
   console.log('   soldToId:', soldToId.substring(0, 20) + '...');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  
+  // TESTING: Add artificial delay to see loading.js in action
+  // await new Promise(resolve => setTimeout(resolve, 300));
   
   // Fetch consolidated dashboard data (mpsaStatus + all enabled widgets)
   const result = await fetchConsolidatedDashboardData(accessToken, soldToId);

@@ -1,0 +1,76 @@
+/* Dashboard Loading Skeleton Styles */
+
+.dashboard-loading-page {
+  background: #f0edec;
+  padding: 24px;
+}
+
+.dashboard-loading-container {
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+  background: #fff;
+  padding: 10px 20px;
+}
+
+.dashboard-loading-header {
+  margin-bottom: 24px;
+}
+
+.dashboard-loading-skeleton-title {
+  width: 200px;
+  height: 32px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s ease-in-out infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Widget Grid Layout - matches DashboardWidgets.css */
+.dashboard-loading-widgets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin: 0;
+  padding: 0;
+}
+
+.dashboard-loading-skeleton-widget {
+  flex: 0 0 calc((100% - 48px) / 3);
+  width: calc((100% - 48px) / 3);
+  height: 400px;
+  border-radius: 16px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, .04);
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s ease-in-out infinite;
+}
+
+/* Responsive adjustments - matches DashboardWidgets.css */
+@media (max-width: 1400px) {
+  .dashboard-loading-skeleton-widget {
+    flex: 0 0 calc((100% - 24px) / 2);
+    width: calc((100% - 24px) / 2);
+  }
+}
+
+@media (max-width: 900px) {
+  .dashboard-loading-skeleton-widget {
+    flex: 0 0 100%;
+    width: 100%;
+  }
+  
+  .dashboard-loading-page {
+    padding: 16px;
+  }
+}

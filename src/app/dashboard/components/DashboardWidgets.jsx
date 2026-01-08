@@ -1,7 +1,7 @@
 "use client";
 
 import { useSelector } from 'react-redux';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import './DashboardWidgets.css';
 import { BasicChart } from '@/common/Charts/BasicChart';
 import { BasicGroupedChart } from '@/common/Charts/BasicGroupedChart';
@@ -62,6 +62,16 @@ export default function DashboardWidgets({ ssrData, mode }) {
       adobe: adobeChartType
     }
   });
+  
+  // Save widget count to localStorage for loading.js to use
+  useEffect(() => {
+    if (typeof window !== 'undefined' && widgetFlags) {
+      const enabledCount = Object.values(widgetFlags).filter(flag => flag === true).length;
+      if (enabledCount > 0) {
+        localStorage.setItem('dashboard_widget_count', enabledCount.toString());
+      }
+    }
+  }, [widgetFlags]);
   
   const formatCurrency = (value, currencyCode) => {
     if (!value) return `${currencyCode} 0.00`;
