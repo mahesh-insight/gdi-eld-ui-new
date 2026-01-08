@@ -4,6 +4,7 @@
 import React from 'react';
 import { Grid, GridColumn } from '@progress/kendo-react-grid';
 import { Loader } from '@progress/kendo-react-indicators';
+import './GridTable.css';
 
 const GridTable = (props) => {
   const {

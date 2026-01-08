@@ -1,0 +1,22 @@
+/* GridTable wrapper styles */
+.grid-table-wrapper {
+  position: relative;
+}
+
+/* Kendo Grid alternate row styling */
+.grid-table-wrapper .k-grid-container .k-table .k-table-alt-row {
+  background-color: #f7f6f5 !important;
+  background-image: none !important;
+}
+
+/* Global alternate row styling for all grids */
+.k-table-alt-row {
+  background-color: #f7f6f5 !important;
+  background-image: none !important;
+}
+
+/* Hover state for rows */
+.k-table-row:hover,
+.k-table-alt-row:hover {
+  background-color: #eeeded !important;
+}
