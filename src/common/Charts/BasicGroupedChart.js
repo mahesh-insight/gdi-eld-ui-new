@@ -82,16 +82,20 @@ export const BasicGroupedChart = (props) => {
      dynamicMax = 1;
   }
 
-  // Check if data needs grouping or individual colors
+  // Determine rendering mode:
+  // 1. needsGrouping: Traditional grouped series (groupedByField provided)
+  // 2. useIndividualSeries: Each data item becomes its own series (useColors + no groupedByField)
+  // 3. singleSeries: One series with all data items
   const needsGrouping = groupedByField && !useColors;
+  const useIndividualSeries = useColors && !groupedByField && hasData;
   
   // Memoize processed data to prevent infinite re-renders
   const processedData = useMemo(() => {
-    if (useColors && hasData) {
+    if (useColors && hasData && !data[0]?.color) {
       const colors = getInsightThemeColors();
       return data.map((item, index) => ({
         ...item,
-        color: colors[index]
+        color: colors[index % colors.length]
       }));
     }
     return data;
@@ -121,37 +125,32 @@ export const BasicGroupedChart = (props) => {
     </ChartSeriesItem>
   );
 
+  // Helper function to format currency
+  const formatCurrency = (value) => {
+    return value?.toLocaleString('en-US', { 
+      style: 'currency', 
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  };
+
   return (
     <>
       <ChartArea margin={{ top: 15 }} /> 
-      <ChartLegend visible={legendVisible} position={legendPosition}>
+      <ChartLegend visible={legendVisible} position={legendPosition || "bottom"} orientation="horizontal">
         <ChartLegendTitle text={legendTitle}></ChartLegendTitle>
       </ChartLegend>
       <ChartTitle text={title} />
       <ChartSubtitle text={subTitle} />
       
-      {/* Custom tooltip for single series with label names */}
-      {customTooltip && !needsGrouping && (
-        <ChartTooltip 
-          render={(context) => {
-            const { point } = context;
-            const label = point.dataItem.label || point.category;
-            const formattedValue = point.value.toLocaleString('en-US', { 
-              style: tooltipFormat?.includes('c') ? 'currency' : 'decimal', 
-              currency: 'USD',
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2
-            });
-            return `${label} - ${formattedValue}`;
-          }}
-        />
-      )}
+      {/* Enable tooltips globally - each series will customize with ChartSeriesItemTooltip */}
+      <ChartTooltip />
       
-      {/* Default tooltip for grouped series */}
-      {!customTooltip && needsGrouping && <ChartTooltip format={tooltipFormat} />}
-      
+      {/* Category Axis - Use single category for individual series mode */}
       <ChartCategoryAxis>
         <ChartCategoryAxisItem
+          categories={useIndividualSeries ? ['Products'] : undefined}
           title={{ text: categoryTitle }}
           labels={{
             visible: showCategoryLabels,
@@ -177,10 +176,34 @@ export const BasicGroupedChart = (props) => {
       
       <ChartSeries>
         {needsGrouping ? (
-          // Grouped series (existing behavior)
+          // Mode 1: Grouped series (existing behavior)
           series.map(mapSeries)
+        ) : useIndividualSeries ? (
+          // Mode 2: Individual series per data item (full-width bars with legend)
+          processedData.map((item, index) => (
+            <ChartSeriesItem
+              key={index}
+              type={chartType}
+              data={[{ value: item[valueField], label: item[categoryField] }]}
+              name={item[categoryField]}
+              color={item.color}
+              field="value"
+              labels={{
+                visible: showLabels,
+                content: () => formatCurrency(item[valueField]),
+                position: 'outsideEnd',
+                font: '11px Arial, sans-serif',
+              }}
+              tooltip={{
+                visible: true,
+              }}
+            >
+              <ChartSeriesItemTooltip format={item[categoryField] + " - " + "{0:" + tooltipFormat + "}"} />
+
+            </ChartSeriesItem>
+          ))
         ) : (
-          // Single series with optional individual colors
+          // Mode 3: Single series with optional colorField
           <ChartSeriesItem
             type={chartType}
             data={processedData}
@@ -189,17 +212,31 @@ export const BasicGroupedChart = (props) => {
             colorField={useColors ? "color" : undefined}
             labels={{
               visible: showLabels,
-              content: labelIncludeGroup 
-                ? (e) => `${e.dataItem.label || e.category}\n${e.value.toLocaleString('en-US', { 
-                    style: labelFormat?.includes('c') ? 'currency' : 'decimal',
-                    currency: 'USD',
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                  })}`
-                : labelFormat,
+              format: labelFormat,
             }}
             stack={stacked}
-          />
+          >
+            <ChartSeriesItemTooltip
+              render={(context) => {
+                const item = context.point.dataItem;
+                const label = item[categoryField];
+                const value = item[valueField];
+                if (customTooltip) {
+                  return `${label} - ${formatCurrency(value)}`;
+                }
+                // Default format: Label + formatted value
+                const formattedValue = typeof value === 'number' 
+                  ? value.toLocaleString('en-US', { 
+                      style: tooltipFormat?.includes('c') ? 'currency' : 'decimal',
+                      currency: 'USD',
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    })
+                  : value;
+                return `${label}\n${formattedValue}`;
+              }}
+            />
+          </ChartSeriesItem>
         )}
       </ChartSeries>
       

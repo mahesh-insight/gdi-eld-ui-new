@@ -7,7 +7,7 @@ import { store } from '@/store/store';
 import { BasicChart } from '@/common/Charts/BasicChart';
 import { BasicGroupedChart } from '@/common/Charts/BasicGroupedChart';
 import { BasicPieDoughnutChart } from '@/common/Charts/BasicPieDoughnutChart';
-import { Chart, ChartCategoryAxis, ChartCategoryAxisItem, ChartSeries, ChartSeriesItem, ChartValueAxis, ChartValueAxisItem, ChartSeriesItemTooltip, ChartTooltip } from '@progress/kendo-react-charts';
+import { Chart, ChartLegend, ChartCategoryAxis, ChartCategoryAxisItem, ChartSeries, ChartSeriesItem, ChartValueAxis, ChartValueAxisItem, ChartSeriesItemTooltip, ChartTooltip } from '@progress/kendo-react-charts';
 import { getInsightThemeColors } from '@/lib/chartColors';
 import ChartTitleAndButtons from '@/components/ChartTitleAndButtons';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -1212,16 +1212,14 @@ export default function AzureInvoiceClientContent(props) {
                   </>
                   )}
                   {isLoadingTrends ? null : topNExpensiveProductsChartType === "bar" ? (
-                    <Chart key={topNExpensiveProductsChartType} onRefresh={() => {}} className="chart3 chart-full-width">
+                    <Chart key={topNExpensiveProductsChartType} onRefresh={() => {}} className="chart3">
                       <BasicGroupedChart
-                        key={topNExpensiveProductsChartType}
                         chartType={topNExpensiveProductsChartType}
                         title=""
                         subTitle=""
                         data={topNExpensiveProducts}
-                        categoryField="group"
+                        categoryField="label"
                         valueField="value"
-                        groupedByField="label"
                         categoryTitle=""
                         showCategoryLabels={false}
                         showValueLabels={false}
@@ -1232,9 +1230,11 @@ export default function AzureInvoiceClientContent(props) {
                         showLabels={true}
                         valueFormat="c2"
                         labelFormat="c2"
-                        labelIncludeGroup={false}
+                        useColors={true}
+                        customTooltip={true}
                       />
                     </Chart>
+
                   ) : (
                     <Chart key={topNExpensiveProductsChartType} onRefresh={() => {}}>
                       <BasicPieDoughnutChart
