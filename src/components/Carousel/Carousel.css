@@ -1,6 +1,57 @@
 .c-carousel {
   position: relative;
   width: 100%;
+  padding: 0 48px 0;
+}
+
+.c-carousel__controls {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+}
+
+.c-carousel__controls--previous {
+  left: 0px;
+}
+
+.c-carousel__controls--next {
+  right: 0px;
+}
+
+.c-carousel__btn {
+  background-color: #fff;
+  border: none;
+  cursor: pointer;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  padding: 0;
+}
+
+.c-carousel__btn:hover:not(:disabled) {
+  background-color: #fff;
+  transform: scale(1.1);
+}
+
+.c-carousel__btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.c-carousel__btn svg {
+  fill: #cbc4c3;
+  width: 48px;
+  height: 48px;
+}
+
+.c-carousel__btn svg:hover {
+  fill: #ae0a46;
+  width: 48px;
+  height: 48px;
 }
 
 .c-carousel__viewport {

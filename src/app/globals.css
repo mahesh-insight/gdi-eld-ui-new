@@ -237,7 +237,7 @@ a {
   .redirect {
     position: absolute;
     color: #ae0a46;
-    margin: 5px 0;
+    margin-top: 25px;
     font-size: 14px;
   }
 }
@@ -252,7 +252,7 @@ a {
   align-items: center;
   font-size: 14px;
   color: #7f8c8d;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .archera-link .azure-invoice-kpi-label {

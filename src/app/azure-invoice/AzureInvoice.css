@@ -231,7 +231,7 @@
 }
 
 .azure-invoice-chart-box {
-  padding: 20px;
+  /* padding: 20px; */
   height: 100%;
   box-sizing: border-box;
   overflow: hidden;
@@ -330,7 +330,6 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  padding: 0 10px;
   align-items: stretch;
 }
 
@@ -339,6 +338,7 @@
   min-width: 0;
   max-width: 50%;
   overflow: visible;
+  padding: 0 !important;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -363,7 +363,7 @@
 /* Chart specific styles for proper horizontal layout */
 .invoiceBreakdown,
 .trending6MonthSpend {
-  padding: 0 10px;
+  /* padding: 0 10px; */
 }
 
 .chart1,
@@ -1342,7 +1342,7 @@
   }
   
   .azure-invoice-chart-box {
-    padding: 12px;
+    /* padding: 12px; */
   }
   
   .azure-invoice-filter-row {
@@ -1397,7 +1397,7 @@
   }
   
   .azure-invoice-chart-box {
-    padding: 10px;
+    /* padding: 10px; */
   }
   
   .azure-invoice-charts-section {

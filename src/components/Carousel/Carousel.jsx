@@ -219,6 +219,44 @@ export default class Carousel extends Component {
   }
 
   /**
+   * Render one of the previous/next buttons.
+   */
+  renderArrowButton(title, icon, onClick, isDisabled) {
+    const { id } = this.props;
+
+    return (
+      <span
+        className={`c-carousel__controls c-carousel__controls--${title.toLowerCase()}`}
+      >
+        <button
+          onClick={onClick}
+          aria-controls={id}
+          aria-label={title}
+          className="c-carousel__btn"
+          disabled={isDisabled}
+          style={{ visibility: isDisabled ? 'hidden' : 'visible' }}
+        >
+          <svg
+            className="c-icon c-icon--large"
+            role="img"
+            aria-labelledby={`${title}-icon`}
+            viewBox="0 0 24 24"
+            width="24"
+            height="24"
+          >
+            <title id={`${title}-icon`}>{title}</title>
+            {icon === 'arrow-left' ? (
+              <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+            ) : (
+              <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z" />
+            )}
+          </svg>
+        </button>
+      </span>
+    );
+  }
+
+  /**
    * Render indicators showing the non-current and current pages.
    */
   renderIndicators() {
@@ -315,6 +353,9 @@ export default class Carousel extends Component {
     const { className, id } = this.props;
     const { page, pageCount } = this.state;
 
+    const isFirstPage = page === 0;
+    const isLastPage = page === pageCount - 1;
+
     return (
       <div
         id={id}
@@ -327,6 +368,18 @@ export default class Carousel extends Component {
         onTouchMove={this.onTouchMove}
         onTouchStart={this.onTouchStart}
       >
+        {this.renderArrowButton(
+          "Previous",
+          "arrow-left",
+          this.requestPreviousPage,
+          isFirstPage
+        )}
+        {this.renderArrowButton(
+          "Next",
+          "arrow-right",
+          this.requestNextPage,
+          isLastPage
+        )}
         <div className="c-carousel__viewport">{this.renderSlides(0)}</div>
         {this.props.indicator && this.renderIndicators()}
       </div>
