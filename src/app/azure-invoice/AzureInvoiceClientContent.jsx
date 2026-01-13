@@ -1268,32 +1268,34 @@ export default function AzureInvoiceClientContent(props) {
           <div className="azure-invoice-filters-section">
             {isLoadingSummary ? (
               // Skeleton loaders for filters
-              <div className="filter-container">
-                <div className="filter-item">
-                  <div className="azure-invoice-skeleton-filter-label filter-label-skeleton"></div>
-                  <div className="azure-invoice-skeleton-filter-dropdown"></div>
+              <div className="dropdown-row">
+                <div className="dropdown-group">
+                  <label className="label-text-bold">
+                    <Skeleton style={{ width: '120px', height: '16px', marginBottom: '4px' }} />
+                  </label>
+                  <Skeleton style={{ width: '200px', height: '32px' }} />
                 </div>
-                
-                <div className="filter-item">
-                  <div className="azure-invoice-skeleton-filter-label filter-label-skeleton"></div>
-                  <div className="azure-invoice-skeleton-filter-dropdown"></div>
+                <div className="dropdown-group">
+                  <label className="label-text-bold">
+                    <Skeleton style={{ width: '100px', height: '16px', marginBottom: '4px' }} />
+                  </label>
+                  <Skeleton style={{ width: '200px', height: '32px' }} />
                 </div>
-                
-                <div className="filter-item">
-                  <div className="azure-invoice-skeleton-filter-label filter-label-skeleton"></div>
-                  <div className="azure-invoice-skeleton-filter-dropdown"></div>
+                <div className="dropdown-group">
+                  <label className="label-text-bold">
+                    <Skeleton style={{ width: '80px', height: '16px', marginBottom: '4px' }} />
+                  </label>
+                  <Skeleton style={{ width: '200px', height: '32px' }} />
                 </div>
-                
-                <div className="filter-actions">
-                  <div className="azure-invoice-skeleton-filter-button skeleton-filter-button-primary"></div>
-                  <div className="azure-invoice-skeleton-filter-button skeleton-filter-button-download"></div>
+                <div className="">
+                  <Skeleton style={{ width: '120px', height: '40px' }} />
                 </div>
               </div>
             ) : (
               // Actual filters
-              <div className="filter-container">
-                <div className="filter-item">
-                  <span className="label-text-bold">Product Category</span>
+              <div className="dropdown-row">
+                <div className="dropdown-group">
+                  <label className="label-text-bold">Product Category</label>
                   <MultiSelect
                     data={filterOptions.productCategories}
                     textField="label"
@@ -1302,12 +1304,12 @@ export default function AzureInvoiceClientContent(props) {
                     name="msCategory"
                     placeholder="All"
                     onChange={(e) => setFilterProductCategory(e.value)}
-                    className="filter-dropdown"
+                    disabled={isLoadingSummary}
                   />
                 </div>
                 
-                <div className="filter-item">
-                  <span className="label-text-bold">Product Name</span>
+                <div className="dropdown-group">
+                  <label className="label-text-bold">Product Name</label>
                   <MultiSelect
                     data={filterOptions.productNames}
                     textField="label"
@@ -1316,12 +1318,12 @@ export default function AzureInvoiceClientContent(props) {
                     name="msProducts"
                     placeholder="All"
                     onChange={(e) => setFilterProductName(e.value)}
-                    className="filter-dropdown"
+                    disabled={isLoadingSummary}
                   />
                 </div>
                 
-                <div className="filter-item">
-                  <span className="label-text-bold">Sku Name</span>
+                <div className="dropdown-group">
+                  <label className="label-text-bold">Sku Name</label>
                   <MultiSelect
                     data={filterOptions.skuNames}
                     textField="label"
@@ -1330,19 +1332,19 @@ export default function AzureInvoiceClientContent(props) {
                     name="msSkuName"
                     placeholder="All"
                     onChange={(e) => setFilterSkuName(e.value)}
-                    className="filter-dropdown"
+                    disabled={isLoadingSummary}
                   />
                 </div>
                 
-                <div className="filter-item filter-actions">
-                  <Button
-                    themeColor="primary"
+                <div className="">
+                  <button
+                    className="apply-filters-btn"
                     onClick={handleApplyFilters}
-                    className="apply-filters-button"
+                    disabled={isLoadingSummary}
                   >
                     Apply Filters
-                  </Button>
-                  <Button
+                  </button>&nbsp;
+                   <Button
                     onClick={handleDownload}
                     className="k-grid-download"
                     fillMode="outline"
