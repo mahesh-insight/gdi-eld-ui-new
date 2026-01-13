@@ -5,11 +5,11 @@
   /* Use CSS custom properties from insight theme */
   --chart-color-0: #007996;
   --chart-color-1: #ae0a46;
-  --chart-color-2: #666666;
-  --chart-color-3: #0058e9;
-  --chart-color-4: #ffc000;
-  --chart-color-5: #37b400;
-  --chart-color-6: #f31700;
+  --chart-color-2: #CBC4C3;
+  --chart-color-3: #95CFEE;
+  --chart-color-4: #A80B6E;
+  --chart-color-5: #5F5753;
+  --chart-color-6: #85BCCB;
 }
 
 /* Override any default series colors with theme colors */

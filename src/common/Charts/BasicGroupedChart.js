@@ -42,6 +42,7 @@ export const BasicGroupedChart = (props) => {
   const yAxisLabelStep = props.yAxisLabelStep;
   const useColors = props.useColors ?? false; // New prop to enable individual colors
   const customTooltip = props.customTooltip ?? false; // Enable custom tooltip with label
+  const showCategoryInLabels = props.showCategoryInLabels ?? true; // Show category name in bar labels
 
   let minValue = Infinity;
   let maxValue = -Infinity;
@@ -190,9 +191,10 @@ export const BasicGroupedChart = (props) => {
               field="value"
               labels={{
                 visible: showLabels,
-                content: () => formatCurrency(item[valueField]),
+                content: () => showCategoryInLabels 
+                  ? item[categoryField] + "\n" + formatCurrency(item[valueField])
+                  : formatCurrency(item[valueField]),
                 position: 'outsideEnd',
-                font: '11px Arial, sans-serif',
               }}
               tooltip={{
                 visible: true,
@@ -212,7 +214,23 @@ export const BasicGroupedChart = (props) => {
             colorField={useColors ? "color" : undefined}
             labels={{
               visible: showLabels,
-              format: labelFormat,
+              position: "outsideEnd",
+              background: "transparent",
+              font: "12px Arial, sans-serif",
+              content: (e) => {
+                if (!e.dataItem) return "";
+                const label = e.dataItem[categoryField] || "";
+                const value = e.value;
+                const formattedValue = typeof value === 'number' 
+                  ? value.toLocaleString('en-US', { 
+                      style: labelFormat?.includes('c') ? 'currency' : 'decimal',
+                      currency: 'USD',
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    })
+                  : value;
+                return label + "\n" + formattedValue;
+              },
             }}
             stack={stacked}
           >

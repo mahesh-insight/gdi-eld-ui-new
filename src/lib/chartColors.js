@@ -14,14 +14,14 @@ export const getInsightThemeColors = () => {
   return [
     '#007996',    // Teal for Azure Usage
     '#ae0a46',    // Magenta for Cloud License (direct color, bypassing CSS var)
-    '#666666',    // Gray for Perpetual License
-    '#0058e9',    // Blue for Telco Charge
-    '#ffc000',    // Orange for additional series
-    '#37b400',    // Green for additional series
-    '#f31700',    // Error red for additional series
-    '#8B5A2B',    // Brown fallback
-    '#2E8B57',    // Sea green fallback
-    '#4169E1'     // Royal blue fallback
+    '#CBC4C3',    // Gray for Perpetual License
+    '#95CFEE',    // Blue for Telco Charge
+    '#A80B6E',    // Orange for additional series
+    '#5F5753',    // Green for additional series
+    '#85BCCB',    // Error red for additional series
+    '#BD4673',    // Brown fallback
+    '#E6E6E5',    // Sea green fallback
+    '#DCF0FA'     // Royal blue fallback
   ];
 };
 
@@ -29,12 +29,12 @@ export const getInsightThemeColors = () => {
 export const INSIGHT_THEME_CHART_COLORS = [
   '#007996', // tertiary - teal (Azure Usage)
   '#ae0a46', // primary - magenta (Cloud License)
-  '#666666', // secondary - gray (Perpetual License)
-  '#0058e9', // info - blue (Telco Charge)
-  '#ffc000', // warning - orange
-  '#37b400', // success - green
-  '#f31700', // error - red
-  '#8B5A2B', // brown
-  '#2E8B57', // sea green
-  '#4169E1'  // royal blue
+  '#CBC4C3', // secondary - gray (Perpetual License)
+  '#95CFEE', // info - blue (Telco Charge)
+  '#A80B6E', // warning - orange
+  '#5F5753', // success - green
+  '#85BCCB', // error - red
+  '#BD4673', // brown
+  '#E6E6E5', // sea green
+  '#DCF0FA'  // royal blue
 ];

@@ -1125,17 +1125,18 @@ export default function AzureInvoiceClientContent(props) {
                             <BasicGroupedChart
                               chartType="column"
                               data={invoiceBreakdownData}
-                              categoryField="group"
+                              categoryField="label"
                               valueField="value"
                               useColors={true}
                               customTooltip={true}
                               showCategoryLabels={false}
                               legendVisible={false}
+                              legendPosition="bottom"
                               tooltipFormat="c2"
                               showLabels={true}
+                              showCategoryInLabels={true}
                               valueFormat="c2"
                               labelFormat="c2"
-                              labelIncludeGroup={true}
                             />
                           </Chart>
                         ) : (
@@ -1228,6 +1229,7 @@ export default function AzureInvoiceClientContent(props) {
                         legendVisible={true}
                         tooltipFormat="c2"
                         showLabels={true}
+                        showCategoryInLabels={false}
                         valueFormat="c2"
                         labelFormat="c2"
                         useColors={true}

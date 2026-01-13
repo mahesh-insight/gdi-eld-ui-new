@@ -269,3 +269,16 @@ a {
   margin-left: 8px;
   cursor: pointer;
 }
+
+.k-chart {
+  g {
+    text {
+      stroke: none;
+      fill: rgb(62, 51, 45);
+      fill-opacity: 1;
+    }
+    path {
+      --stroke: rgba(0, 0, 0, 0.08);
+    }
+  }
+}
