@@ -982,16 +982,16 @@ export default function AzureInvoiceClientContent(props) {
             <div className="azure-invoice-header-top">
               <h1 className="azure-invoice-title">Azure Plan Invoice</h1>
               
-              <div className="azure-invoice-kpi-cards">
+              <div className="kpi-cards">
                 {/* Archera Link */}
                 {isLoadingSummary ? (
                   <div style={{ width: '180px', height: '80px', flexShrink: 0 }}>
                     <Skeleton style={{ width: '100%', height: '100%' }} />
                   </div>
                 ) : (
-                  <div className="azure-invoice-kpi-card archera-link">
+                  <div className="kpi-card archera-link">
                     <>
-                      <div className="azure-invoice-kpi-label">
+                      <div className="kpi-label">
                         <Tooltip anchorElement="target" position="right">
                           <span title="Insight has partnered with Archera for this reporting. You can purchase Archera for free on buy.insight.com">
                             <ArcheraIcon className="archera-icon" />
@@ -1009,15 +1009,15 @@ export default function AzureInvoiceClientContent(props) {
                     <Skeleton style={{ width: '100%', height: '100%' }} />
                   </div>
                 ) : (
-                  <div className="azure-invoice-kpi-card invoice-total">
+                  <div className="kpi-card invoice-total">
                     <>
-                      <div className="azure-invoice-kpi-label">
+                      <div className="kpi-label">
                         Invoice Total
                         <Tooltip anchorElement="target" position="auto">
                           <SvgIcon icon={infoCircleIcon} size="small" className="info-icon" title="Taxes are not included in totals." />
                         </Tooltip>
                       </div>
-                      <div className="azure-invoice-kpi-value invoice-total">
+                      <div className="kpi-value invoice-total">
                         {formatCurrency(invoiceTotal)}
                       </div>
                     </>
@@ -1030,9 +1030,9 @@ export default function AzureInvoiceClientContent(props) {
                     <Skeleton style={{ width: '100%', height: '100%' }} />
                   </div>
                 ) : (
-                  <div className="azure-invoice-kpi-card monthly-difference">
+                  <div className="kpi-card monthly-difference">
                     <>
-                      <div className="azure-invoice-kpi-label">
+                      <div className="kpi-label">
                         Monthly Difference
                         {monthlyDifference > 0 ? (
                           <ArrowUpIcon className="svg-style arrow-icon" />
@@ -1040,7 +1040,7 @@ export default function AzureInvoiceClientContent(props) {
                           <ArrowDownIcon className="svg-style arrow-icon" />
                         ) : null}
                       </div>
-                      <div className="azure-invoice-kpi-value monthly-difference">
+                      <div className="kpi-value monthly-difference">
                         {formatCurrency(Math.abs(monthlyDifference))}
                         <span> ({monthlyDifferencePercent.toFixed(2)}%)</span>
                       </div>
@@ -1054,10 +1054,10 @@ export default function AzureInvoiceClientContent(props) {
                     <Skeleton style={{ width: '100%', height: '100%' }} />
                   </div>
                 ) : (
-                  <div className="azure-invoice-kpi-card invoice-credits">
+                  <div className="kpi-card invoice-credits">
                     <>
-                      <div className="azure-invoice-kpi-label">Invoice Credits</div>
-                      <div className="azure-invoice-kpi-value invoice-credits">
+                      <div className="kpi-label">Invoice Credits</div>
+                      <div className="kpi-value invoice-credits">
                         {formatCurrency(invoiceCredits)}
                       </div>
                     </>

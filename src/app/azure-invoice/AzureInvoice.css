@@ -80,76 +80,6 @@
     padding-bottom: 15px;
 }
 
-.azure-invoice-kpi-cards {
-  display: flex;
-  gap: 32px;
-  flex-wrap: wrap;
-  max-width: 100%;
-  align-items: center;
-}
-
-.azure-invoice-kpi-card {
-  /* padding-right: 32px; */
-  min-width: 0;
-  flex-shrink: 1;
-  white-space: nowrap;
-}
-
-.azure-invoice-kpi-card.invoice-total {
-  padding: 12px 16px;
-  background-color: #ffffff;
-  border: 1px solid #dee2e6;
-  border-left: 7px solid #9f177a;
-  border-radius: 8px;
-  min-height: 80px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.azure-invoice-kpi-card.monthly-difference {
-  padding: 12px 16px;
-  background-color: #ffffff;
-  border: 1px solid #dee2e6;
-  border-left: 7px solid #007996;
-  border-radius: 8px;
-  min-height: 80px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.azure-invoice-kpi-card.invoice-credits {
-  padding: 12px 16px;
-  background-color: #ffffff;
-  border: 1px solid #dee2e6;
-  border-left: 7px solid #cbc4c3;
-  border-radius: 8px;
-  min-height: 80px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.azure-invoice-kpi-label {
-  display: flex;
-  align-items: center;
-  font-size: 14px;
-  color: #7f8c8d;
-  margin-bottom: 6px;
-}
-
-.archera-link{
-  .azure-invoice-kpi-label{
-    color: #ae0a46;
-  }
-}
-
-.azure-invoice-kpi-value {
-  font-size: 18px;
-}
-
-
 .azure-invoice-header-bottom {
   display: flex;
   align-items: flex-end;
@@ -1177,11 +1107,11 @@
     padding: 20px;
   }
   
-  .azure-invoice-kpi-cards {
+  .kpi-cards {
     gap: 24px;
   }
   
-  .azure-invoice-kpi-card {
+  .kpi-card {
     padding-right: 24px;
   }
 }
@@ -1196,16 +1126,16 @@
     padding: 16px;
   }
   
-  .azure-invoice-kpi-cards {
+  .kpi-cards {
     gap: 12px;
   }
   
-  .azure-invoice-kpi-card {
+  .kpi-card {
     padding-right: 12px;
     min-width: 0;
   }
   
-  .azure-invoice-kpi-value {
+  .kpi-value {
     font-size: 20px;
   }
   
@@ -1234,24 +1164,24 @@
     width: 100%;
   }
   
-  .azure-invoice-kpi-cards {
+  .kpi-cards {
     width: 100%;
     justify-content: space-between;
     gap: 12px;
   }
   
-  .azure-invoice-kpi-card {
+  .kpi-card {
     flex: 1 1 auto;
     min-width: 0;
     max-width: 45%;
     padding-right: 12px;
   }
   
-  .azure-invoice-kpi-label {
+  .kpi-label {
     font-size: 10px;
   }
   
-  .azure-invoice-kpi-value {
+  .kpi-value {
     font-size: 18px;
   }
   
@@ -1285,12 +1215,12 @@
     margin-bottom: 12px;
   }
   
-  .azure-invoice-kpi-cards {
+  .kpi-cards {
     flex-direction: column;
     gap: 12px;
   }
   
-  .azure-invoice-kpi-card {
+  .kpi-card {
     border-right: none !important;
     border-bottom: 2px solid;
     padding-right: 0;
@@ -1300,19 +1230,19 @@
     max-width: 100%;
   }
   
-  .azure-invoice-kpi-card.invoice-total {
+  .kpi-card.invoice-total {
     border-bottom-color: #e74c3c;
   }
   
-  .azure-invoice-kpi-card.monthly-difference {
+  .kpi-card.monthly-difference {
     border-bottom-color: #27ae60;
   }
   
-  .azure-invoice-kpi-card.invoice-credits {
+  .kpi-card.invoice-credits {
     border-bottom-color: #3498db;
   }
   
-  .azure-invoice-kpi-card:last-child {
+  .kpi-card:last-child {
     border-bottom: none;
     padding-bottom: 0;
   }
@@ -1384,11 +1314,11 @@
     font-size: 14px;
   }
   
-  .azure-invoice-kpi-label {
+  .kpi-label {
     font-size: 10px;
   }
   
-  .azure-invoice-kpi-value {
+  .kpi-value {
     font-size: 18px;
   }
   

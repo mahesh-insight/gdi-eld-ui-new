@@ -291,9 +291,8 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       
       // Transform chart data for BasicGroupedChart component
       const transformedChartData = chartData.map(item => ({
-        group: item.label || item.category || 'Unknown',
-        value: item.value || 0,
-        label: item.label || item.category || 'Unknown'
+        label: item.label || item.category || 'Unknown',
+        value: item.value || 0
       }));
       
       console.log('Initial breakdown chart data:', {
@@ -476,9 +475,8 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
             
             // Transform chart data for BasicGroupedChart component
             const transformedChartData = chartData.map(item => ({
-              group: item.label || item.category || 'Unknown',
-              value: item.value || 0,
-              label: item.label || item.category || 'Unknown'
+              label: item.label || item.category || 'Unknown',
+              value: item.value || 0
             }));
             
             console.log('🔍 Breakdown Chart Data Transformation:', {
@@ -628,6 +626,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       setGridData([]);
       
       setSectionLoadingStates(true, ['provider', 'month']);
+      setTrendChartLoading(true);
       
       const fetchStart = Date.now();
       
@@ -665,9 +664,8 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         const chartData = summaryResponse.data?.chartData || summaryResponse.data?.breakdown || spendData;
         
         const transformedChartData = chartData.map(item => ({
-          group: item.label || item.category || 'Unknown',
-          value: item.value || 0,
-          label: item.label || item.category || 'Unknown'
+          label: item.label || item.category || 'Unknown',
+          value: item.value || 0
         }));
         
         setBreakdownChartData(transformedChartData);
@@ -694,6 +692,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       // Always reset the lock after a delay
       setTimeout(() => {
         setSectionLoadingStates(false, ['provider', 'month']);
+        setTrendChartLoading(false); // Hide skeleton for Trending Monthly Spend chart
         monthChangeInProgress.current = false;
         setIsMonthChanging(false);
         console.log('🔓 Lock released');
@@ -803,9 +802,8 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         
         // Transform chart data for BasicGroupedChart component
         const transformedChartData = chartData.map(item => ({
-          group: item.label || item.category || 'Unknown',
-          value: item.value || 0,
-          label: item.label || item.category || 'Unknown'
+          label: item.label || item.category || 'Unknown',
+          value: item.value || 0
         }));
         
         setBreakdownChartData(transformedChartData);
@@ -1180,9 +1178,8 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       
       if (chartData && chartData.length > 0) {
         const transformedChartData = chartData.map(item => ({
-          group: item.label || item.category || item.name || item.productCategory || 'Unknown',
-          value: item.value || item.amount || item.spend || item.totalSpend || 0,
-          label: item.label || item.category || item.name || item.productCategory || 'Unknown'
+          label: item.label || item.category || item.name || item.productCategory || 'Unknown',
+          value: item.value || item.amount || item.spend || item.totalSpend || 0
         }));
         
         setBreakdownChartData(transformedChartData);
@@ -1367,9 +1364,9 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
           <h1 className="header-text-large">Invoice Reporting</h1>
         </div>
         <div className="header-right">
-          <div className="azure-invoice-kpi-cards">
+          <div className="kpi-cards">
             {/* Invoice Total */}
-            <div className="azure-invoice-kpi-card invoice-total">
+            <div className="kpi-card invoice-total">
               {isStatsLoading ? (
                 <>
                   <div className="skeleton-loader skeleton-kpi-label"></div>
@@ -1377,13 +1374,13 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
                 </>
               ) : (
                 <>
-                  <div className="azure-invoice-kpi-label">
+                  <div className="kpi-label">
                     Invoice Total
                     <Tooltip anchorElement="target" position="auto">
                       <SvgIcon icon={infoCircleIcon} size="small" className="info-icon" title="Taxes are not included in totals." />
                     </Tooltip>
                   </div>
-                  <div className="azure-invoice-kpi-value invoice-total">
+                  <div className="kpi-value invoice-total">
                     {formatCurrency(totalSpend)}
                   </div>
                 </>
@@ -1391,7 +1388,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
             </div>
 
             {/* Monthly Difference */}
-            <div className="azure-invoice-kpi-card monthly-difference">
+            <div className="kpi-card monthly-difference">
               {isStatsLoading ? (
                 <>
                   <div className="skeleton-loader skeleton-kpi-label-wide"></div>
@@ -1399,7 +1396,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
                 </>
               ) : (
                 <>
-                  <div className="azure-invoice-kpi-label">
+                  <div className="kpi-label">
                     Monthly Difference&nbsp;
                     {monthlyDifference > 0 ? (
                       <ArrowUpIcon className="svg-style" />
@@ -1407,7 +1404,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
                       <ArrowDownIcon className="svg-style" />
                     ) : null}
                   </div>
-                  <div className="azure-invoice-kpi-value monthly-difference">
+                  <div className="kpi-value monthly-difference">
                     {formatCurrency(Math.abs(monthlyDifference))}
                     {haveDifferencePercent && monthlyDifferencePercent !== null && (
                       <span> ({monthlyDifferencePercent}%)</span>
@@ -1418,7 +1415,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
             </div>
 
             {/* Invoice Status */}
-            <div className="azure-invoice-kpi-card invoice-credits">
+            <div className="kpi-card invoice-credits">
               {isStatsLoading ? (
                 <>
                   <div className="skeleton-loader skeleton-kpi-label-credits"></div>
@@ -1426,12 +1423,12 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
                 </>
               ) : (
                 <>
-                  <div className="azure-invoice-kpi-label">Invoice Status
+                  <div className="kpi-label">Invoice Status
                     <Tooltip anchorElement="target" position="auto">
                       <SvgIcon icon={infoCircleIcon} size="small" className="info-icon" title="Please note that your download may not be available immediately. Please check back in the next 1 - 2 days." />
                     </Tooltip>
                   </div>
-                  <div className="azure-invoice-kpi-value invoice-credits">
+                  <div className="kpi-value invoice-credits">
                     {invoiceStatus || 'N/A'}
                   </div>
                   {<span className="redirect">{t("Download PDF")}</span>}
@@ -1539,9 +1536,10 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
                     title=""
                     subTitle=""
                     data={breakdownChartData}
-                    categoryField="group"
+                    categoryField="label"
                     valueField="value"
-                    groupedByField="label"
+                    useColors={true}
+                    customTooltip={true}
                     categoryTitle=""
                     showCategoryLabels={false}
                     legendPosition="bottom"
@@ -1549,9 +1547,9 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
                     legendVisible={false}
                     tooltipFormat="c2"
                     showLabels={true}
+                    showCategoryInLabels={true}
                     valueFormat="c2"
                     labelFormat="c2"
-                    labelIncludeGroup={true}
                   />
                 </Chart>
               ) : (
