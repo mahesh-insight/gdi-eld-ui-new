@@ -273,6 +273,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
   const [monthlyDifferencePercent, setMonthlyDifferencePercent] = useState(mode === 'ssr' ? (initialData?.summaryResponse?.data?.spendPeriod?.differencePercentSpend || null) : null);
   const [haveDifferencePercent, setHaveDifferencePercent] = useState(mode === 'ssr' ? (initialData?.summaryResponse?.data?.spendPeriod?.haveDifferencePercentSpend || false) : false);
   const [invoiceStatus, setInvoiceStatus] = useState(mode === 'ssr' ? (initialData?.summaryResponse?.data?.invoiceStatus || '') : '');
+  const [isReseller, setIsReseller] = useState(mode === 'ssr' ? (initialData?.summaryResponse?.data?.isReseller || false) : false);
 
   // Additional filter states with default 'All' values
   const [productCategories, setProductCategories] = useState([{ label: 'All', value: 'all' }]);
@@ -281,6 +282,12 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
   const [selectedProductName, setSelectedProductName] = useState([]); // MultiSelect: array
   const [subscriptionIds, setSubscriptionIds] = useState([{ label: 'All', value: 'all' }]);
   const [selectedSubscriptionId, setSelectedSubscriptionId] = useState([]); // MultiSelect: array
+  
+  // Customer Name (tenantId) filter
+  const [customerNames, setCustomerNames] = useState([{ label: 'All Customers', value: 'All' }]);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+
+  console.log('initialData?.summaryResponse?.data?.isReseller value:', initialData);
   
   // Invoice breakdown chart data with fallback
   const [breakdownChartData, setBreakdownChartData] = useState(() => {
@@ -451,6 +458,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
           // Update data from consolidated response
           if (summaryResponse?.data) {
             const selectLists = summaryResponse.data?.selectLists || [];
+            setIsReseller(summaryResponse.data?.isReseller || false);
             
             // Update invoice numbers from summary response
             const invoiceNumbersList = selectLists.find(list => list.name === 'invoicenumber');
@@ -634,7 +642,8 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         selectedSoldToId,
         abbreviation,
         monthValue,
-        null
+        null,
+        selectedCustomer?.value || null // Pass customer filter
       );
       
       const fetchTime = Date.now() - fetchStart;
@@ -649,6 +658,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       // Update data from response
       if (summaryResponse?.data) {
         const selectLists = summaryResponse.data?.selectLists || [];
+        setIsReseller(summaryResponse.data?.isReseller || false);
         
         const invoiceNumbersList = selectLists.find(list => list.name === 'invoicenumber');
         if (invoiceNumbersList && invoiceNumbersList.items) {
@@ -737,6 +747,18 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       setSubscriptionIds([allSubscriptionOption]);
       setSelectedSubscriptionId([]); // Empty array for MultiSelect
     }
+    
+    // Update Customer Names (tenantId)
+    const tenantIdList = selectLists.find(list => list.name === 'tenantId');
+    if (tenantIdList && tenantIdList.items) {
+      setCustomerNames(tenantIdList.items);
+      // Set default to 'All Customers'
+      const defaultCustomer = tenantIdList.items.find(item => item.value === 'All') || tenantIdList.items[0];
+      setSelectedCustomer(defaultCustomer);
+    } else {
+      setCustomerNames([{ label: 'All Customers', value: 'All' }]);
+      setSelectedCustomer({ label: 'All Customers', value: 'All' });
+    }
   };
 
   const handleInvoiceNumberChange = useCallback(async (event) => {
@@ -782,7 +804,8 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         selectedSoldToId,
         abbreviation, // Pass only the abbreviation string
         monthValue,
-        invoiceValue
+        invoiceValue,
+        selectedCustomer?.value || null // Pass customer filter
       );
       
       const fetchTime = Date.now() - fetchStart;
@@ -852,6 +875,149 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
     setSelectedSubscriptionId(newSubscription);
     console.log('Selected subscription ID:', newSubscription);
   };
+  
+  const handleCustomerChange = useCallback(async (event) => {
+    const newCustomer = event.value;
+    const customerValue = newCustomer?.value || newCustomer;
+    
+    console.log('👤 USER INTERACTION: Customer changed to:', newCustomer);
+    console.log('📊 Customer value to filter:', customerValue);
+    
+    setSelectedCustomer(newCustomer);
+    
+    // Show skeletons for stats, charts, and grid sections (exclude provider, month, invoice)
+    setSectionLoadingStates(true, ['provider', 'month', 'invoice']);
+    setTrendChartLoading(true); // Show skeleton for Trending Monthly Spend chart
+    
+    const fetchStart = Date.now();
+    try {
+      const abbreviation = selectedProvider?.abbreviation || apiEndpoint;
+      const monthValue = formatMonthValue(selectedMonth?.value || selectedMonth);
+      const invoiceValue = selectedInvoiceNumber?.value || selectedInvoiceNumber;
+      
+      // Validate inputs
+      if (!abbreviation || !monthValue || !selectedSoldToId) {
+        console.warn('⚠️ Missing required data for customer change:', { abbreviation, monthValue, selectedSoldToId });
+        setSectionLoadingStates(false, ['provider', 'month', 'invoice']);
+        setTrendChartLoading(false);
+        return;
+      }
+      
+      console.log('🔄 CLIENT-SIDE: Fetching filtered data for selected customer:', {
+        customerValue,
+        abbreviation,
+        monthValue,
+        invoiceValue,
+        soldToId: selectedSoldToId
+      });
+      
+      const consolidatedResponse = await fetchConsolidatedInvoiceData(
+        selectedSoldToId,
+        abbreviation,
+        monthValue,
+        invoiceValue,
+        customerValue // Pass customer filter as 5th parameter
+      );
+      
+      const fetchTime = Date.now() - fetchStart;
+      console.log(`⚡ Customer filter fetch: ${fetchTime}ms (${fetchTime < 200 ? '🟢 CACHED' : '🟡 API'})`);
+      
+      if (consolidatedResponse.error) {
+        throw new Error(consolidatedResponse.error);
+      }
+
+      const { summaryResponse, trendResponse, detailsResponse } = consolidatedResponse.data;
+      
+      console.log('📦 Customer Change - Response Data:', {
+        hasSummary: !!summaryResponse?.data,
+        hasTrend: !!trendResponse?.data,
+        hasDetails: !!detailsResponse?.data,
+        totalSpend: summaryResponse?.data?.spendPeriod?.totalSpend,
+        monthlyDiff: summaryResponse?.data?.spendPeriod?.differenceTotalSpend,
+        chartDataLength: summaryResponse?.data?.chartData?.length || summaryResponse?.data?.breakdown?.length || summaryResponse?.data?.spendPeriod?.spend?.length,
+        trendDataLength: trendResponse?.data?.chartData?.length,
+        gridDataLength: detailsResponse?.data?.content?.length || detailsResponse?.data?.length
+      });
+      
+      // Update filtered data
+      if (summaryResponse?.data) {
+        const newTotalSpend = summaryResponse.data?.spendPeriod?.totalSpend || 0;
+        const newMonthlyDiff = summaryResponse.data?.spendPeriod?.differenceTotalSpend || 0;
+        const newMonthlyDiffPercent = summaryResponse.data?.spendPeriod?.differencePercentSpend || null;
+        const newHaveDiffPercent = summaryResponse.data?.spendPeriod?.haveDifferencePercentSpend || false;
+        const newInvoiceStatus = summaryResponse.data?.invoiceStatus || '';
+        
+        console.log('💰 Updating KPI values:', {
+          oldTotalSpend: totalSpend,
+          newTotalSpend,
+          oldMonthlyDiff: monthlyDifference,
+          newMonthlyDiff
+        });
+        
+        setTotalSpend(newTotalSpend);
+        setMonthlyDifference(newMonthlyDiff);
+        setMonthlyDifferencePercent(newMonthlyDiffPercent);
+        setHaveDifferencePercent(newHaveDiffPercent);
+        setInvoiceStatus(newInvoiceStatus);
+        
+        const spendData = summaryResponse.data?.spendPeriod?.spend || [];
+        const chartData = summaryResponse.data?.chartData || summaryResponse.data?.breakdown || spendData;
+        
+        // Transform chart data for BasicGroupedChart component
+        const transformedChartData = chartData.map(item => ({
+          label: item.label || item.category || 'Unknown',
+          value: item.value || 0
+        }));
+        
+        console.log('📊 Updating breakdown chart:', {
+          oldDataLength: breakdownChartData.length,
+          newDataLength: transformedChartData.length,
+          newData: transformedChartData
+        });
+        
+        setBreakdownChartData(transformedChartData);
+      }
+      
+      if (trendResponse?.data) {
+        const newTrendData = trendResponse.data?.chartData || [];
+        console.log('📈 Updating trend chart:', {
+          oldDataLength: trendData.length,
+          newDataLength: newTrendData.length
+        });
+        setTrendData(newTrendData);
+      }
+      
+      if (detailsResponse?.data) {
+        const newGridData = detailsResponse.data?.content || detailsResponse.data || [];
+        const newGridTotal = detailsResponse.data?.totalElements || detailsResponse.data?.length || 0;
+        console.log('📋 Updating grid:', {
+          oldDataLength: gridData.length,
+          newDataLength: newGridData.length,
+          oldTotal: gridTotal,
+          newTotal: newGridTotal
+        });
+        setGridData(newGridData);
+        setGridTotal(newGridTotal);
+      }
+      
+      console.log('✅ Customer change complete - all UI states updated');
+      
+    } catch (error) {
+      console.error('❌ Customer change error:', error);
+      setErrorState(exceptionHandler(error));
+    } finally {
+      // Minimal loading time for smooth UX (prevent flash)
+      const minLoadTime = 150;
+      const elapsed = Date.now() - fetchStart;
+      const remainingTime = Math.max(0, minLoadTime - elapsed);
+      
+      setTimeout(() => {
+        setSectionLoadingStates(false, ['provider', 'month', 'invoice']);
+        setTrendChartLoading(false); // Hide skeleton for Trending Monthly Spend chart
+        console.log('🔓 Customer change - loading states cleared');
+      }, remainingTime);
+    }
+  }, [selectedSoldToId, selectedProvider, apiEndpoint, selectedMonth, selectedInvoiceNumber, totalSpend, monthlyDifference, breakdownChartData.length, trendData.length, gridData.length, gridTotal]);
   
   // Handle grid pagination changes
   const handleGridDataStateChange = useCallback(async (event) => {
@@ -1441,9 +1607,9 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
 
       {/* Dropdowns Section - 70% width */}
       <div className="invoices-filters-section">
-        <div className="filters-container">
+        <div className="filters-container" style={{ maxWidth: isReseller ? '100%' : '75%' }}>
           <div className="primary-filters">
-            <div className="dropdown-group">
+            <div className="dropdown-group" style={{ minWidth: isReseller ? '24%' : '30%' }}>
               {isProviderLoading ? (
                 <label className="label-text-bold">
                   <Skeleton style={{ width: '60px', height: '16px', marginBottom: '4px' }} />
@@ -1464,7 +1630,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
               )}
             </div>
 
-            <div className="dropdown-group">
+            <div className="dropdown-group" style={{ minWidth: isReseller ? '24%' : '30%' }}>
               {isMonthLoading ? (
                 <label className="label-text-bold">
                   <Skeleton style={{ width: '90px', height: '16px', marginBottom: '4px' }} />
@@ -1486,7 +1652,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
               )}
             </div>
 
-            <div className="dropdown-group">
+            <div className="dropdown-group" style={{ minWidth: isReseller ? '24%' : '30%' }}>
               {isInvoiceLoading ? (
                 <label className="label-text-bold">
                   <Skeleton style={{ width: '65px', height: '16px', marginBottom: '4px' }} />
@@ -1506,6 +1672,29 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
                 />
               )}
             </div>
+
+            {isReseller && (
+              <div className="dropdown-group" style={{ minWidth: '24%' }}>
+                {isInvoiceLoading ? (
+                  <label className="label-text-bold">
+                    <Skeleton style={{ width: '100px', height: '16px', marginBottom: '4px' }} />
+                  </label>
+                ) : (
+                  <label className="label-text-bold">Customer Name</label>
+                )}
+                {isInvoiceLoading ? (
+                  <Skeleton style={{ width: '200px', height: '32px' }} />
+                ) : (
+                  <DropDownList
+                    data={customerNames}
+                    textField="label"
+                    dataItemKey="value"
+                    value={selectedCustomer}
+                    onChange={handleCustomerChange}
+                  />
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -10,9 +10,9 @@ import { getService } from '@/lib/api/services';
  * Consolidated fetch for all invoice data (optimized like azure-invoice)
  * This combines multiple API calls into a single server action with caching
  */
-export async function fetchConsolidatedInvoiceData(soldToId, provider, selectedMonth, invoiceNumber = null) {
+export async function fetchConsolidatedInvoiceData(soldToId, provider, selectedMonth, invoiceNumber = null, customerFilter = null) {
   try {
-    console.log('🚀 Consolidated Invoice Fetch:', { soldToId, provider, selectedMonth, invoiceNumber });
+    console.log('🚀 Consolidated Invoice Fetch:', { soldToId, provider, selectedMonth, invoiceNumber, customerFilter });
     
     const cookieStore = await cookies();
     const accessTokenCookie = cookieStore.get('access_token');
@@ -25,27 +25,54 @@ export async function fetchConsolidatedInvoiceData(soldToId, provider, selectedM
     const abbreviation = typeof provider === 'string' ? provider : provider?.abbreviation;
     const monthValue = typeof selectedMonth === 'string' ? selectedMonth : selectedMonth?.value;
     
-    // Build filter parameter for invoice number
-    let filterParam = '';
+    // Build filter parameters as separate URL query parameters
+    // Trend API only needs customer filter, not invoice number
+    const trendQueryParams = [];
+    const summaryQueryParams = [];
+    
+    // Add customer filter first if provided (limittenantid)
+    if (customerFilter && customerFilter !== 'All' && customerFilter !== 'all') {
+      const customerFilterParam = `filter=limittenantid%3D${encodeURIComponent(customerFilter)}`;
+      trendQueryParams.push(customerFilterParam);
+      summaryQueryParams.push(customerFilterParam);
+    }
+    
+    // Add invoice number filter only for summary and grid APIs (not trend)
     const invoiceFilter = invoiceNumber && invoiceNumber !== 'all' && invoiceNumber !== 'All' ? invoiceNumber : 'all';
-    filterParam = `?filter=invoicenumber=${invoiceFilter}`;
+    summaryQueryParams.push(`filter=invoicenumber%3D${invoiceFilter}`);
     
-    console.log('🔄 Making consolidated API calls with:', { abbreviation, monthValue, filterParam });
+    const summaryFilterParam = summaryQueryParams.length > 0 ? `?${summaryQueryParams.join('&')}` : '';
+    const trendFilterParam = trendQueryParams.length > 0 ? `?${trendQueryParams.join('&')}` : '';
     
-    // Create cache key for consolidated data
-    const cacheKey = `invoice-consolidated:${soldToId}:${abbreviation}:${monthValue}:${invoiceFilter}`;
+    console.log('🔄 SERVER: Making consolidated API calls with:', { 
+      abbreviation, 
+      monthValue, 
+      summaryFilterParam,
+      trendFilterParam,
+      invoiceFilter,
+      customerFilter: customerFilter || 'none',
+      soldToId
+    });
+    
+    // Create cache key for consolidated data including customer filter
+    const cacheKey = `invoice-consolidated:${soldToId}:${abbreviation}:${monthValue}:${invoiceFilter}:${customerFilter || 'all'}`;
+    console.log('🔑 SERVER: Cache key:', cacheKey);
+    console.log('🎯 SERVER: Filter params - Summary/Grid:', summaryFilterParam, 'Trend:', trendFilterParam);
     
     const data = await getOrSetCached(
       cacheKey,
       async () => {
-        console.log('📥 Cache MISS - fetching consolidated data from APIs');
+        console.log('📥 SERVER: Cache MISS - fetching consolidated data from APIs');
+        console.log('   Summary/Grid filter:', summaryFilterParam);
+        console.log('   Trend filter:', trendFilterParam);
         
         // Make all API calls in parallel using services
         const [summaryResult, trendResult, gridResult] = await Promise.allSettled([
           // Invoice Summary (month data)
           (async () => {
             const serviceConfig = getService('providers'); // Get base URL
-            const url = `${serviceConfig.baseURL}/ccr-billableitem-service/${abbreviation}/summary/${monthValue}${filterParam}`;
+            const url = `${serviceConfig.baseURL}/ccr-billableitem-service/${abbreviation}/summary/${monthValue}${summaryFilterParam}`;
+            console.log('📡 SERVER: Summary API URL:', url);
             const response = await fetch(url, {
               method: 'POST',
               headers: {
@@ -61,7 +88,9 @@ export async function fetchConsolidatedInvoiceData(soldToId, provider, selectedM
           // Trend data
           (async () => {
             const serviceConfig = getService('providers'); // Get base URL
-            const url = `${serviceConfig.baseURL}/ccr-billableitem-service/${abbreviation}/trend?months=6&limit=6${filterParam ? '&' + filterParam.substring(1) : ''}`;
+            const trendFilter = trendFilterParam ? '&' + trendFilterParam.substring(1) : '';
+            const url = `${serviceConfig.baseURL}/ccr-billableitem-service/${abbreviation}/trend?months=6&limit=6${trendFilter}`;
+            console.log('📈 SERVER: Trend API URL:', url);
             const response = await fetch(url, {
               method: 'POST',
               headers: {
@@ -77,7 +106,8 @@ export async function fetchConsolidatedInvoiceData(soldToId, provider, selectedM
           // Grid data (details)
           (async () => {
             const serviceConfig = getService('providers'); // Get base URL
-            const url = `${serviceConfig.baseURL}/ccr-billableitem-service/${abbreviation}/month/${monthValue}${filterParam}`;
+            const url = `${serviceConfig.baseURL}/ccr-billableitem-service/${abbreviation}/month/${monthValue}${summaryFilterParam}`;
+            console.log('📋 SERVER: Grid API URL:', url);
             const response = await fetch(url, {
               method: 'POST',
               headers: {
@@ -109,7 +139,12 @@ export async function fetchConsolidatedInvoiceData(soldToId, provider, selectedM
       CacheTTL.AZURE_INVOICE_DATA // 10 minutes for invoice data
     );
     
-    console.log('🎯 Cache HIT - returning consolidated data from cache');
+    console.log('🎯 SERVER: Cache HIT - returning consolidated data from cache for key:', cacheKey);
+    console.log('📊 SERVER: Returned data summary:', {
+      hasSummary: !!data?.summaryResponse?.data,
+      totalSpend: data?.summaryResponse?.data?.spendPeriod?.totalSpend,
+      gridRecords: data?.detailsResponse?.data?.totalElements || data?.detailsResponse?.data?.length
+    });
     return { error: null, data };
     
   } catch (error) {
