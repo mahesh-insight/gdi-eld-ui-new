@@ -141,17 +141,7 @@ export default function AzureInvoiceClientContent(props) {
       
       const monthDetail = initialData.monthDetailResponse?.data || initialData.monthDetail?.data || initialData.monthDetail;
       const monthlyDifference = initialData.monthlyDifferenceResponse?.data || initialData.monthlyDifference?.data || initialData.monthlyDifference;
-      
-      console.log('🔍 SSR Data extraction debug:', {
-        monthDetail,
-        monthDetailHasContent: !!monthDetail?.content,
-        monthDetailTotalElements: monthDetail?.totalElements,
-        monthlyDifference,
-        monthlyDifferenceHasContent: !!monthlyDifference?.content,
-        monthlyDifferenceTotalElements: monthlyDifference?.totalElements,
-        hasSelectLists: !!monthDetail?.selectLists
-      });
-      
+            
       // Store complete pagination response, not just content array
       setCurrentMonthDetailData(monthDetail);
       setCurrentMonthlyDifferenceData(monthlyDifference);
@@ -179,7 +169,6 @@ export default function AzureInvoiceClientContent(props) {
         // Note: API returns "tenantId" with capital I, not "tenantid"
         const tenantIdList = currentSummaryData.selectLists.find(list => list.name === 'tenantId');
         if (tenantIdList && tenantIdList.items && tenantIdList.items.length > 0) {
-          console.log('👥 Customer Names (tenantId) list found:', tenantIdList.items.length, 'items');
           
           // Store both the displayed list and the original unfiltered list
           setCustomerNames(tenantIdList.items);
@@ -189,7 +178,6 @@ export default function AzureInvoiceClientContent(props) {
           if (!customerInitialized.current) {
             const allCustomersOption = tenantIdList.items.find(item => item.value === 'All');
             if (allCustomersOption) {
-              console.log('🎯 Setting initial customer selection to "All Customers"');
               setSelectedCustomer(allCustomersOption);
               customerInitialized.current = true;
             }
@@ -197,7 +185,6 @@ export default function AzureInvoiceClientContent(props) {
             console.log('✅ Customer already initialized, preserving selection:', selectedCustomer?.label);
           }
         } else {
-          console.log('ℹ️ No tenantId list found in selectLists');
           const defaultOptions = [{ label: 'All Customers', value: 'All' }];
           setCustomerNames(defaultOptions);
           setOriginalCustomerNames(defaultOptions);
@@ -209,7 +196,6 @@ export default function AzureInvoiceClientContent(props) {
         }
       }
       
-      console.log('🏢 isReseller flag:', resellerFlag);
     }
   }, [currentSummaryData, originalCustomerNames.length]);
 
@@ -233,13 +219,6 @@ export default function AzureInvoiceClientContent(props) {
 
   const getMonthValue = (monthData) => {
     const value = monthData?.value || monthData?.date || monthData?.display;
-    console.log('🗓️ getMonthValue:', {
-      input: monthData,
-      extractedValue: value,
-      hasValue: !!monthData?.value,
-      hasDate: !!monthData?.date,
-      hasDisplay: !!monthData?.display
-    });
     return value;
   };
 
@@ -248,22 +227,11 @@ export default function AzureInvoiceClientContent(props) {
     const newMonth = event.value;
     const monthValue = getMonthValue(newMonth);
     
-    console.log('🔄 Month change triggered:', {
-      oldMonth: selectedMonth,
-      newMonth: newMonth,
-      monthValue: monthValue,
-      monthValueType: typeof monthValue,
-      soldToId: selectedSoldToId,
-      hasAccessToken: !!accessToken,
-      accessTokenLength: accessToken?.length
-    });
-    
     setSelectedMonth(newMonth);
     
     // Reset customer selection to "All Customers" when month changes
     const allCustomersOption = customerNames.find(item => item.value === 'All') || { label: 'All Customers', value: 'All' };
     setSelectedCustomer(allCustomersOption);
-    console.log('🔄 Resetting customer to "All Customers" on month change');
     
     if (!accessToken || !selectedSoldToId) {
       setErrorState('Authentication required. Please refresh the page.');
@@ -283,11 +251,6 @@ export default function AzureInvoiceClientContent(props) {
     });
     
     try {
-      console.log('🔄 Month changed - making SINGLE CONSOLIDATED server action call for:', monthValue);
-      console.log('🔑 Access Token available:', !!accessToken);
-      console.log('🔑 soldToId:', selectedSoldToId);
-      console.log('🔑 Customer reset to All on month change');
-      
       // Always pass null for customer filter on month change since we reset to "All Customers"
       const customerFilterValue = null;
       
@@ -307,18 +270,8 @@ export default function AzureInvoiceClientContent(props) {
       
       const consolidatedData = consolidatedResult.data;
       
-      console.log('✅ Consolidated API response received:', {
-        cached: consolidatedResult.cached,
-        hasSummary: !!consolidatedData?.summary,
-        hasCredits: !!consolidatedData?.credits,
-        hasTrends: !!consolidatedData?.trend,
-        hasMonthDetail: !!consolidatedData?.monthDetail,
-        hasMonthlyDifference: !!consolidatedData?.monthlyDifference
-      });
-      
       // Update all state from the single consolidated response
       if (consolidatedData?.summary) {
-        console.log('📊 Setting summary data');
         setCurrentSummaryData(consolidatedData.summary);
       } else {
         console.warn('⚠️ No summary data in consolidated response');
@@ -326,7 +279,6 @@ export default function AzureInvoiceClientContent(props) {
       setIsLoadingSummary(false);
       
       if (consolidatedData?.credits) {
-        console.log('💳 Setting credits data');
         setCurrentCreditsData(consolidatedData.credits);
       } else {
         console.warn('⚠️ No credits data in consolidated response');
@@ -334,23 +286,12 @@ export default function AzureInvoiceClientContent(props) {
       setIsLoadingCredits(false);
       
       if (consolidatedData?.trend) {
-        console.log('📈 Setting trends data');
         setCurrentTrendsData(consolidatedData.trend);
       } else {
         console.warn('⚠️ No trends data in consolidated response');
       }
       setIsLoadingTrends(false);
-      
-      // Update BOTH tab data states (not just the currently selected tab)
-      // since the consolidated call fetches data for both tabs
-      // Store complete response with pagination metadata
-      console.log('📄 Setting tab data:', {
-        monthDetailTotalElements: consolidatedData?.monthDetail?.totalElements,
-        monthDetailContentLength: consolidatedData?.monthDetail?.content?.length || 0,
-        monthlyDiffTotalElements: consolidatedData?.monthlyDifference?.totalElements,
-        monthlyDiffContentLength: consolidatedData?.monthlyDifference?.content?.length || 0
-      });
-      
+            
       setCurrentMonthDetailData(consolidatedData?.monthDetail);
       setCurrentMonthlyDifferenceData(consolidatedData?.monthlyDifference);
       
@@ -383,11 +324,7 @@ export default function AzureInvoiceClientContent(props) {
   // Customer Name change handler
   const handleCustomerChange = useCallback(async (event) => {
     const newCustomer = event.value;
-    const customerValue = newCustomer?.value || newCustomer;
-    
-    console.log('👤 USER INTERACTION: Customer changed to:', newCustomer);
-    console.log('📊 Customer value to filter:', customerValue);
-    
+    const customerValue = newCustomer?.value || newCustomer;   
     setSelectedCustomer(newCustomer);
     
     if (!accessToken || !selectedSoldToId || !selectedMonth) {
@@ -407,12 +344,6 @@ export default function AzureInvoiceClientContent(props) {
     
     try {
       const monthValue = getMonthValue(selectedMonth);
-      
-      console.log('🔄 CLIENT-SIDE: Fetching filtered data for selected customer:', {
-        customerValue,
-        monthValue,
-        soldToId: selectedSoldToId
-      });
       
       // Call consolidated API with customer filter
       const consolidatedResult = await fetchConsolidatedAzureInvoiceData(
@@ -437,7 +368,6 @@ export default function AzureInvoiceClientContent(props) {
       
       // Restore the original customer list (don't let filtered data overwrite it)
       if (originalCustomerNames.length > 1) {
-        console.log('🔄 Restoring original customer list after filter');
         setCustomerNames(originalCustomerNames);
       }
       
@@ -453,7 +383,6 @@ export default function AzureInvoiceClientContent(props) {
       
       // Restore the original customer list even on error
       if (originalCustomerNames.length > 1) {
-        console.log('🔄 Restoring original customer list after error');
         setCustomerNames(originalCustomerNames);
       }
       
@@ -467,12 +396,10 @@ export default function AzureInvoiceClientContent(props) {
 
   // Chart type handlers
   const handleChartTypeChange = useCallback((newType) => {
-    console.log('🔄 Trending chart type changing to', newType);
     setTrendingChartType(newType);
   }, []);
 
   const handleTopNExpensiveProductsChartTypeChange = useCallback((newType) => {
-    console.log('🔄 Top products chart type changing to', newType);
     setTopNExpensiveProductsChartType(newType);
   }, []);
 
@@ -481,12 +408,6 @@ export default function AzureInvoiceClientContent(props) {
   }, []);
 
   const handleApplyFilters = useCallback(async () => {
-    console.log('🔍 Applying filters:', {
-      productCategory: filterProductCategory,
-      productName: filterProductName,
-      skuName: filterSkuName
-    });
-
     if (!accessToken || !selectedSoldToId || !selectedMonth) {
       console.error('❌ Missing required data for filtered API call');
       return;
@@ -524,8 +445,6 @@ export default function AzureInvoiceClientContent(props) {
 
       const filterQueryString = filterParams.length > 0 ? `&${filterParams.join('&')}` : '';
       
-      console.log('🔍 Filter query string:', filterQueryString);
-
       // Call the API with filters using service configuration
       const monthValue = getMonthValue(selectedMonth);
       const moment = (await import('moment')).default;
@@ -539,8 +458,6 @@ export default function AzureInvoiceClientContent(props) {
       // Construct the full URL with the service path
       const apiUrl = `${baseURL}/ccr-invoice-service/month/${formattedMonth}?page=0&size=20${filterQueryString}`;
       
-      console.log('🌐 Calling filtered invoice details API:', apiUrl);
-
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -555,7 +472,6 @@ export default function AzureInvoiceClientContent(props) {
       }
 
       const data = await response.json();
-      console.log('✅ Filtered invoice details received:', data);
 
       // Store the complete response with pagination metadata
       setCurrentMonthDetailData(data);
@@ -581,8 +497,6 @@ export default function AzureInvoiceClientContent(props) {
       setIsLoadingInvoiceDetails(true);
     });
     
-    console.log('🔄 Invoice Details pagination: Loading state set to TRUE');
-
     try {
       // Read fresh values from store - use same extraction order as component's useSelector
       const authState = store.getState().auth;
@@ -597,16 +511,7 @@ export default function AzureInvoiceClientContent(props) {
                                authState?.user?.soldToId;
       
       const monthValue = selectedMonth?.value || selectedMonth?.date || selectedMonth?.display;
-      
-      console.log('🔑 Pagination auth check:', { 
-        hasAccessToken: !!accessToken, 
-        tokenLength: accessToken?.length,
-        soldToIdValue: selectedSoldToId,
-        soldToIdType: typeof selectedSoldToId,
-        hasSelectedMonth: !!selectedMonth,
-        monthValue: monthValue
-      });
-      
+          
       if (!accessToken || !selectedSoldToId || !monthValue) {
         console.error('Missing required data for pagination:', { 
           hasAccessToken: !!accessToken, 
@@ -664,15 +569,6 @@ export default function AzureInvoiceClientContent(props) {
       
       const requestBody = Array.isArray(selectedSoldToId) ? selectedSoldToId : [selectedSoldToId];
       
-      console.log('📄 Fetching Invoice Details page:', { 
-        pageNumber, 
-        size: newDataState.take, 
-        url: apiUrl,
-        hasAuthHeader: !!requestHeaders.Authorization,
-        authHeaderValue: requestHeaders.Authorization ? `Bearer ...${accessToken?.slice(-10)}` : 'MISSING',
-        requestBody
-      });
-
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: requestHeaders,
@@ -685,7 +581,6 @@ export default function AzureInvoiceClientContent(props) {
 
       const data = await response.json();
       setCurrentMonthDetailData(data);
-      console.log('✅ Invoice Details pagination: Data loaded, setting loading to FALSE');
       
     } catch (error) {
       console.error('❌ Error changing page:', error);
@@ -705,7 +600,6 @@ export default function AzureInvoiceClientContent(props) {
       setIsLoadingMonthlyDiff(true);
     });
     
-    console.log('🔄 Monthly Diff pagination: Loading state set to TRUE');
 
     try {
       // Read fresh values from store - use same extraction order as component's useSelector
@@ -721,16 +615,7 @@ export default function AzureInvoiceClientContent(props) {
                                authState?.user?.soldToId;
       
       const monthValue = selectedMonth?.value || selectedMonth?.date || selectedMonth?.display;
-      
-      console.log('🔑 Pagination auth check:', { 
-        hasAccessToken: !!accessToken, 
-        tokenLength: accessToken?.length,
-        soldToIdValue: selectedSoldToId,
-        soldToIdType: typeof selectedSoldToId,
-        hasSelectedMonth: !!selectedMonth,
-        monthValue: monthValue
-      });
-      
+            
       if (!accessToken || !selectedSoldToId || !monthValue) {
         console.error('Missing required data for pagination:', { 
           hasAccessToken: !!accessToken, 
@@ -784,18 +669,6 @@ export default function AzureInvoiceClientContent(props) {
       
       const requestBody = Array.isArray(selectedSoldToId) ? selectedSoldToId : [selectedSoldToId];
       
-      console.log('📊 Fetching Monthly Differences page:', { 
-        pageNumber, 
-        size: newDataState.take,
-        previousMonth: previousMonthValue,
-        currentMonth: formattedMonth,
-        filters: filterQueryString || 'none',
-        url: apiUrl,
-        hasAuthHeader: !!requestHeaders.Authorization,
-        authHeaderValue: requestHeaders.Authorization ? `Bearer ...${accessToken?.slice(-10)}` : 'MISSING',
-        requestBody
-      });
-
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: requestHeaders,
@@ -807,9 +680,7 @@ export default function AzureInvoiceClientContent(props) {
       }
 
       const data = await response.json();
-      setCurrentMonthlyDifferenceData(data);
-      console.log('✅ Monthly Diff pagination: Data loaded, setting loading to FALSE');
-      
+      setCurrentMonthlyDifferenceData(data);      
     } catch (error) {
       console.error('❌ Error changing page:', error);
       setErrorState(`Failed to load page: ${error.message}`);
@@ -834,7 +705,6 @@ export default function AzureInvoiceClientContent(props) {
     
     // If Monthly Differences tab is selected and (no data OR filters are active)
     if (newTabIndex === 1 && (!currentMonthlyDifferenceData || hasActiveFilters)) {
-      console.log('📊 Monthly Differences tab selected - fetching data...', { hasActiveFilters });
       
       if (!accessToken || !selectedSoldToId || !selectedMonth) {
         console.error('❌ Missing required data for monthly difference API call');
@@ -870,14 +740,7 @@ export default function AzureInvoiceClientContent(props) {
             filters.push(`skuname equals ${skuValue}`);
           });
         }
-        
-        console.log('📅 Monthly difference months:', {
-          previousMonth: previousMonthValue,
-          currentMonth: monthValue,
-          apiPath: `${previousMonthValue}/${monthValue}`,
-          filters
-        });
-        
+                
         // Import the API function
         const { fetchInvoiceMonthlyDifferenceDetail } = await import('@/lib/azureInvoiceApi');
         
@@ -889,18 +752,10 @@ export default function AzureInvoiceClientContent(props) {
           accessToken
         });
         
-        console.log('✅ Monthly difference API response:', response);
         
         // Extract content from response
         const monthlyDiffContent = response?.content || response;
-        
-        console.log('📊 Monthly difference data extracted:', {
-          responseType: typeof response,
-          hasContent: !!response?.content,
-          contentLength: monthlyDiffContent?.length || 0,
-          isArray: Array.isArray(monthlyDiffContent)
-        });
-        
+              
         setCurrentMonthlyDifferenceData(monthlyDiffContent);
         setIsLoading(false);
       } catch (error) {
@@ -953,21 +808,10 @@ export default function AzureInvoiceClientContent(props) {
       ];
     }
     
-    console.log('📊 Invoice Breakdown Data Debug:', {
-      currentSummaryData,
-      spendData,
-      spendDataLength: spendData?.length || 0,
-      mappedData,
-      mappedDataLength: mappedData?.length || 0,
-      mode
-    });
-    
     return mappedData;
   }, [currentSummaryData, mode]);
 
   const invoiceTrendData = useMemo(() => {
-    console.log('🔍 Trending data raw:', currentTrendsData);
-    
     let periodsData = [];
     if (currentTrendsData?.spendPeriod) {
       periodsData = currentTrendsData.spendPeriod;
@@ -976,8 +820,6 @@ export default function AzureInvoiceClientContent(props) {
     } else if (Array.isArray(currentTrendsData)) {
       periodsData = currentTrendsData;
     }
-    
-    console.log('🔍 Periods data:', periodsData, 'Length:', periodsData?.length || 0);
     
     const monthsToShow = trendingPeriod === 'last12months' ? 12 : 6;
     const data = [];
@@ -1018,7 +860,6 @@ export default function AzureInvoiceClientContent(props) {
       });
     }
     
-    console.log('✅ Trending chart data:', data, 'Length:', data.length);
     return data;
   }, [currentTrendsData, trendingPeriod, mode]);
 
@@ -1048,24 +889,13 @@ export default function AzureInvoiceClientContent(props) {
         { group: 'Azure SQL Database', category: 'Azure SQL Database', label: 'Azure SQL Database', value: 4.90 }
       ];
     }
-    
-    console.log('📊 Top Expensive Products Debug:', {
-      currentSummaryData,
-      topNData,
-      topNDataLength: topNData?.length || 0,
-      mappedData,
-      mappedDataLength: mappedData?.length || 0,
-      mode
-    });
-    
+        
     return mappedData;
   }, [currentSummaryData, mode]);
 
   // Filter options from summary API selectList
   const filterOptions = useMemo(() => {
     const selectLists = currentSummaryData?.selectLists || [];
-    console.log('🔍 SelectList data:', selectLists);
-    
     const options = {
       productCategories: [],
       productNames: [],
@@ -1110,7 +940,6 @@ export default function AzureInvoiceClientContent(props) {
       }
     });
     
-    console.log('🔍 Mapped filter options:', options);
     return options;
   }, [currentSummaryData]);
 
@@ -1593,17 +1422,7 @@ export default function AzureInvoiceClientContent(props) {
               >
                 <TabStripTab title="Invoice Details">
                 <div className="azure-invoice-tab-content">
-                  {(() => {
-                    // Enhanced data processing for Invoice Details
-                    console.log('📋 Invoice Details tab data:', {
-                      currentMonthDetailData,
-                      type: typeof currentMonthDetailData,
-                      isArray: Array.isArray(currentMonthDetailData),
-                      keys: currentMonthDetailData ? Object.keys(currentMonthDetailData) : 'null',
-                      length: currentMonthDetailData?.length || 'N/A',
-                      firstItem: currentMonthDetailData?.[0] || 'N/A'
-                    });
-                    
+                  {(() => {                    
                     // Handle different data structures and extract pagination info
                     let processedData = null;
                     let totalElements = 0;
@@ -1628,19 +1447,7 @@ export default function AzureInvoiceClientContent(props) {
                         ...item,
                         invoiceDate: item.invoiceDate ? new Date(item.invoiceDate) : item.invoiceDate
                       }));
-                    }
-                    
-                    console.log('📋 Processed Invoice Details data:', {
-                      processedData,
-                      processedLength: processedData?.length || 0,
-                      totalElements
-                    });
-                    
-                    console.log('🔵 Invoice Details Grid State:', {
-                      isLoadingInvoiceDetails,
-                      hasData: !!processedData,
-                      dataLength: processedData?.length
-                    });
+                    }                  
                     
                     // Calculate dynamic grid height
                     const rowCount = processedData?.length || 0;
@@ -1669,15 +1476,6 @@ export default function AzureInvoiceClientContent(props) {
               <TabStripTab title="Monthly Differences">
                 <div className="azure-invoice-tab-content">
                   {(() => {
-                    // Enhanced data processing for Monthly Differences
-                    console.log('📊 Monthly Differences tab data:', {
-                      currentMonthlyDifferenceData,
-                      type: typeof currentMonthlyDifferenceData,
-                      isArray: Array.isArray(currentMonthlyDifferenceData),
-                      keys: currentMonthlyDifferenceData ? Object.keys(currentMonthlyDifferenceData) : 'null',
-                      length: currentMonthlyDifferenceData?.length || 'N/A'
-                    });
-                    
                     // Handle different data structures and extract pagination info
                     let processedData = null;
                     let totalElements = 0;
