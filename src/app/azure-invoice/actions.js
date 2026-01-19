@@ -11,7 +11,7 @@ import { CacheKeys, CacheTTL } from '@/lib/cache/cacheKeys';
  * This function fetches ALL data needed for the page in one cached operation
  * Similar to how invoices page works for consistent behavior
  */
-export async function fetchConsolidatedAzureInvoiceData(accessToken, soldToId, selectedMonth = null) {
+export async function fetchConsolidatedAzureInvoiceData(accessToken, soldToId, selectedMonth = null, customerFilter = null) {
   try {
     // If no accessToken provided, try to get from cookies as fallback
     let finalAccessToken = accessToken;
@@ -29,15 +29,10 @@ export async function fetchConsolidatedAzureInvoiceData(accessToken, soldToId, s
       };
     }
     
-    console.log('🚀 SERVER ACTION: Consolidated Azure Invoice fetch:', { 
-      soldToId: soldToId?.substring(0, 20) + '...', 
-      hasToken: !!finalAccessToken, 
-      selectedMonth 
-    });
     
     // Create cache key for consolidated data (similar to invoices page)
     const monthValue = selectedMonth || 'current';
-    const cacheKey = `azure-consolidated:${soldToId}:${monthValue}`;
+    const cacheKey = `azure-consolidated:${soldToId}:${monthValue}:${customerFilter || 'all'}`;
     
     const data = await getOrSetCached(
       cacheKey,
@@ -55,6 +50,13 @@ export async function fetchConsolidatedAzureInvoiceData(accessToken, soldToId, s
           
           console.log('📅 SERVER ACTION: Month-specific fetch for:', selectedMonth, 'prev:', prevMonth);
           
+          // Build filter parameter for customer filtering
+          let filterParam = '';
+          if (customerFilter && customerFilter !== 'All' && customerFilter !== 'all') {
+            filterParam = `?filter=limittenantid%3D${encodeURIComponent(customerFilter)}`;
+            console.log('🔍 SERVER ACTION: Applying customer filter:', filterParam);
+          }
+          
           // Get base URL from services config
           const serviceConfig = services.default.getService('invoiceSummary');
           const baseURL = serviceConfig.baseURL || process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -62,7 +64,7 @@ export async function fetchConsolidatedAzureInvoiceData(accessToken, soldToId, s
           // Make all 5 API calls in parallel on the SERVER
           const [summary, credits, trend, monthDetail, monthlyDifference] = await Promise.allSettled([
             // Invoice Summary
-            fetch(`${baseURL}/ccr-invoice-service/summary/${selectedMonth}`, {
+            fetch(`${baseURL}/ccr-invoice-service/summary/${selectedMonth}${filterParam}`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -73,7 +75,7 @@ export async function fetchConsolidatedAzureInvoiceData(accessToken, soldToId, s
             }).then(res => res.ok ? res.json() : Promise.reject(new Error(`Summary: ${res.status}`))),
             
             // Invoice Credits (total with creditsonly=true)
-            fetch(`${baseURL}/ccr-invoice-service/total/${selectedMonth}?creditsonly=true`, {
+            fetch(`${baseURL}/ccr-invoice-service/total/${selectedMonth}?creditsonly=true${filterParam ? '&' + filterParam.substring(1) : ''}`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -84,7 +86,7 @@ export async function fetchConsolidatedAzureInvoiceData(accessToken, soldToId, s
             }).then(res => res.ok ? res.json() : Promise.reject(new Error(`Credits: ${res.status}`))),
             
             // Invoice Trend
-            fetch(`${baseURL}/ccr-invoice-service/trend?months=6&limit=6`, {
+            fetch(`${baseURL}/ccr-invoice-service/trend?months=6&limit=6${filterParam ? '&' + filterParam.substring(1) : ''}`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -95,7 +97,7 @@ export async function fetchConsolidatedAzureInvoiceData(accessToken, soldToId, s
             }).then(res => res.ok ? res.json() : Promise.reject(new Error(`Trend: ${res.status}`))),
             
             // Month Detail (for grid tab 1)
-            fetch(`${baseURL}/ccr-invoice-service/month/${selectedMonth}?page=0&size=20`, {
+            fetch(`${baseURL}/ccr-invoice-service/month/${selectedMonth}?page=0&size=20${filterParam ? '&' + filterParam.substring(1) : ''}`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -106,7 +108,7 @@ export async function fetchConsolidatedAzureInvoiceData(accessToken, soldToId, s
             }).then(res => res.ok ? res.json() : Promise.reject(new Error(`MonthDetail: ${res.status}`))),
             
             // Monthly Difference (for grid tab 2)
-            fetch(`${baseURL}/ccr-invoice-service/month/sku-difference/${prevMonth}/${selectedMonth}?page=0&size=20`, {
+            fetch(`${baseURL}/ccr-invoice-service/month/sku-difference/${prevMonth}/${selectedMonth}?page=0&size=20${filterParam ? '&' + filterParam.substring(1) : ''}`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

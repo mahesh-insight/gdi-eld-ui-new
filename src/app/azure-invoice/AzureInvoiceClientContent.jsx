@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useSelector } from 'react-redux';
 import { store } from '@/store/store';
@@ -104,10 +104,19 @@ export default function AzureInvoiceClientContent(props) {
   const [monthlyDiffDataState, setMonthlyDiffDataState] = useState({ skip: 0, take: 20 });
   const [isLoadingMonthlyDiff, setIsLoadingMonthlyDiff] = useState(false);
 
+  // Customer Name (tenantId) filter states
+  const [isReseller, setIsReseller] = useState(false);
+  const [customerNames, setCustomerNames] = useState([{ label: 'All Customers', value: 'All' }]);
+  const [originalCustomerNames, setOriginalCustomerNames] = useState([{ label: 'All Customers', value: 'All' }]); // Preserve unfiltered list
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const customerInitialized = useRef(false); // Track if customer has been set initially
+
   // Error and loading states
   const [errorState, setErrorState] = useState(null);
   const [isLoading, setIsLoading] = useState(mode !== 'ssr');
   const [isLoadingMonthData, setIsLoadingMonthData] = useState(false);
+  const [isLoadingCustomerDropdown, setIsLoadingCustomerDropdown] = useState(false);
+  const [isLoadingViewBilledLink, setIsLoadingViewBilledLink] = useState(false);
   const [isLoadingSummary, setIsLoadingSummary] = useState(!extractedSummaryData);
   const [isLoadingCredits, setIsLoadingCredits] = useState(!extractedCreditsData);
   const [isLoadingTrends, setIsLoadingTrends] = useState(!extractedTrendsData);
@@ -156,6 +165,54 @@ export default function AzureInvoiceClientContent(props) {
     }
   }, [mode]);
 
+  // Extract isReseller flag and customer names from summary data
+  useEffect(() => {
+    if (currentSummaryData) {
+      // Extract isReseller flag
+      const resellerFlag = currentSummaryData?.isReseller || false;
+      setIsReseller(resellerFlag);
+      
+      // Extract customer names (tenantId list) if available
+      // IMPORTANT: Only populate from UNFILTERED data (when we don't have a customer list yet)
+      // This prevents filtered summary calls from reducing the dropdown options
+      if (currentSummaryData?.selectLists && originalCustomerNames.length === 1) {
+        // Note: API returns "tenantId" with capital I, not "tenantid"
+        const tenantIdList = currentSummaryData.selectLists.find(list => list.name === 'tenantId');
+        if (tenantIdList && tenantIdList.items && tenantIdList.items.length > 0) {
+          console.log('👥 Customer Names (tenantId) list found:', tenantIdList.items.length, 'items');
+          
+          // Store both the displayed list and the original unfiltered list
+          setCustomerNames(tenantIdList.items);
+          setOriginalCustomerNames(tenantIdList.items);
+          
+          // ONLY set default selection on INITIAL load, never on subsequent updates
+          if (!customerInitialized.current) {
+            const allCustomersOption = tenantIdList.items.find(item => item.value === 'All');
+            if (allCustomersOption) {
+              console.log('🎯 Setting initial customer selection to "All Customers"');
+              setSelectedCustomer(allCustomersOption);
+              customerInitialized.current = true;
+            }
+          } else {
+            console.log('✅ Customer already initialized, preserving selection:', selectedCustomer?.label);
+          }
+        } else {
+          console.log('ℹ️ No tenantId list found in selectLists');
+          const defaultOptions = [{ label: 'All Customers', value: 'All' }];
+          setCustomerNames(defaultOptions);
+          setOriginalCustomerNames(defaultOptions);
+          // ONLY set default selection on INITIAL load
+          if (!customerInitialized.current) {
+            setSelectedCustomer({ label: 'All Customers', value: 'All' });
+            customerInitialized.current = true;
+          }
+        }
+      }
+      
+      console.log('🏢 isReseller flag:', resellerFlag);
+    }
+  }, [currentSummaryData, originalCustomerNames.length]);
+
   // Helper functions
   const formatMonthDisplay = (monthData) => {
     if (!monthData) return 'Unknown';
@@ -203,6 +260,11 @@ export default function AzureInvoiceClientContent(props) {
     
     setSelectedMonth(newMonth);
     
+    // Reset customer selection to "All Customers" when month changes
+    const allCustomersOption = customerNames.find(item => item.value === 'All') || { label: 'All Customers', value: 'All' };
+    setSelectedCustomer(allCustomersOption);
+    console.log('🔄 Resetting customer to "All Customers" on month change');
+    
     if (!accessToken || !selectedSoldToId) {
       setErrorState('Authentication required. Please refresh the page.');
       return;
@@ -211,6 +273,8 @@ export default function AzureInvoiceClientContent(props) {
     // Use flushSync to force immediate rendering of skeleton states
     flushSync(() => {
       setIsLoadingMonthData(true);
+      setIsLoadingCustomerDropdown(true);
+      setIsLoadingViewBilledLink(true);
       setIsLoadingSummary(true);
       setIsLoadingCredits(true);
       setIsLoadingTrends(true);
@@ -222,13 +286,18 @@ export default function AzureInvoiceClientContent(props) {
       console.log('🔄 Month changed - making SINGLE CONSOLIDATED server action call for:', monthValue);
       console.log('🔑 Access Token available:', !!accessToken);
       console.log('🔑 soldToId:', selectedSoldToId);
+      console.log('🔑 Customer reset to All on month change');
+      
+      // Always pass null for customer filter on month change since we reset to "All Customers"
+      const customerFilterValue = null;
       
       // Call the SERVER ACTION for consolidated data (like invoices page)
       // This makes ONE server-side call that fetches all data together
       const consolidatedResult = await fetchConsolidatedAzureInvoiceData(
         accessToken,
         selectedSoldToId,
-        monthValue // Pass the month value
+        monthValue, // Pass the month value
+        customerFilterValue // Pass null since customer is reset to "All"
       );
       
       if (consolidatedResult.error) {
@@ -287,13 +356,18 @@ export default function AzureInvoiceClientContent(props) {
       
       setIsLoadingTabData(false);
       setIsLoadingMonthData(false);
+      setIsLoadingCustomerDropdown(false);
+      setIsLoadingViewBilledLink(false);
       setIsLoading(false); // Hide master loading state
       
     } catch (error) {
       console.error('❌ Month change error:', error);
       setErrorState('Failed to load data for selected month');
+      
       // Hide all loaders on error
       setIsLoadingMonthData(false);
+      setIsLoadingCustomerDropdown(false);
+      setIsLoadingViewBilledLink(false);
       setIsLoadingSummary(false);
       setIsLoadingCredits(false);
       setIsLoading(false);
@@ -305,6 +379,91 @@ export default function AzureInvoiceClientContent(props) {
   const handleChartRefresh = (chartOptions, themeOptions, chartInstance) => {
     setRefreshChart(false);
   };
+
+  // Customer Name change handler
+  const handleCustomerChange = useCallback(async (event) => {
+    const newCustomer = event.value;
+    const customerValue = newCustomer?.value || newCustomer;
+    
+    console.log('👤 USER INTERACTION: Customer changed to:', newCustomer);
+    console.log('📊 Customer value to filter:', customerValue);
+    
+    setSelectedCustomer(newCustomer);
+    
+    if (!accessToken || !selectedSoldToId || !selectedMonth) {
+      console.error('❌ Missing required data for customer filter');
+      return;
+    }
+    
+    // Show loading states (exclude Invoice Month, Customer Name, and View Billed Usage)
+    flushSync(() => {
+      setIsLoadingSummary(true);
+      setIsLoadingCredits(true);
+      setIsLoadingTrends(true);
+      setIsLoadingTabData(true);
+      setIsLoading(true);
+      // Don't show skeletons for: Invoice Month, Customer Name dropdown, View Billed Usage link
+    });
+    
+    try {
+      const monthValue = getMonthValue(selectedMonth);
+      
+      console.log('🔄 CLIENT-SIDE: Fetching filtered data for selected customer:', {
+        customerValue,
+        monthValue,
+        soldToId: selectedSoldToId
+      });
+      
+      // Call consolidated API with customer filter
+      const consolidatedResult = await fetchConsolidatedAzureInvoiceData(
+        accessToken,
+        selectedSoldToId,
+        monthValue,
+        customerValue // Pass customer filter as 4th parameter
+      );
+      
+      if (consolidatedResult.error) {
+        throw new Error(consolidatedResult.error);
+      }
+      
+      const consolidatedData = consolidatedResult.data;
+      
+      // Update all state from the consolidated response
+      setCurrentSummaryData(consolidatedData?.summary);
+      setCurrentCreditsData(consolidatedData?.credits);
+      setCurrentTrendsData(consolidatedData?.trend);
+      setCurrentMonthDetailData(consolidatedData?.monthDetail);
+      setCurrentMonthlyDifferenceData(consolidatedData?.monthlyDifference);
+      
+      // Restore the original customer list (don't let filtered data overwrite it)
+      if (originalCustomerNames.length > 1) {
+        console.log('🔄 Restoring original customer list after filter');
+        setCustomerNames(originalCustomerNames);
+      }
+      
+      setIsLoadingSummary(false);
+      setIsLoadingCredits(false);
+      setIsLoadingTrends(false);
+      setIsLoadingTabData(false);
+      setIsLoading(false);
+      
+    } catch (error) {
+      console.error('❌ Customer filter error:', error);
+      setErrorState('Failed to load data for selected customer');
+      
+      // Restore the original customer list even on error
+      if (originalCustomerNames.length > 1) {
+        console.log('🔄 Restoring original customer list after error');
+        setCustomerNames(originalCustomerNames);
+      }
+      
+      setIsLoadingSummary(false);
+      setIsLoadingCredits(false);
+      setIsLoadingTrends(false);
+      setIsLoadingTabData(false);
+      setIsLoading(false);
+    }
+  }, [accessToken, selectedSoldToId, selectedMonth, originalCustomerNames]);
 
   // Chart type handlers
   const handleChartTypeChange = useCallback((newType) => {
@@ -1089,7 +1248,34 @@ export default function AzureInvoiceClientContent(props) {
                   <Skeleton style={{ height: '36px', width: '200px' }} />
                 )}
               </div>
-              <a href="#" className="azure-invoice-view-usage-link">View Billed Usage</a>
+              
+              {isReseller && (
+                <div className="azure-invoice-month-selector">
+                  {isLoadingCustomerDropdown ? (
+                    <Skeleton style={{ height: '20px', width: '120px', marginBottom: '8px' }} />
+                  ) : (
+                    <label className="azure-invoice-month-label label-text-bold">Customer Name</label>
+                  )}
+                  {isLoadingCustomerDropdown ? (
+                    <Skeleton style={{ height: '36px', width: '200px' }} />
+                  ) : (
+                    <DropDownList
+                      data={customerNames}
+                      textField="label"
+                      dataItemKey="value"
+                      value={selectedCustomer}
+                      onChange={handleCustomerChange}
+                      className="azure-invoice-month-dropdown"
+                    />
+                  )}
+                </div>
+              )}
+              
+              {isLoadingViewBilledLink ? (
+                <Skeleton style={{ height: '20px', width: '130px' }} />
+              ) : (
+                <a href="#" className="azure-invoice-view-usage-link">View Billed Usage</a>
+              )}
             </div>
           </div>
 

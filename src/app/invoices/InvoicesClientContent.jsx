@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSelector } from 'react-redux';
+import Link from 'next/link';
 import { flushSync } from 'react-dom';
 import store from '@/store/store';
 import { useTranslation } from 'react-i18next';
@@ -16,7 +17,7 @@ import { Tooltip } from '@progress/kendo-react-tooltip';
 import { infoCircleIcon } from '@progress/kendo-svg-icons';
 import { SvgIcon } from '@progress/kendo-react-common';
 import GridTable from '@/components/GridTable/GridTable';
-import { ArrowUpIcon, ArrowDownIcon } from '@/lib/svg/svgList';
+import { ArrowUpIcon, ArrowDownIcon, ArcheraIcon } from '@/lib/svg/svgList';
 import { BasicGroupedChart } from '@/common/Charts/BasicGroupedChart';
 import { getInsightThemeColors } from '@/lib/chartColors';
 import { getProviderColumns } from '@/common/gridColumnDefinitions';
@@ -274,6 +275,12 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
   const [haveDifferencePercent, setHaveDifferencePercent] = useState(mode === 'ssr' ? (initialData?.summaryResponse?.data?.spendPeriod?.haveDifferencePercentSpend || false) : false);
   const [invoiceStatus, setInvoiceStatus] = useState(mode === 'ssr' ? (initialData?.summaryResponse?.data?.invoiceStatus || '') : '');
   const [isReseller, setIsReseller] = useState(mode === 'ssr' ? (initialData?.summaryResponse?.data?.isReseller || false) : false);
+  const [haveUnbilledConsumption, setHaveUnbilledConsumption] = useState(mode === 'ssr' ? (initialData?.summaryResponse?.data?.haveUnbilledConsumption || false) : false);
+  
+  // Get hasReservedInstanceOrAzureSavingsPlan from MPSA status (passed from SSR or fetched client-side)
+  const [hasReservedInstanceOrAzureSavingsPlan, setHasReservedInstanceOrAzureSavingsPlan] = useState(
+    mode === 'ssr' ? (initialData?.hasReservedInstanceOrAzureSavingsPlan || false) : false
+  );
 
   // Additional filter states with default 'All' values
   const [productCategories, setProductCategories] = useState([{ label: 'All', value: 'all' }]);
@@ -478,6 +485,8 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
             setMonthlyDifferencePercent(summaryResponse.data?.spendPeriod?.differencePercentSpend || null);
             setHaveDifferencePercent(summaryResponse.data?.spendPeriod?.haveDifferencePercentSpend || false);
             setInvoiceStatus(summaryResponse.data?.invoiceStatus || '');
+            setIsReseller(summaryResponse.data?.isReseller || false);
+            setHaveUnbilledConsumption(summaryResponse.data?.haveUnbilledConsumption || false);
             const spendData = summaryResponse.data?.spendPeriod?.spend || [];
             const chartData = summaryResponse.data?.chartData || summaryResponse.data?.breakdown || spendData;
             
@@ -946,6 +955,8 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         const newMonthlyDiffPercent = summaryResponse.data?.spendPeriod?.differencePercentSpend || null;
         const newHaveDiffPercent = summaryResponse.data?.spendPeriod?.haveDifferencePercentSpend || false;
         const newInvoiceStatus = summaryResponse.data?.invoiceStatus || '';
+        const newIsReseller = summaryResponse.data?.isReseller || false;
+        const newHaveUnbilledConsumption = summaryResponse.data?.haveUnbilledConsumption || false;
         
         console.log('💰 Updating KPI values:', {
           oldTotalSpend: totalSpend,
@@ -959,6 +970,8 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         setMonthlyDifferencePercent(newMonthlyDiffPercent);
         setHaveDifferencePercent(newHaveDiffPercent);
         setInvoiceStatus(newInvoiceStatus);
+        setIsReseller(newIsReseller);
+        setHaveUnbilledConsumption(newHaveUnbilledConsumption);
         
         const spendData = summaryResponse.data?.spendPeriod?.spend || [];
         const chartData = summaryResponse.data?.chartData || summaryResponse.data?.breakdown || spendData;
@@ -1531,6 +1544,44 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         </div>
         <div className="header-right">
           <div className="kpi-cards">
+            {/* Links Column - View Unbilled Usage and Archera RI Reporting stacked vertically */}
+            {(haveUnbilledConsumption && apiEndpoint !== 'aws' || hasReservedInstanceOrAzureSavingsPlan && apiEndpoint !== 'adobe') && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                {/* View Unbilled Usage Link - Show if haveUnbilledConsumption is true and provider is not AWS */}
+                {haveUnbilledConsumption && apiEndpoint !== 'aws' && (
+                  isStatsLoading ? (
+                    <div style={{ width: '180px', height: '35px', flexShrink: 0 }}>
+                      <Skeleton style={{ width: '100%', height: '100%' }} />
+                    </div>
+                  ) : (
+                    <Link href="#" className="kpi-card unbilled-usage-link">
+                      View Unbilled Usage
+                    </Link>
+                  )
+                )}
+
+                {/* Archera RI Reporting - Show if hasReservedInstanceOrAzureSavingsPlan is true and provider is not Adobe */}
+                {hasReservedInstanceOrAzureSavingsPlan && apiEndpoint !== 'adobe' && (
+                  isStatsLoading ? (
+                    <div style={{ width: '180px', height: '35px', flexShrink: 0 }}>
+                      <Skeleton style={{ width: '100%', height: '100%' }} />
+                    </div>
+                  ) : (
+                    <div>
+                      <Link href="#" className="kpi-card archera-link">
+                        <Tooltip anchorElement="target" position="right">
+                          <span title="Insight has partnered with Archera for this reporting. You can purchase Archera for free on buy.insight.com">
+                            <ArcheraIcon className="archera-icon" />
+                          </span>
+                        </Tooltip>
+                        Archera RI Reporting
+                      </Link>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+
             {/* Invoice Total */}
             <div className="kpi-card invoice-total">
               {isStatsLoading ? (

@@ -6,6 +6,7 @@ import {
   fetchInvoiceMonthsServer,
   fetchConsolidatedInvoiceData
 } from './actions';
+import { fetchMpsaStatus } from '../dashboard/actions';
 
 /**
  * TRUE SERVER-SIDE RENDERING (SSR):
@@ -86,7 +87,17 @@ export default async function InvoicesPage() {
     // Fetch all data using caching on the server
     const startTime = Date.now();
     
-    // First get providers to determine default provider (cached)
+    // First get MPSA status to get feature flags (cached)
+    const mpsaStatusData = await fetchMpsaStatus(accessTokenCookie.value, soldToId);
+    const mpsaData = mpsaStatusData?.data?.data || mpsaStatusData?.data;
+    const hasReservedInstanceOrAzureSavingsPlan = mpsaData?.microsoft?.hasReservedInstanceOrAzureSavingsPlan ?? false;
+    
+    console.log('🔍 SERVER: MPSA Status fetched:', {
+      hasMpsaData: !!mpsaData,
+      hasReservedInstanceOrAzureSavingsPlan
+    });
+    
+    // Get providers to determine default provider (cached)
     const providersData = await fetchProvidersServer(soldToId);
     if (providersData.error) {
       throw new Error(`Providers fetch failed: ${providersData.error}`);
@@ -138,7 +149,9 @@ export default async function InvoicesPage() {
       detailsResponse,
       defaultProvider,
       firstMonth,
-      fetchTime
+      fetchTime,
+      mpsaData, // Store full MPSA data for reuse in client component
+      hasReservedInstanceOrAzureSavingsPlan
     };
     
     console.log('✅ SERVER: Initial data prepared:', {
