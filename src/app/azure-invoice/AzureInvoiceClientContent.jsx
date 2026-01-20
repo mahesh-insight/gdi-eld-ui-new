@@ -85,13 +85,22 @@ export default function AzureInvoiceClientContent(props) {
   // Chart type states
   const [trendingChartType, setTrendingChartType] = useState('column');
   const [topNExpensiveProductsChartType, setTopNExpensiveProductsChartType] = useState('bar');
-  const [trendingPeriod, setTrendingPeriod] = useState('last6months');
+  const [trendingPeriod, setTrendingPeriod] = useState('Last 6 Months');
   const [refreshChart, setRefreshChart] = useState(true);
+  const [chartTypeLoading, setChartTypeLoading] = useState(false);
+  const [trendChartLoading, setTrendChartLoading] = useState(false);
   
   // Filter states
   const [filterProductCategory, setFilterProductCategory] = useState([]);
   const [filterProductName, setFilterProductName] = useState([]);
   const [filterSkuName, setFilterSkuName] = useState([]);
+  
+  // Track last applied filter state to detect changes
+  const [lastAppliedFilters, setLastAppliedFilters] = useState({
+    productCategory: [],
+    productName: [],
+    skuName: []
+  });
   
   // Tab state
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
@@ -121,6 +130,28 @@ export default function AzureInvoiceClientContent(props) {
   const [isLoadingCredits, setIsLoadingCredits] = useState(!extractedCreditsData);
   const [isLoadingTrends, setIsLoadingTrends] = useState(!extractedTrendsData);
   const [isLoadingTabData, setIsLoadingTabData] = useState(false);
+  
+  // Track if any filter has been changed to enable/disable Apply Filters button
+  const isApplyFiltersDisabled = useMemo(() => {
+    // Helper to compare arrays (works for both empty and populated arrays)
+    const arraysEqual = (arr1, arr2) => {
+      if (arr1.length !== arr2.length) return false;
+      const values1 = arr1.map(item => typeof item === 'object' ? item.value : item).sort();
+      const values2 = arr2.map(item => typeof item === 'object' ? item.value : item).sort();
+      return values1.every((val, idx) => val === values2[idx]);
+    };
+    
+    // Compare current state with last applied state
+    const categoryChanged = !arraysEqual(filterProductCategory || [], lastAppliedFilters.productCategory || []);
+    const nameChanged = !arraysEqual(filterProductName || [], lastAppliedFilters.productName || []);
+    const skuChanged = !arraysEqual(filterSkuName || [], lastAppliedFilters.skuName || []);
+    
+    // Enable button if ANY filter has changed from last applied state
+    const hasChanges = categoryChanged || nameChanged || skuChanged;
+    
+    // Disable if no changes OR if summary is loading
+    return !hasChanges || isLoadingSummary;
+  }, [filterProductCategory, filterProductName, filterSkuName, lastAppliedFilters, isLoadingSummary]);
 
   // Initialize data from SSR
   useEffect(() => {
@@ -233,6 +264,16 @@ export default function AzureInvoiceClientContent(props) {
     const allCustomersOption = customerNames.find(item => item.value === 'All') || { label: 'All Customers', value: 'All' };
     setSelectedCustomer(allCustomersOption);
     
+    // Reset filter dropdowns when month changes
+    setFilterProductCategory([]);
+    setFilterProductName([]);
+    setFilterSkuName([]);
+    setLastAppliedFilters({
+      productCategory: [],
+      productName: [],
+      skuName: []
+    });
+    
     if (!accessToken || !selectedSoldToId) {
       setErrorState('Authentication required. Please refresh the page.');
       return;
@@ -318,6 +359,9 @@ export default function AzureInvoiceClientContent(props) {
   };
 
   const handleChartRefresh = (chartOptions, themeOptions, chartInstance) => {
+    // Only prevent refresh if it's not a legitimate chart update
+    // This stops flickering from unrelated dropdown changes while allowing
+    // chart type changes and data updates to work properly
     setRefreshChart(false);
   };
 
@@ -326,6 +370,16 @@ export default function AzureInvoiceClientContent(props) {
     const newCustomer = event.value;
     const customerValue = newCustomer?.value || newCustomer;   
     setSelectedCustomer(newCustomer);
+    
+    // Reset filter dropdowns when customer changes
+    setFilterProductCategory([]);
+    setFilterProductName([]);
+    setFilterSkuName([]);
+    setLastAppliedFilters({
+      productCategory: [],
+      productName: [],
+      skuName: []
+    });
     
     if (!accessToken || !selectedSoldToId || !selectedMonth) {
       console.error('❌ Missing required data for customer filter');
@@ -395,16 +449,21 @@ export default function AzureInvoiceClientContent(props) {
   }, [accessToken, selectedSoldToId, selectedMonth, originalCustomerNames]);
 
   // Chart type handlers
-  const handleChartTypeChange = useCallback((newType) => {
+  const handleChartTypeChange = useCallback(async (newType) => {
+    setChartTypeLoading(true);
     setTrendingChartType(newType);
+    setTimeout(() => setChartTypeLoading(false), 300);
   }, []);
 
   const handleTopNExpensiveProductsChartTypeChange = useCallback((newType) => {
     setTopNExpensiveProductsChartType(newType);
   }, []);
 
-  const handleTrendingPeriodChange = useCallback((event) => {
-    setTrendingPeriod(event.value);
+  const handleTrendingPeriodChange = useCallback(async (period) => {
+    console.log('📅 Period changed to:', period);
+    setTrendingPeriod(period);
+    // Note: In azure-invoice, period change doesn't trigger API call
+    // Data is already loaded for both 6 and 12 months
   }, []);
 
   const handleApplyFilters = useCallback(async () => {
@@ -412,18 +471,27 @@ export default function AzureInvoiceClientContent(props) {
       console.error('❌ Missing required data for filtered API call');
       return;
     }
+    
+    // Save current filter state as "last applied" for change detection
+    setLastAppliedFilters({
+      productCategory: [...(filterProductCategory || [])],
+      productName: [...(filterProductName || [])],
+      skuName: [...(filterSkuName || [])]
+    });
 
     try {
       setIsLoadingTabData(true);
 
-      // Build filter query string - extract value from objects
+      // Build filter query string - extract value from objects and use URL encoding
       const filterParams = [];
       
       // Add product category filters
       if (filterProductCategory && filterProductCategory.length > 0) {
         filterProductCategory.forEach(category => {
           const categoryValue = typeof category === 'object' ? category.value : category;
-          filterParams.push(`filter=productcategory equals ${categoryValue}`);
+          if (categoryValue && categoryValue !== 'all') {
+            filterParams.push(`filter=productcategory equals ${encodeURIComponent(categoryValue)}`);
+          }
         });
       }
       
@@ -431,7 +499,9 @@ export default function AzureInvoiceClientContent(props) {
       if (filterProductName && filterProductName.length > 0) {
         filterProductName.forEach(name => {
           const nameValue = typeof name === 'object' ? name.value : name;
-          filterParams.push(`filter=productname equals ${nameValue}`);
+          if (nameValue && nameValue !== 'all') {
+            filterParams.push(`filter=productname equals ${encodeURIComponent(nameValue)}`);
+          }
         });
       }
       
@@ -439,8 +509,15 @@ export default function AzureInvoiceClientContent(props) {
       if (filterSkuName && filterSkuName.length > 0) {
         filterSkuName.forEach(sku => {
           const skuValue = typeof sku === 'object' ? sku.value : sku;
-          filterParams.push(`filter=skuname equals ${skuValue}`);
+          if (skuValue && skuValue !== 'all') {
+            filterParams.push(`filter=skuname equals ${encodeURIComponent(skuValue)}`);
+          }
         });
+      }
+      
+      // Add customer filter (limittenantid) - if customer is selected and not "All"
+      if (selectedCustomer && selectedCustomer.value && selectedCustomer.value !== 'All') {
+        filterParams.push(`filter=limittenantid%3D${encodeURIComponent(selectedCustomer.value)}`);
       }
 
       const filterQueryString = filterParams.length > 0 ? `&${filterParams.join('&')}` : '';
@@ -533,7 +610,9 @@ export default function AzureInvoiceClientContent(props) {
         if (filterProductCategory.length > 0) {
           filterProductCategory.forEach(category => {
             const categoryValue = typeof category === 'object' ? category.value : category;
-            filterParams.push(`filter=productcategory equals ${encodeURIComponent(categoryValue)}`);
+            if (categoryValue && categoryValue !== 'all') {
+              filterParams.push(`filter=productcategory equals ${encodeURIComponent(categoryValue)}`);
+            }
           });
         }
         
@@ -1166,7 +1245,10 @@ export default function AzureInvoiceClientContent(props) {
                   <div className="o-grid__item u-1/1 u-1/2@desktop trending6MonthSpend azure-invoice-chart-container">
                     <div className="azure-invoice-chart-box">
                     {isLoadingTrends ? (
-                      <Skeleton shape={"rectangle"} style={{height: 500}} className="azure-invoice-loading-skeleton-chart" />
+                      <>
+                        <Skeleton style={{ width: '100%', height: '50px', marginBottom: '16px' }} />
+                        <Skeleton shape={"rectangle"} style={{height: 450}} className="azure-invoice-loading-skeleton-chart" />
+                      </>
                     ) : (
                       <>
                       <ChartTitleAndButtons
@@ -1181,8 +1263,15 @@ export default function AzureInvoiceClientContent(props) {
                         dropDownList={true}
                         apiEndPoint={''}
                         pageType="invoice"
+                        onPeriodChange={handleTrendingPeriodChange}
+                        selectedPeriod={trendingPeriod}
                       />
-                      <Chart key={trendingChartType} onRefresh={() => {}} className="clickableChart">
+                      <Chart 
+                        key={`${trendingChartType}-${invoiceTrendData.length}`}
+                        onRefresh={handleChartRefresh}
+                        seriesColors={getInsightThemeColors()}
+                        className="clickableChart"
+                      >
                         <BasicGroupedChart
                           chartType={trendingChartType}
                           title=""
@@ -1212,7 +1301,10 @@ export default function AzureInvoiceClientContent(props) {
                 <div className="azure-invoice-chart-container full-width">
                   <div className="azure-invoice-chart-box">
                   {isLoadingTrends ? (
-                    <Skeleton className="azure-invoice-loading-skeleton-chart" />
+                    <>
+                      <Skeleton style={{ width: '100%', height: '50px', marginBottom: '16px' }} />
+                      <Skeleton className="azure-invoice-loading-skeleton-chart" />
+                    </>
                   ) : (
                     <>
                     <ChartTitleAndButtons
@@ -1225,10 +1317,13 @@ export default function AzureInvoiceClientContent(props) {
                         { type: 'donut', icon: 'chartDoughnutIcon', title: 'Doughnut Chart' }
                       ]}
                     />
-                  </>
-                  )}
-                  {isLoadingTrends ? null : topNExpensiveProductsChartType === "bar" ? (
-                    <Chart key={topNExpensiveProductsChartType} onRefresh={() => {}} className="chart3">
+                    {topNExpensiveProductsChartType === "bar" ? (
+                      <Chart 
+                        key={`${topNExpensiveProductsChartType}-${topNExpensiveProducts.length}`}
+                        onRefresh={handleChartRefresh}
+                        seriesColors={getInsightThemeColors()}
+                        className="chart3"
+                      >
                       <BasicGroupedChart
                         chartType={topNExpensiveProductsChartType}
                         title=""
@@ -1253,7 +1348,11 @@ export default function AzureInvoiceClientContent(props) {
                     </Chart>
 
                   ) : (
-                    <Chart key={topNExpensiveProductsChartType} onRefresh={() => {}}>
+                    <Chart 
+                      key={`${topNExpensiveProductsChartType}-${topNExpensiveProducts.length}`}
+                      onRefresh={handleChartRefresh}
+                      seriesColors={getInsightThemeColors()}
+                    >
                       <BasicPieDoughnutChart
                         key={topNExpensiveProductsChartType}
                         chartType={topNExpensiveProductsChartType}
@@ -1270,6 +1369,8 @@ export default function AzureInvoiceClientContent(props) {
                         labelFormat="c2"
                       />
                     </Chart>
+                    )}
+                    </>
                   )}
                   </div>
                 </div>
@@ -1355,7 +1456,7 @@ export default function AzureInvoiceClientContent(props) {
                   <button
                     className="apply-filters-btn"
                     onClick={handleApplyFilters}
-                    disabled={isLoadingSummary}
+                    disabled={isApplyFiltersDisabled}
                   >
                     Apply Filters
                   </button>&nbsp;

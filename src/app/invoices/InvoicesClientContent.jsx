@@ -17,7 +17,7 @@ import { Tooltip } from '@progress/kendo-react-tooltip';
 import { infoCircleIcon } from '@progress/kendo-svg-icons';
 import { SvgIcon } from '@progress/kendo-react-common';
 import GridTable from '@/components/GridTable/GridTable';
-import { ArrowUpIcon, ArrowDownIcon, ArcheraIcon } from '@/lib/svg/svgList';
+import { ArrowUpIcon, ArrowDownIcon, ArcheraIcon, ImportIcon } from '@/lib/svg/svgList';
 import { BasicGroupedChart } from '@/common/Charts/BasicGroupedChart';
 import { getInsightThemeColors } from '@/lib/chartColors';
 import { getProviderColumns } from '@/common/gridColumnDefinitions';
@@ -28,6 +28,7 @@ import {
   fetchInvoiceDetailsServer,  fetchConsolidatedInvoiceData 
 } from './actions';
 import './invoices.css';
+import { Button } from '@progress/kendo-react-buttons';
 
 const initialSort = [
   {
@@ -150,17 +151,6 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
     }
   }
   
-  // Debug logging
-  console.log('🔍 Invoices SoldToId Debug:', {
-    mode,
-    hasLoginResponse: !!loginResponse,
-    selectedSoldToId,
-    loginResponseStructure: loginResponse ? Object.keys(loginResponse) : 'none',
-    userProfileStructure: loginResponse?.userProfile ? Object.keys(loginResponse.userProfile) : 'none',
-    defaultContext: loginResponse?.userProfile?.defaultContext,
-    userContextSoldToId: userContext?.soldToId
-  });
-
   // Ref to track in-flight API calls - prevents duplicate requests
   const monthChangeInProgress = useRef(false);
   const invoiceChangeInProgress = useRef(false);
@@ -183,24 +173,17 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
   const [chartTypeLoading, setChartTypeLoading] = useState(false);
   const [trendChartLoading, setTrendChartLoading] = useState(false);
   
-  // 🔍 DEBUG: Log initial loading states
-  console.log('🔄 DEBUG: Initial loading states:', {
-    mode,
-    modeValue: mode,
-    modeType: typeof mode,
-    isSSR: mode === 'ssr',
-    calculatedLoading: mode !== 'ssr',
-    providerLoading: mode !== 'ssr',
-    monthLoading: mode !== 'ssr',
-    invoiceLoading: mode !== 'ssr',
-    statsLoading: mode !== 'ssr',
-    chartsLoading: mode !== 'ssr',
-    gridLoading: mode !== 'ssr',
-    filtersLoading: mode !== 'ssr',
-    hasInitialData: !!initialData,
-    hasSummaryData: !!initialData?.summaryResponse?.data
-  });
+  // Prevent chart auto-refresh to avoid flickering/fluctuation on unrelated state changes
+  // But allow refresh when chart type or data actually changes
+  const [refreshChart, setRefreshChart] = useState(false);
   
+  const handleChartRefresh = (chartOptions, themeOptions, chartInstance) => {
+    // Only prevent refresh if it's not a legitimate chart update
+    // This stops flickering from unrelated dropdown changes while allowing
+    // chart type changes and data updates to work properly
+    setRefreshChart(false);
+  };
+    
   // Centralized section loading state manager
   const setSectionLoadingStates = (loading, excludeSections = []) => {
     console.log(`🔄 Setting section loading states to: ${loading}, excluding:`, excludeSections);
@@ -282,19 +265,46 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
     mode === 'ssr' ? (initialData?.hasReservedInstanceOrAzureSavingsPlan || false) : false
   );
 
-  // Additional filter states with default 'All' values
-  const [productCategories, setProductCategories] = useState([{ label: 'All', value: 'all' }]);
+  // Additional filter states - empty by default, 'All' is just placeholder
+  const [productCategories, setProductCategories] = useState([]);
   const [selectedProductCategory, setSelectedProductCategory] = useState([]); // MultiSelect: array
-  const [productNames, setProductNames] = useState([{ label: 'All', value: 'all' }]);
+  const [productNames, setProductNames] = useState([]);
   const [selectedProductName, setSelectedProductName] = useState([]); // MultiSelect: array
-  const [subscriptionIds, setSubscriptionIds] = useState([{ label: 'All', value: 'all' }]);
+  const [subscriptionIds, setSubscriptionIds] = useState([]);
   const [selectedSubscriptionId, setSelectedSubscriptionId] = useState([]); // MultiSelect: array
+  
+  // Track last applied filter state to detect changes
+  const [lastAppliedFilters, setLastAppliedFilters] = useState({
+    productCategory: [],
+    productName: [],
+    subscriptionId: []
+  });
+  
+  // Track if any filter has been changed to enable/disable Apply Filters button
+  const isApplyFiltersDisabled = useMemo(() => {
+    // Helper to compare arrays (works for both empty and populated arrays)
+    const arraysEqual = (arr1, arr2) => {
+      if (arr1.length !== arr2.length) return false;
+      const values1 = arr1.map(item => typeof item === 'object' ? item.value : item).sort();
+      const values2 = arr2.map(item => typeof item === 'object' ? item.value : item).sort();
+      return values1.every((val, idx) => val === values2[idx]);
+    };
+    
+    // Compare current state with last applied state
+    const categoryChanged = !arraysEqual(selectedProductCategory || [], lastAppliedFilters.productCategory || []);
+    const nameChanged = !arraysEqual(selectedProductName || [], lastAppliedFilters.productName || []);
+    const subscriptionChanged = !arraysEqual(selectedSubscriptionId || [], lastAppliedFilters.subscriptionId || []);
+    
+    // Enable button if ANY filter has changed from last applied state
+    const hasChanges = categoryChanged || nameChanged || subscriptionChanged;
+    
+    // Disable if no changes OR if grid is loading
+    return !hasChanges || isGridLoading;
+  }, [selectedProductCategory, selectedProductName, selectedSubscriptionId, lastAppliedFilters, isGridLoading]);
   
   // Customer Name (tenantId) filter
   const [customerNames, setCustomerNames] = useState([{ label: 'All Customers', value: 'All' }]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
-
-  console.log('initialData?.summaryResponse?.data?.isReseller value:', initialData);
   
   // Invoice breakdown chart data with fallback
   const [breakdownChartData, setBreakdownChartData] = useState(() => {
@@ -309,10 +319,6 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         value: item.value || 0
       }));
       
-      console.log('Initial breakdown chart data:', {
-        originalData: chartData,
-        transformedData: transformedChartData
-      });
       return transformedChartData;
     }
     return [];
@@ -555,6 +561,16 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
     setTotalSpend(0);
     setTrendData([]);
     setGridData([]);
+    
+    // Reset filter dropdowns
+    setSelectedProductCategory([]);
+    setSelectedProductName([]);
+    setSelectedSubscriptionId([]);
+    setLastAppliedFilters({
+      productCategory: [],
+      productName: [],
+      subscriptionId: []
+    });
 
     // Show skeletons for ALL sections EXCEPT provider section, including trending chart
     setSectionLoadingStates(true, ['provider']);
@@ -619,6 +635,16 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
     // ✅ UPDATE UI IMMEDIATELY - Better UX: Show selected month right away
     setSelectedMonth(newMonth);
     console.log('🎨 UI updated to show selected month immediately:', monthValue);
+    
+    // Reset filter dropdowns when month changes
+    setSelectedProductCategory([]);
+    setSelectedProductName([]);
+    setSelectedSubscriptionId([]);
+    setLastAppliedFilters({
+      productCategory: [],
+      productName: [],
+      subscriptionId: []
+    });
     
     try {
       const abbreviation = selectedProvider?.abbreviation || apiEndpoint;
@@ -721,39 +747,34 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
 
   // Helper function to update filter dropdowns from selectLists
   const updateFilterDropdowns = (selectLists) => {
-    // Update Product Categories
+    // Update Product Categories - no 'All' option, just use items from API
     const productCategoryList = selectLists.find(list => list.name === 'productcategory');
-    const allCategoryOption = { label: 'All', value: 'all' };
     if (productCategoryList && productCategoryList.items) {
-      const categoriesWithAll = [allCategoryOption, ...productCategoryList.items];
-      setProductCategories(categoriesWithAll);
+      setProductCategories(productCategoryList.items);
       setSelectedProductCategory([]); // Empty array for MultiSelect
     } else {
-      setProductCategories([allCategoryOption]);
+      setProductCategories([]);
       setSelectedProductCategory([]); // Empty array for MultiSelect
     }
     
-    // Update Product Names
+    // Update Product Names - no 'All' option, just use items from API
     const productNameList = selectLists.find(list => list.name === 'productname');
-    const allProductOption = { label: 'All', value: 'all' };
     if (productNameList && productNameList.items) {
-      const productsWithAll = [allProductOption, ...productNameList.items.filter(item => item.label && item.value)];
-      setProductNames(productsWithAll);
+      const validProducts = productNameList.items.filter(item => item.label && item.value);
+      setProductNames(validProducts);
       setSelectedProductName([]); // Empty array for MultiSelect
     } else {
-      setProductNames([allProductOption]);
+      setProductNames([]);
       setSelectedProductName([]); // Empty array for MultiSelect
     }
     
-    // Update Subscription IDs
+    // Update Subscription IDs - no 'All' option, just use items from API
     const subscriptionIdList = selectLists.find(list => list.name === 'subscriptionid');
-    const allSubscriptionOption = { label: 'All', value: 'all' };
     if (subscriptionIdList && subscriptionIdList.items) {
-      const subscriptionsWithAll = [allSubscriptionOption, ...subscriptionIdList.items];
-      setSubscriptionIds(subscriptionsWithAll);
+      setSubscriptionIds(subscriptionIdList.items);
       setSelectedSubscriptionId([]); // Empty array for MultiSelect
     } else {
-      setSubscriptionIds([allSubscriptionOption]);
+      setSubscriptionIds([]);
       setSelectedSubscriptionId([]); // Empty array for MultiSelect
     }
     
@@ -793,6 +814,16 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
     invoiceChangeInProgress.current = true;
     
     setSelectedInvoiceNumber(newInvoiceNumber);
+    
+    // Reset filter dropdowns when invoice number changes
+    setSelectedProductCategory([]);
+    setSelectedProductName([]);
+    setSelectedSubscriptionId([]);
+    setLastAppliedFilters({
+      productCategory: [],
+      productName: [],
+      subscriptionId: []
+    });
     
     // Show skeletons for ALL sections EXCEPT provider, month, and invoice sections
     setSectionLoadingStates(true, ['provider', 'month', 'invoice']);
@@ -894,6 +925,16 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
     
     setSelectedCustomer(newCustomer);
     
+    // Reset filter dropdowns when customer changes
+    setSelectedProductCategory([]);
+    setSelectedProductName([]);
+    setSelectedSubscriptionId([]);
+    setLastAppliedFilters({
+      productCategory: [],
+      productName: [],
+      subscriptionId: []
+    });
+    
     // Show skeletons for stats, charts, and grid sections (exclude provider, month, invoice)
     setSectionLoadingStates(true, ['provider', 'month', 'invoice']);
     setTrendChartLoading(true); // Show skeleton for Trending Monthly Spend chart
@@ -912,14 +953,6 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         return;
       }
       
-      console.log('🔄 CLIENT-SIDE: Fetching filtered data for selected customer:', {
-        customerValue,
-        abbreviation,
-        monthValue,
-        invoiceValue,
-        soldToId: selectedSoldToId
-      });
-      
       const consolidatedResponse = await fetchConsolidatedInvoiceData(
         selectedSoldToId,
         abbreviation,
@@ -937,17 +970,6 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
 
       const { summaryResponse, trendResponse, detailsResponse } = consolidatedResponse.data;
       
-      console.log('📦 Customer Change - Response Data:', {
-        hasSummary: !!summaryResponse?.data,
-        hasTrend: !!trendResponse?.data,
-        hasDetails: !!detailsResponse?.data,
-        totalSpend: summaryResponse?.data?.spendPeriod?.totalSpend,
-        monthlyDiff: summaryResponse?.data?.spendPeriod?.differenceTotalSpend,
-        chartDataLength: summaryResponse?.data?.chartData?.length || summaryResponse?.data?.breakdown?.length || summaryResponse?.data?.spendPeriod?.spend?.length,
-        trendDataLength: trendResponse?.data?.chartData?.length,
-        gridDataLength: detailsResponse?.data?.content?.length || detailsResponse?.data?.length
-      });
-      
       // Update filtered data
       if (summaryResponse?.data) {
         const newTotalSpend = summaryResponse.data?.spendPeriod?.totalSpend || 0;
@@ -957,13 +979,6 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         const newInvoiceStatus = summaryResponse.data?.invoiceStatus || '';
         const newIsReseller = summaryResponse.data?.isReseller || false;
         const newHaveUnbilledConsumption = summaryResponse.data?.haveUnbilledConsumption || false;
-        
-        console.log('💰 Updating KPI values:', {
-          oldTotalSpend: totalSpend,
-          newTotalSpend,
-          oldMonthlyDiff: monthlyDifference,
-          newMonthlyDiff
-        });
         
         setTotalSpend(newTotalSpend);
         setMonthlyDifference(newMonthlyDiff);
@@ -982,12 +997,6 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
           value: item.value || 0
         }));
         
-        console.log('📊 Updating breakdown chart:', {
-          oldDataLength: breakdownChartData.length,
-          newDataLength: transformedChartData.length,
-          newData: transformedChartData
-        });
-        
         setBreakdownChartData(transformedChartData);
       }
       
@@ -1003,18 +1012,9 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       if (detailsResponse?.data) {
         const newGridData = detailsResponse.data?.content || detailsResponse.data || [];
         const newGridTotal = detailsResponse.data?.totalElements || detailsResponse.data?.length || 0;
-        console.log('📋 Updating grid:', {
-          oldDataLength: gridData.length,
-          newDataLength: newGridData.length,
-          oldTotal: gridTotal,
-          newTotal: newGridTotal
-        });
         setGridData(newGridData);
         setGridTotal(newGridTotal);
-      }
-      
-      console.log('✅ Customer change complete - all UI states updated');
-      
+      }      
     } catch (error) {
       console.error('❌ Customer change error:', error);
       setErrorState(exceptionHandler(error));
@@ -1031,6 +1031,10 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       }, remainingTime);
     }
   }, [selectedSoldToId, selectedProvider, apiEndpoint, selectedMonth, selectedInvoiceNumber, totalSpend, monthlyDifference, breakdownChartData.length, trendData.length, gridData.length, gridTotal]);
+
+  const handleDownload = useCallback(() => {
+    console.log('💾 Download triggered');
+  }, []);
   
   // Handle grid pagination changes
   const handleGridDataStateChange = useCallback(async (event) => {
@@ -1206,21 +1210,160 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       productCategory: selectedProductCategory,
       productName: selectedProductName,
       subscriptionId: selectedSubscriptionId,
-      invoiceNumber: selectedInvoiceNumber
+      invoiceNumber: selectedInvoiceNumber,
+      customer: selectedCustomer
+    });
+    
+    // Save current filter state as "last applied" for change detection
+    setLastAppliedFilters({
+      productCategory: [...(selectedProductCategory || [])],
+      productName: [...(selectedProductName || [])],
+      subscriptionId: [...(selectedSubscriptionId || [])]
     });
     
     // Show skeleton ONLY for grid section
     setGridSectionLoading(true);
     
     try {
-      // Simulate API call for filtered grid data
-      await new Promise(resolve => setTimeout(resolve, 800)); // Simulated delay
+      // Read fresh values from store
+      const authState = store.getState().auth;
+      const accessToken = authState?.loginResponse?.tokens?.bearerToken || authState?.accessToken;
       
-      // Here you would make actual API call with filters
-      // const filteredData = await fetchFilteredGridData(filters);
-      // setGridData(filteredData);
+      // Extract soldToId using comprehensive path
+      const soldToId = authState?.loginResponse?.userProfile?.defaultContext?.[0]?.soldToId ||
+                       authState?.loginResponse?.userProfile?.defaultContext?.soldToId ||
+                       authState?.loginResponse?.soldToId ||
+                       authState?.loginResponse?.userProfile?.soldToId ||
+                       authState?.soldTo ||
+                       authState?.user?.soldToId;
       
-      console.log('✅ Filters applied successfully');
+      const monthValue = selectedMonth?.value || selectedMonth?.date || selectedMonth?.display;
+      
+      if (!accessToken || !soldToId || !monthValue) {
+        console.error('Missing required data for filters:', { 
+          hasAccessToken: !!accessToken, 
+          soldToIdValue: soldToId,
+          hasSelectedMonth: !!selectedMonth,
+          monthValue: monthValue
+        });
+        return;
+      }
+
+      const formattedMonth = monthValue.replace(/-/g, '');
+      
+      // Build filter query string
+      const filterParams = [];
+      
+      // Product Category filter
+      if (selectedProductCategory && selectedProductCategory.length > 0) {
+        selectedProductCategory.forEach(category => {
+          const categoryValue = typeof category === 'object' ? category.value : category;
+          if (categoryValue && categoryValue !== 'all') {
+            filterParams.push(`filter=productcategory equals ${encodeURIComponent(categoryValue)}`);
+          }
+        });
+      }
+      
+      // Subscription ID filter
+      if (selectedSubscriptionId && selectedSubscriptionId.length > 0) {
+        selectedSubscriptionId.forEach(sub => {
+          const subValue = typeof sub === 'object' ? sub.value : sub;
+          if (subValue && subValue !== 'all') {
+            filterParams.push(`filter=subscriptionid equals ${encodeURIComponent(subValue)}`);
+          }
+        });
+      }
+      
+      // Product Name filter
+      if (selectedProductName && selectedProductName.length > 0) {
+        selectedProductName.forEach(name => {
+          const nameValue = typeof name === 'object' ? name.value : name;
+          if (nameValue && nameValue !== 'all') {
+            filterParams.push(`filter=productname equals ${encodeURIComponent(nameValue)}`);
+          }
+        });
+      }
+      
+      // Customer filter (limittenantid) - if customer is selected and not "All"
+      if (selectedCustomer && selectedCustomer.value && selectedCustomer.value !== 'All') {
+        filterParams.push(`filter=limittenantid%3D${encodeURIComponent(selectedCustomer.value)}`);
+      }
+      
+      // Invoice Number filter
+      const invoiceValue = selectedInvoiceNumber?.value || selectedInvoiceNumber;
+      if (invoiceValue && invoiceValue !== 'All' && invoiceValue !== 'all') {
+        filterParams.push(`filter=invoicenumber equals ${encodeURIComponent(invoiceValue)}`);
+      }
+      
+      const filterQueryString = filterParams.length > 0 ? `&${filterParams.join('&')}` : '';
+
+      const services = (await import('@/lib/api/services')).default;
+      const serviceConfig = services.getService('invoiceMonthDetail');
+      const baseURL = serviceConfig.baseURL;
+      
+      const apiUrl = `${baseURL}/ccr-billableitem-service/${apiEndpoint}/month/${formattedMonth}?page=0&size=${gridDataState.take}${filterQueryString}`;
+      
+      const requestHeaders = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      };
+      
+      const requestBody = Array.isArray(soldToId) ? soldToId : [soldToId];
+      
+      console.log('🔍 Applying filters with API call:', { 
+        url: apiUrl,
+        filters: filterParams,
+        requestBody
+      });
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: requestHeaders,
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        throw new Error(`API call failed: ${response.status}`);
+      }
+
+      const detailsResponse = await response.json();
+      
+      console.log('📦 Apply Filters Response:', {
+        hasData: !!detailsResponse?.data,
+        hasContent: !!detailsResponse?.content,
+        responseKeys: Object.keys(detailsResponse || {}),
+        dataStructure: detailsResponse?.data ? Object.keys(detailsResponse.data) : [],
+        contentLength: detailsResponse?.data?.content?.length || detailsResponse?.content?.length,
+        totalElements: detailsResponse?.data?.totalElements || detailsResponse?.totalElements,
+        fullResponse: detailsResponse
+      });
+      
+      // Handle both response structures: { data: { content, totalElements } } or { content, totalElements }
+      const responseData = detailsResponse?.data || detailsResponse;
+      
+      if (responseData) {
+        const newGridData = responseData?.content || [];
+        const newTotal = responseData?.totalElements || responseData?.length || 0;
+        
+        console.log('🔄 Updating grid with filtered data:', {
+          newDataLength: newGridData.length,
+          newTotal: newTotal,
+          firstItem: newGridData[0]
+        });
+        
+        // Force immediate state update to show filtered data
+        flushSync(() => {
+          setGridData(newGridData);
+          setGridTotal(newTotal);
+          setGridDataState({ skip: 0, take: gridDataState.take });
+        });
+        
+        console.log('✅ Grid state updated with filtered results');
+      }
+      
+      console.log('✅ Filters applied successfully', {
+        totalResults: detailsResponse.data?.totalElements || detailsResponse.data?.length || 0
+      });
     } catch (error) {
       console.error('❌ Apply filters error:', error);
       setErrorState(exceptionHandler(error));
@@ -1419,43 +1562,38 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         setSelectedInvoiceNumber(defaultInvoiceNumbers[0]);
       }
       
-      // Initialize Product Categories with 'All' as first option
+      // Initialize Product Categories - populate from API response only
       console.log('Filtering for Product Categories from:', selectLists);
       const productCategoryList = selectLists.find(list => list.name === 'productcategory');
-      const allCategoryOption = { label: 'All', value: 'all' };
       if (productCategoryList && productCategoryList.items) {
-        const categoriesWithAll = [allCategoryOption, ...productCategoryList.items];
-        setProductCategories(categoriesWithAll);
+        setProductCategories(productCategoryList.items);
         setSelectedProductCategory([]); // Empty array for MultiSelect
-        console.log('Set categories:', categoriesWithAll);
+        console.log('Set categories:', productCategoryList.items);
       } else {
-        setProductCategories([allCategoryOption]);
+        setProductCategories([]);
         setSelectedProductCategory([]); // Empty array for MultiSelect
       }
       
-      // Initialize Product Names with 'All' as first option
+      // Initialize Product Names - populate from API response only
       const productNameList = selectLists.find(list => list.name === 'productname');
-      const allProductOption = { label: 'All', value: 'all' };
       if (productNameList && productNameList.items) {
-        const productsWithAll = [allProductOption, ...productNameList.items.filter(item => item.label && item.value)];
-        setProductNames(productsWithAll);
+        const validProducts = productNameList.items.filter(item => item.label && item.value);
+        setProductNames(validProducts);
         setSelectedProductName([]); // Empty array for MultiSelect
-        console.log('Set products:', productsWithAll);
+        console.log('Set products:', validProducts);
       } else {
-        setProductNames([allProductOption]);
+        setProductNames([]);
         setSelectedProductName([]); // Empty array for MultiSelect
       }
       
-      // Initialize Subscription IDs with 'All' as first option
+      // Initialize Subscription IDs - populate from API response only
       const subscriptionIdList = selectLists.find(list => list.name === 'subscriptionid');
-      const allSubscriptionOption = { label: 'All', value: 'all' };
       if (subscriptionIdList && subscriptionIdList.items) {
-        const subscriptionsWithAll = [allSubscriptionOption, ...subscriptionIdList.items];
-        setSubscriptionIds(subscriptionsWithAll);
+        setSubscriptionIds(subscriptionIdList.items);
         setSelectedSubscriptionId([]); // Empty array for MultiSelect
-        console.log('Set subscriptions:', subscriptionsWithAll);
+        console.log('Set subscriptions:', subscriptionIdList.items);
       } else {
-        setSubscriptionIds([allSubscriptionOption]);
+        setSubscriptionIds([]);
         setSelectedSubscriptionId([]); // Empty array for MultiSelect
       }
       
@@ -1770,7 +1908,10 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
             <>
               <p className="chart-title">Invoice Breakdown by Product Category</p>
               {breakdownChartData && breakdownChartData.length > 0 ? (
-                <Chart onRefresh={() => {}} seriesColors={getInsightThemeColors()}>
+                <Chart 
+                  onRefresh={handleChartRefresh}
+                  seriesColors={getInsightThemeColors()}
+                >
                   <BasicGroupedChart
                     chartType="column"
                     title=""
@@ -1820,7 +1961,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
 
         {/* Trending Chart */}
         <div className="invoices-trend-chart">
-          {trendChartLoading ? (
+          {isChartsLoading ? (
             <>
               <Skeleton style={{ width: '100%', height: '50px', marginBottom: '16px' }} />
               <Skeleton style={{ width: '100%', height: '300px' }} />
@@ -1838,26 +1979,34 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
                 onPeriodChange={handlePeriodChange}
                 selectedPeriod={selectedPeriod}
               />
-              <Chart seriesColors={getInsightThemeColors()}>
-                <BasicGroupedChart
-                  key={trendingChartType}
-                  chartType={trendingChartType}
-                  title=""
-                  subTitle=""
-                  data={formattedTrendData}
-                  categoryField="group"
-                  categoryTitle=""
-                  categoryFormat="MMM yyyy"
-                  valueField="value"
-                  valueFormat="c2"
-                  groupedByField="label"
-                  legendPosition="bottom"
-                  legendTitle=""
-                  tooltipFormat="c2"
-                  showLabels={false}
-                  stacked={trendingChartType === 'column'}
-                />
-              </Chart>
+              {trendChartLoading ? (
+                <Skeleton style={{ width: '100%', height: '300px' }} />
+              ) : (
+                <Chart 
+                  key={`${trendingChartType}-${formattedTrendData.length}`}
+                  onRefresh={handleChartRefresh}
+                  seriesColors={getInsightThemeColors()}
+                >
+                  <BasicGroupedChart
+                    key={trendingChartType}
+                    chartType={trendingChartType}
+                    title=""
+                    subTitle=""
+                    data={formattedTrendData}
+                    categoryField="group"
+                    categoryTitle=""
+                    categoryFormat="MMM yyyy"
+                    valueField="value"
+                    valueFormat="c2"
+                    groupedByField="label"
+                    legendPosition="bottom"
+                    legendTitle=""
+                    tooltipFormat="c2"
+                    showLabels={false}
+                    stacked={trendingChartType === 'column'}
+                  />
+                </Chart>
+              )}
             </>
           )}
         </div>
@@ -1911,42 +2060,56 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
               />
             </div>
 
-            <div className="dropdown-group">
-              <label className="label-text-bold">Product Name</label>
-              <MultiSelect
-                data={productNames}
-                textField="label"
-                dataItemKey="value"
-                value={selectedProductName}
-                name="productName"
-                placeholder="All"
-                onChange={(e) => setSelectedProductName(e.value)}
-                disabled={isFiltersLoading}
-              />
-            </div>
+            {/* Product Name - Only visible for Microsoft provider */}
+            {apiEndpoint === 'microsoft' && (
+              <div className="dropdown-group">
+                <label className="label-text-bold">Product Name</label>
+                <MultiSelect
+                  data={productNames}
+                  textField="label"
+                  dataItemKey="value"
+                  value={selectedProductName}
+                  name="productName"
+                  placeholder="All"
+                  onChange={(e) => setSelectedProductName(e.value)}
+                  disabled={isFiltersLoading}
+                />
+              </div>
+            )}
 
-            <div className="dropdown-group">
-              <label className="label-text-bold">Subscription ID</label>
-              <MultiSelect
-                data={subscriptionIds}
-                textField="label"
-                dataItemKey="value"
-                value={selectedSubscriptionId}
-                name="subscriptionId"
-                placeholder="All"
-                onChange={(e) => setSelectedSubscriptionId(e.value)}
-                disabled={isFiltersLoading}
-              />
-            </div>
+            {/* Subscription ID - Only visible for Microsoft provider */}
+            {apiEndpoint === 'microsoft' && (
+              <div className="dropdown-group">
+                <label className="label-text-bold">Subscription ID</label>
+                <MultiSelect
+                  data={subscriptionIds}
+                  textField="label"
+                  dataItemKey="value"
+                  value={selectedSubscriptionId}
+                  name="subscriptionId"
+                  placeholder="All"
+                  onChange={(e) => setSelectedSubscriptionId(e.value)}
+                  disabled={isFiltersLoading}
+                />
+              </div>
+            )}
 
             <div className="">
               <button 
                 className="apply-filters-btn" 
                 onClick={handleApplyFilters}
-                disabled={isGridLoading}
+                disabled={isApplyFiltersDisabled}
               >
                 Apply Filters
-              </button>
+              </button>&nbsp;
+                <Button
+                  onClick={handleDownload}
+                  className="k-grid-download"
+                  fillMode="outline"
+                  title="Schedule Download"
+                >
+                <ImportIcon className="svg-style-sm" />
+              </Button>
             </div>
           </div>
         )}
