@@ -13,6 +13,7 @@ import {
   NotificationIcon,
   UserAcccountIcon,
 } from "@/lib/svg/svgList";
+import SwitchAccountDialog from '@/components/SwitchAccount/SwitchAccountDialog';
 
 const ChevronDownIcon = () => (
   <svg
@@ -98,6 +99,7 @@ const Header = () => {
   const [openSubMenuLabel, setOpenSubMenuLabel] = useState(null);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isAccountSettingsOpen, setIsAccountSettingsOpen] = useState(false);
+  const [isSwitchAccountOpen, setIsSwitchAccountOpen] = useState(false);
   const [indicatorStyle, setIndicatorStyle] = useState({});
   const { logout } = useAuth(); // Only use logout function from useAuth
   const router = useRouter();
@@ -370,6 +372,7 @@ const Header = () => {
   const hasOpenMenuWithChildren = openMenuIndex !== null && navItems[openMenuIndex]?.children.length > 0;
 
   return (
+    <>
     <header className={styles.header} ref={headerRef}>
       {/* --- Top Bar --- */}
       <div className={styles.topBar}>
@@ -405,12 +408,20 @@ const Header = () => {
                 <div className={`${styles.iconAccountMenu}`}>
                   <ul className={`${styles.iconAccountList}`}>
                     <li className={`${styles.iconAccountListItem}`}>
-                      <button className={`${styles.iconAccountLink}`} type="button">
+                      <button 
+                        className={`${styles.iconAccountLink}`} 
+                        type="button"
+                        onClick={() => {
+                          setIsSwitchAccountOpen(true);
+                          setIsAccountMenuOpen(false);
+                        }}
+                      >
                         Switch Account
                       </button>
-                  </li>
-                </ul>
-              </div> }
+                    </li>
+                  </ul>
+                </div>
+              }
             </div>
 
             {/* Account Setting */}
@@ -576,6 +587,15 @@ const Header = () => {
         </div>
       </div>
     </header>
+
+      {/* Switch Account Dialog */}
+      <SwitchAccountDialog
+        isOpen={isSwitchAccountOpen}
+        onClose={() => setIsSwitchAccountOpen(false)}
+        initialWidth={typeof window !== 'undefined' ? window.screen.width / 1.25 : 1200}
+        initialHeight={typeof window !== 'undefined' ? window.screen.height / 1.5 : 700}
+      />
+    </>
   );
 };
 

@@ -320,3 +320,14 @@ a {
   height: 24px;
   vertical-align: middle;
 }
+
+/* Window */
+.k-window .k-window-titlebar-actions .k-button.k-button-flat .k-button-icon.k-icon {
+    color: #fff;
+}
+.k-input.k-input-solid{
+  padding: 8px;
+}
+.k-button-text{
+  font-size: 16px !important;
+}
