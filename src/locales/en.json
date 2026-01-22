@@ -63,6 +63,21 @@
     "invoiceItem": "Invoice Item",
     "orderNumber": "Order Number",
     "coverageStartDate": "Coverage Start Date",
-    "coverageEndDate": "Coverage End Date"
+    "coverageEndDate": "Coverage End Date",
+    "accountName": "Account Name",
+    "accountNumber": "Account Number",
+    "ggpName": "GGP Name",
+    "ggp": "GGP",
+    "salesOrg": "Sales Org",
+    "salesOrgName": "Sales Org Name"
+  },
+  "search": {
+    "searchResultsInfo": "Search returned more than 100 results. Showing first 100.",
+    "atLeastOneField": "Please enter at least one search criteria to proceed.",
+    "requirements": "Search requirements: 3-50 characters",
+    "noResults": "No accounts found matching your search criteria",
+    "error": "An error occurred during search. Please try again.",
+    "searchForAccount": "SEARCH FOR AN ACCOUNT",
+    "searchResults": "SEARCH RESULTS"
   }
 }

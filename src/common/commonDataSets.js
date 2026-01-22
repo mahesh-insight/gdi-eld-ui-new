@@ -255,14 +255,20 @@ const myAccountSearchAdminColumns = (t) => [
 ];
 
 const accountSearchAdminColumns = (t) => [
-  { field: "", title: "", minWidth: 50, format: "", },
-  { field: "soldToName", title: t("common.accountName"), minWidth: 200, format: "", },
-  { field: "soldTo", title: t("common.accountNumber"), minWidth: 100, format: "", },
-  { field: "ggpName", title: t("common.ggpName"), minWidth: 200, format: "", },
-  { field: "ggp", title: t("common.ggp"), minWidth: 100, format: "", },
-  { field: "salesOrganizationCode", title: t("common.salesOrg"), minWidth: 75, format: "", },
-  { field: "salesOrganizationName", title: t("common.salesOrgName"), minWidth: 150, format: "", },
+  {
+    field: "",
+    title: "",
+    minWidth: 150,
+    isAction: true,
+  },
+  { field: "soldToName", title: t("common.accountName"), minWidth: 200 },
+  { field: "soldTo", title: t("common.accountNumber"), minWidth: 100 },
+  { field: "ggpName", title: t("common.ggpName"), minWidth: 200 },
+  { field: "ggp", title: t("common.ggp"), minWidth: 100 },
+  { field: "salesOrganizationCode", title: t("common.salesOrg"), minWidth: 75 },
+  { field: "salesOrganizationName", title: t("common.salesOrgName"), minWidth: 150 },
 ];
+
 
 const accountSearchUserColumns = (t) => [
   { field: "soldToName", title: t("common.accountName"), minWidth: 200, format: "", },

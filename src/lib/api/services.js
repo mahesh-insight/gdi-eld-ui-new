@@ -221,6 +221,15 @@ const services = {
     url: `/ccr-billableitem-service/adobe/trend`
   },
 
+  //SoldTo Search
+  customerSearch:{
+    method: 'GET',
+    url: `/ccr-customer-service/detail`
+  },
+  getExtendedDetail:{
+    method: 'POST',
+    url: `/ccr-customer-service/detail/extended`
+  },
 };
 
 /**

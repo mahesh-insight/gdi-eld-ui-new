@@ -1,181 +1,184 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
-import { Window } from '@progress/kendo-react-dialogs';
-import { Grid, GridColumn, GridToolbar } from '@progress/kendo-react-grid';
-import { Input } from '@progress/kendo-react-inputs';
-import { Button } from '@progress/kendo-react-buttons';
-import { process } from '@progress/kendo-data-query';
-import styles from './SwitchAccount.module.scss';
+import React, { useState, useEffect, useCallback } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { setLoginResponse } from "@/store/authSlice";
+import { useTranslation } from "react-i18next";
+import { Window } from "@progress/kendo-react-dialogs";
+import { Grid, GridColumn, GridToolbar } from "@progress/kendo-react-grid";
+import { Input } from "@progress/kendo-react-inputs";
+import { Button } from "@progress/kendo-react-buttons";
+import { Loader } from "@progress/kendo-react-indicators";
+import { process } from "@progress/kendo-data-query";
+import request from "@/lib/api/request";
+import { accountSearchAdminColumns } from "@/common/commonDataSets";
+import styles from "./SwitchAccount.module.scss";
 
-const SwitchAccountDialog = ({ 
-  isOpen, 
-  onClose, 
-  initialWidth = 1200, 
-  initialHeight = 700 
+
+const MySelectionCell = (props) => {
+  const { dataItem, onSelect } = props;
+  return (
+    <td {...props.tdProps}>
+      <Button onClick={() => onSelect(dataItem)}>
+        Select
+      </Button>
+    </td>
+  );
+};
+
+const SwitchAccountDialog = ({
+  isOpen,
+  onClose,
+  initialWidth = 1200,
+  initialHeight = 700,
 }) => {
-  // Get data from Redux store
+  const { t } = useTranslation();
+  const dispatch = useDispatch();
+
   const loginResponse = useSelector((state) => state.auth.loginResponse);
   const defaultContext = loginResponse?.userProfile?.defaultContext?.[0];
-  const companyName = defaultContext?.soldToName || '';
-  const accountNumber = defaultContext?.soldTo || defaultContext?.soldToId || '';
-  
-  // Get user role from Redux
-  const userRole = loginResponse?.persona || loginResponse?.role || '';
-  const haveTargetedSoldTos = loginResponse?.userProfile?.haveTargetedSoldTos || false;
-  
-  // Form state
-  const [ggp, setGgp] = useState('');
-  const [soldto, setSoldto] = useState('');
-  const [cspTenant, setCspTenant] = useState('');
-  const [cspReseller, setCspReseller] = useState('');
-  
-  // Results state
+  const companyName = defaultContext?.soldToName || "";
+  const accountNumber =
+    defaultContext?.soldTo || defaultContext?.soldToId || "";
+
+  const [ggp, setGgp] = useState("");
+  const [soldto, setSoldto] = useState("");
+  const [cspTenant, setCspTenant] = useState("");
+  const [cspReseller, setCspReseller] = useState("");
+
   const [showResults, setShowResults] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [searchData, setSearchData] = useState([]);
-  const [filterValue, setFilterValue] = useState('');
+  const [filterValue, setFilterValue] = useState("");
   const [error, setError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  
-  // Grid state
-  const [dataState, setDataState] = useState({
-    skip: 0,
-    take: 10,
-  });
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const [dataState, setDataState] = useState({ skip: 0, take: 10 });
   const [dataResult, setDataResult] = useState({ data: [], total: 0 });
 
-  // Update data result when search data or filter changes
   useEffect(() => {
     if (searchData.length > 0) {
       const filteredData = filterValue
-        ? searchData.filter((item) => {
-            return Object.values(item).some(val => 
-              val?.toString()?.toLowerCase()?.includes(filterValue.toLowerCase())
-            );
-          })
+        ? searchData.filter((item) =>
+            Object.values(item).some((val) =>
+              val
+                ?.toString()
+                ?.toLowerCase()
+                ?.includes(filterValue.toLowerCase()),
+            ),
+          )
         : searchData;
-      
+
       setDataResult(process(filteredData, dataState));
     }
   }, [searchData, dataState, filterValue]);
 
+  const handleAccountSelect = useCallback(
+    (dataItem) => {
+      const updatedLoginResponse = {
+        ...loginResponse,
+        userProfile: {
+          ...loginResponse.userProfile,
+          defaultContext: [
+            {
+              soldTo: dataItem.soldTo,
+              soldToId: dataItem.soldToId || dataItem.soldTo,
+              soldToName: dataItem.soldToName,
+              ggp: dataItem.ggp,
+              ggpName: dataItem.ggpName,
+              salesOrgId: dataItem.salesOrganizationCode,
+              salesOrgName: dataItem.salesOrganizationName,
+              regionCode: dataItem.regionCode,
+              countryCode: dataItem.countryCode,
+              geoName: dataItem.geoName,
+              geoRegion: dataItem.geoRegion,
+            },
+          ],
+        },
+      };
+
+      dispatch(setLoginResponse(updatedLoginResponse));
+      onClose();
+      setTimeout(() => window.location.reload(), 300);
+    },
+    [loginResponse, dispatch, onClose],
+  );
+
   const handleSearch = async () => {
-    // Validation
-    if (!ggp.trim() && !soldto.trim() && !cspTenant.trim() && !cspReseller.trim()) {
+    const validInputRegex = RegExp(/^[a-zA-Z0-9\s\W]{3,50}$/);
+    
+    // Check if at least one field is filled
+    if (
+      !ggp.trim() &&
+      !soldto.trim() &&
+      !cspTenant.trim() &&
+      !cspReseller.trim()
+    ) {
       setError(true);
-      setErrorMessage('At least one of the form fields should be filled.');
+      setErrorMessage(t("search.atLeastOneField"));
       return;
     }
 
-    const validInputRegex = RegExp(/^[a-zA-Z0-9\s\W]{3,50}$/);
-    const isValid = 
-      (!ggp || validInputRegex.test(ggp)) &&
-      (!soldto || validInputRegex.test(soldto)) &&
-      (!cspTenant || validInputRegex.test(cspTenant)) &&
-      (!cspReseller || validInputRegex.test(cspReseller));
+    // Validate filled fields
+    const isGGPValidate = !ggp || validInputRegex.test(ggp);
+    const isAccountNumberValidate = !soldto || validInputRegex.test(soldto);
+    const isCSPTenant = !cspTenant || validInputRegex.test(cspTenant);
+    const isCSPReseller = !cspReseller || validInputRegex.test(cspReseller);
 
-    if (!isValid) {
+    if (!isGGPValidate || !isAccountNumberValidate || !isCSPTenant || !isCSPReseller) {
       setError(true);
-      setErrorMessage('Search requirements: 3-50 characters');
+      setErrorMessage(t("search.requirements"));
       return;
     }
 
     setError(false);
-    setErrorMessage('');
+    setErrorMessage("");
     setIsLoading(true);
+    setShowResults(false);
+    setFilterValue("");
 
     try {
-      // TODO: Replace with actual API call
-      // Simulating API response for now
-      const mockData = [
-        {
-          soldToName: '3E Company Environmental',
-          soldTo: '0011275637',
-          ggpName: '3E COMPANY ENVIRONMENTAL, ECOLOGICA',
-          ggp: '0009736692',
-          salesOrg: '2400',
-          salesOrgName: 'Insight USA'
-        },
-        {
-          soldToName: '3E Company Environmental',
-          soldTo: '0011290301',
-          ggpName: '3E COMPANY ENVIRONMENTAL, ECOLOGICA',
-          ggp: '0009736692',
-          salesOrg: '2400',
-          salesOrgName: 'Insight USA'
-        },
-        {
-          soldToName: '3E Company Environmental',
-          soldTo: '0011365079',
-          ggpName: '3E COMPANY ENVIRONMENTAL, ECOLOGICA',
-          ggp: '0009736692',
-          salesOrg: '2400',
-          salesOrgName: 'Insight USA'
-        }
-      ];
+      const params = new URLSearchParams();
+      if (ggp.trim()) params.append("ggp", ggp.trim());
+      if (soldto.trim()) params.append("soldto", soldto.trim());
+      if (cspTenant.trim()) params.append("cspTenant", cspTenant.trim());
+      if (cspReseller.trim()) params.append("cspReseller", cspReseller.trim());
+      params.append("size", "100");
 
-      // Filter mock data based on search criteria
-      const filtered = mockData.filter(item => {
-        return (
-          (!ggp || item.ggpName?.toLowerCase().includes(ggp.toLowerCase()) || item.ggp?.includes(ggp)) &&
-          (!soldto || item.soldToName?.toLowerCase().includes(soldto.toLowerCase()) || item.soldTo?.includes(soldto)) &&
-          (!cspTenant || false) && // Add CSP Tenant logic when available
-          (!cspReseller || false) // Add CSP Reseller logic when available
-        );
+      const response = await request.get("customerSearch", {
+        params: Object.fromEntries(params),
       });
-
-      setSearchData(filtered);
+      
+      const searchResults = response?.data?.content || [];
+      setSearchData(searchResults);
       setShowResults(true);
-    } catch (error) {
-      console.error('Search error:', error);
+      
+      if (searchResults.length === 0) {
+        setError(true);
+        setErrorMessage(t("search.noResults"));
+      }
+    } catch (err) {
       setError(true);
-      setErrorMessage('An error occurred during search');
+      setErrorMessage(err?.response?.data?.message || t("search.error"));
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleClear = () => {
-    setGgp('');
-    setSoldto('');
-    setCspTenant('');
-    setCspReseller('');
+    setGgp("");
+    setSoldto("");
+    setCspTenant("");
+    setCspReseller("");
     setError(false);
-    setErrorMessage('');
-    setFilterValue('');
+    setErrorMessage("");
+    setFilterValue("");
     setShowResults(false);
     setSearchData([]);
   };
 
-  const handleAccountSelect = (dataItem) => {
-    console.log('Selected account:', dataItem);
-    // TODO: Implement account switching logic
-    // This should update Redux store with new account
-    onClose();
-  };
-
-  const dataStateChange = (event) => {
-    setDataState(event.dataState);
-  };
-
-  const onFilterChange = (e) => {
-    setFilterValue(e.value);
-  };
-
-  const SelectButton = (props) => {
-    return (
-      <td>
-        <Button
-          themeColor="primary"
-          onClick={() => handleAccountSelect(props.dataItem)}
-        >
-          Select
-        </Button>
-      </td>
-    );
-  };
+  // Get columns configuration
+  const columns = accountSearchAdminColumns(t);
 
   if (!isOpen) return null;
 
@@ -186,16 +189,16 @@ const SwitchAccountDialog = ({
       initialWidth={initialWidth}
       initialHeight={initialHeight}
       style={{
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)'
+        position: "absolute",
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
       }}
       modal={true}
       className={styles.switchAccountWindow}
     >
       <div className={styles.dialogContent}>
-        {/* Current Account Display */}
+        {/* Header and Search form remain the same... */}
         <div className={styles.accountHeader}>
           <div className={styles.accountHeaderItem}>
             <div className={styles.accountHeaderLabel}>Account Name</div>
@@ -209,31 +212,20 @@ const SwitchAccountDialog = ({
 
         <hr className={styles.divider} />
 
-        {/* Search Form */}
         <div className={styles.searchSection}>
-          <p className={styles.sectionTitle}>SEARCH FOR AN ACCOUNT</p>
-          
-          {error && (
-            <div className={styles.errorMessage}>
-              {errorMessage}
-            </div>
-          )}
-
+          <p className={styles.sectionTitle}>{t("search.searchForAccount")}</p>
+          {error && <div className={styles.errorMessage}>{errorMessage}</div>}
           <div className={styles.searchForm}>
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>
                   Great Grand Parent (GGP Name or Number)
                 </label>
-                <Input
-                  value={ggp}
-                  onChange={(e) => setGgp(e.value)}
-                  className={styles.formInput}
-                />
+                <Input value={ggp} onChange={(e) => setGgp(e.value)}  className={styles.formInput}/>
               </div>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>
-                  CSP Tenant (Tenant ID, Tenant Name, or Domain)
+                  CSP Tenant (ID, Name, or Domain)
                 </label>
                 <Input
                   value={cspTenant}
@@ -242,30 +234,23 @@ const SwitchAccountDialog = ({
                 />
               </div>
             </div>
-
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>
-                  Account (SoldTo Name or Number)
+                  Account (SoldTo Name/Number)
                 </label>
-                <Input
-                  value={soldto}
-                  onChange={(e) => setSoldto(e.value)}
-                  className={styles.formInput}
-                />
+                <Input value={soldto} onChange={(e) => setSoldto(e.value)} className={styles.formInput} />
               </div>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>
-                  CSP Reseller (MPN ID or Reseller Name)
+                  CSP Reseller (MPN ID or Name)
                 </label>
                 <Input
                   value={cspReseller}
-                  onChange={(e) => setCspReseller(e.value)}
-                  className={styles.formInput}
+                  onChange={(e) => setCspReseller(e.value)} className={styles.formInput}
                 />
               </div>
             </div>
-
             <div className={styles.formActions}>
               <Button
                 themeColor="primary"
@@ -275,90 +260,79 @@ const SwitchAccountDialog = ({
               >
                 Search
               </Button>
-              <Button
-                onClick={handleClear}
-                disabled={isLoading}
-                className={styles.clearButton}
-              >
+              <Button onClick={handleClear} disabled={isLoading} className={styles.clearButton}>
                 Clear
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Search Results */}
         {showResults && (
           <div className={styles.resultsSection}>
             <hr className={styles.divider} />
-            <h3 className={styles.sectionTitle}>SEARCH RESULTS</h3>
+            <p className={styles.sectionTitle}>{t("search.searchResults")}</p>
             
             {searchData.length > 100 && (
               <div className={styles.infoMessage}>
-                Search returned more than 100 results. Showing first 100.
+                {t("search.searchResultsInfo")}
               </div>
             )}
-
+            
             <Grid
-              data={dataResult}
+              data={dataResult.data}
+              total={dataResult.total}
               sortable={true}
               pageable={{
                 pageSizes: [10, 20, 50]
               }}
               {...dataState}
-              onDataStateChange={dataStateChange}
+              onDataStateChange={(e) => setDataState(e.dataState)}
               className={styles.resultsGrid}
             >
               <GridToolbar>
                 <Input
                   value={filterValue}
-                  onChange={onFilterChange}
+                  onChange={(e) => setFilterValue(e.value)}
                   placeholder="Filter Table Results"
                   style={{ width: '250px' }}
                 />
               </GridToolbar>
-              <GridColumn
-                field=""
-                title=""
-                width="100px"
-                cell={SelectButton}
-              />
-              <GridColumn
-                field="soldToName"
-                title="Account Name"
-                width="200px"
-              />
-              <GridColumn
-                field="soldTo"
-                title="Account Number"
-                width="150px"
-              />
-              <GridColumn
-                field="ggpName"
-                title="GGP Name"
-                width="250px"
-              />
-              <GridColumn
-                field="ggp"
-                title="GGP"
-                width="150px"
-              />
-              <GridColumn
-                field="salesOrg"
-                title="Sales Org"
-                width="100px"
-              />
-              <GridColumn
-                field="salesOrgName"
-                title="Sales Org Name"
-                width="150px"
-              />
+
+              {columns.map((column, index) => {
+                if (column.isAction) {
+                  return (
+                    <GridColumn
+                      key={index}
+                      title={column.title || ""}
+                      width={column.width || column.minWidth}
+                      cells={{
+                        data: (props) => (
+                          <MySelectionCell
+                            {...props}
+                            onSelect={handleAccountSelect}
+                          />
+                        ),
+                      }}
+                    />
+                  );
+                }
+
+                return (
+                  <GridColumn
+                    key={index}
+                    field={column.field}
+                    title={column.title}
+                    minWidth={column.minWidth}
+                  />
+                );
+              })}
             </Grid>
           </div>
         )}
 
         {isLoading && (
           <div className={styles.loadingOverlay}>
-            <div className={styles.loader}>Loading...</div>
+            <Loader size="large" type="converging-spinner" />
           </div>
         )}
       </div>
