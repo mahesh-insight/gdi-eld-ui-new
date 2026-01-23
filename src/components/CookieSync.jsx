@@ -7,6 +7,24 @@ export default function CookieSync() {
     const authState = useSelector(state => state.auth);
     
     useEffect(() => {
+        // Check if account switch is in progress (multiple checks for redundancy)
+        const skipSync = localStorage.getItem('skipCookieSync') === 'true';
+        const switchTimestamp = sessionStorage.getItem('accountSwitchInProgress');
+        const recentSwitch = switchTimestamp && (Date.now() - parseInt(switchTimestamp)) < 5000;
+        
+        if (skipSync || recentSwitch) {
+            console.log('⏭️ CookieSync: Skipping - account just switched, cookies already set', {
+                skipSync,
+                recentSwitch,
+                timeSinceSwitch: switchTimestamp ? Date.now() - parseInt(switchTimestamp) : null
+            });
+            localStorage.removeItem('skipCookieSync');
+            if (!recentSwitch) {
+                sessionStorage.removeItem('accountSwitchInProgress');
+            }
+            return;
+        }
+        
         console.log('🔄 CookieSync: AUTONOMOUS cookie sync - preserving existing auth');
         
         // Only sync TO cookies if we have valid auth, never clear auth

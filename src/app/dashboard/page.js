@@ -25,10 +25,17 @@ export const metadata = {
 // Force dynamic rendering to disable caching and see loading.js
 // export const dynamic = 'force-dynamic';
 
-export default async function DashboardPage() {
+export default async function DashboardPage(props) {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('🎯 [SERVER PAGE.JS] Dashboard page render started');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  
+  // Check for cache bypass flag (set during account switch)
+  const searchParams = await props.searchParams;
+  const bypassCache = searchParams?.bypassCache === 'true';
+  if (bypassCache) {
+    console.log('🚩 [SERVER] Account switch detected - will bypass cache');
+  }
   
   // Get authentication data from server-side cookies (same pattern as invoices/azure-invoice)
   const cookieStore = await cookies();
@@ -89,13 +96,14 @@ export default async function DashboardPage() {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('🚀 SERVER PAGE: About to call fetchConsolidatedDashboardData');
   console.log('   soldToId:', soldToId.substring(0, 20) + '...');
+  console.log('   bypassCache:', bypassCache);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   
   // TESTING: Add artificial delay to see loading.js in action
   // await new Promise(resolve => setTimeout(resolve, 300));
   
   // Fetch consolidated dashboard data (mpsaStatus + all enabled widgets)
-  const result = await fetchConsolidatedDashboardData(accessToken, soldToId);
+  const result = await fetchConsolidatedDashboardData(accessToken, soldToId, bypassCache);
   
   if (result.error) {
     console.error('❌ SERVER: Failed to fetch dashboard data:', result.error);

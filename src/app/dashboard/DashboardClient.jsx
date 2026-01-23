@@ -30,10 +30,24 @@ export default function DashboardClient({ mode = 'client-side', ssrData = null, 
   const [mpsaError, setMpsaError] = useState(error);
   const [mpsaLoading, setMpsaLoading] = useState(mode === 'client-side');
   const [dashboardData, setDashboardData] = useState(ssrData);
-  const hasFetchedMpsa = useRef(mode === 'ssr' && ssrData?.mpsaStatus); // Only skip if we actually have SSR mpsaStatus data
+  const hasFetchedMpsa = useRef(mode === 'ssr' && ssrData?.mpsaStatus);
+
+  // Clean up bypassCache query param after initial load
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      if (searchParams.has('bypassCache')) {
+        console.log('🧹 Removing bypassCache query param from URL');
+        searchParams.delete('bypassCache');
+        const newUrl = window.location.pathname + (searchParams.toString() ? '?' + searchParams.toString() : '');
+        window.history.replaceState({}, '', newUrl);
+      }
+    }
+  }, []);
 
   // Initialize Redux store with SSR data on mount
   useEffect(() => {
+    
     if (mode === 'ssr' && ssrData && ssrData.mpsaStatus) {
       console.log('✅ CLIENT: Initializing with SSR data', {
         cached,
@@ -55,15 +69,41 @@ export default function DashboardClient({ mode = 'client-side', ssrData = null, 
   }, [mode, ssrData, cached, dispatch]);
   // Client-side mpsaStatus fetch (only if mode='client-side' and no SSR data)
   useEffect(() => {
-    // Skip client-side fetch if SSR data is available
-    if (mode === 'ssr' || hasFetchedMpsa.current) {
-      console.log('ℹ️ CLIENT: Skipping client-side fetch', { mode, hasFetchedMpsa: hasFetchedMpsa.current });
+    // Note: accountJustSwitched flag was already checked and removed in previous useEffect
+    // If account was just switched, hasFetchedMpsa.current was set to false
+    
+    // Always check hasFetchedMpsa FIRST - if false, we need to fetch regardless of mode
+    if (hasFetchedMpsa.current) {
+      console.log('ℹ️ CLIENT: Already fetched, skipping', { mode, hasFetchedMpsa: hasFetchedMpsa.current });
       return;
     }
+    
+    // If we reach here, hasFetchedMpsa is false, meaning we need to fetch
+    // This happens either in client-side mode OR when account was just switched
 
     const fetchMpsaStatus = async () => {
-      // Only fetch if we don't have valid mpsaStatusData and we have user soldToId
-      const soldToId = user?.soldToId || loginResponse?.userProfile?.defaultContext?.[0]?.soldToId;
+      // Get soldToId - prioritize localStorage (updated during account switch)
+      let soldToId;
+      
+      // Check localStorage first (most recent, especially after account switch)
+      if (typeof window !== 'undefined') {
+        try {
+          const storedSoldToId = localStorage.getItem('soldToId');
+          if (storedSoldToId) {
+            const parsed = JSON.parse(storedSoldToId);
+            soldToId = Array.isArray(parsed) ? parsed[0] : parsed;
+            console.log('📍 Using soldToId from localStorage:', soldToId);
+          }
+        } catch (e) {
+          console.warn('Failed to parse soldToId from localStorage:', e);
+        }
+      }
+      
+      // Fallback to Redux if localStorage doesn't have it
+      if (!soldToId) {
+        soldToId = user?.soldToId || loginResponse?.userProfile?.defaultContext?.[0]?.soldToId;
+        console.log('📍 Using soldToId from Redux:', soldToId);
+      }
       
       // Check if mpsaStatusData has actual SUCCESSFUL data (not error responses)
       const hasValidMpsaData = mpsaStatusData && 
@@ -121,6 +161,13 @@ export default function DashboardClient({ mode = 'client-side', ssrData = null, 
           // Store mpsaStatus data in Redux store (will extract widget flags automatically)
           dispatch(setMpsaStatusData(serializableResponse));
           console.log('✅ Redux store updated with mpsaStatus data and widget flags');
+          
+          // Update dashboardData state so widgets can render with fresh data
+          setDashboardData({
+            mpsaStatus: serializableResponse,
+            widgetFlags: response.data // Widget flags for rendering
+          });
+          console.log('✅ Dashboard data updated with fresh mpsaStatus response');
           
         } catch (error) {
           console.error('❌ mpsaStatus API failed:', {

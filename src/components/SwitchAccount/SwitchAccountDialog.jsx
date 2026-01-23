@@ -3,7 +3,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { setLoginResponse } from "@/store/authSlice";
+import { clearDashboardData } from "@/store/dashboardSlice";
 import { useTranslation } from "react-i18next";
+import { useRouter } from "next/navigation";
 import { Window } from "@progress/kendo-react-dialogs";
 import { Grid, GridColumn, GridToolbar } from "@progress/kendo-react-grid";
 import { Input } from "@progress/kendo-react-inputs";
@@ -13,6 +15,7 @@ import { process } from "@progress/kendo-data-query";
 import request from "@/lib/api/request";
 import { accountSearchAdminColumns } from "@/common/commonDataSets";
 import styles from "./SwitchAccount.module.scss";
+import { persistor } from "@/store/store";
 
 
 const MySelectionCell = (props) => {
@@ -34,6 +37,7 @@ const SwitchAccountDialog = ({
 }) => {
   const { t } = useTranslation();
   const dispatch = useDispatch();
+  const router = useRouter();
 
   const loginResponse = useSelector((state) => state.auth.loginResponse);
   const defaultContext = loginResponse?.userProfile?.defaultContext?.[0];
@@ -74,34 +78,170 @@ const SwitchAccountDialog = ({
   }, [searchData, dataState, filterValue]);
 
   const handleAccountSelect = useCallback(
-    (dataItem) => {
-      const updatedLoginResponse = {
-        ...loginResponse,
-        userProfile: {
-          ...loginResponse.userProfile,
-          defaultContext: [
-            {
-              soldTo: dataItem.soldTo,
-              soldToId: dataItem.soldToId || dataItem.soldTo,
-              soldToName: dataItem.soldToName,
-              ggp: dataItem.ggp,
-              ggpName: dataItem.ggpName,
-              salesOrgId: dataItem.salesOrganizationCode,
-              salesOrgName: dataItem.salesOrganizationName,
-              regionCode: dataItem.regionCode,
-              countryCode: dataItem.countryCode,
-              geoName: dataItem.geoName,
-              geoRegion: dataItem.geoRegion,
-            },
-          ],
-        },
-      };
+    async (dataItem) => {
+      console.log('🔘 SELECT BUTTON CLICKED - handleAccountSelect called with:', dataItem?.soldToName);
+      setIsLoading(true);
+      
+      try {
+        // Update loginResponse in Redux
+        const updatedLoginResponse = {
+          ...loginResponse,
+          userProfile: {
+            ...loginResponse.userProfile,
+            defaultContext: [
+              {
+                soldTo: dataItem.soldTo,
+                soldToId: dataItem.soldToId || dataItem.soldTo,
+                soldToName: dataItem.soldToName,
+                ggp: dataItem.ggp,
+                ggpName: dataItem.ggpName,
+                salesOrgId: dataItem.salesOrganizationCode,
+                salesOrgName: dataItem.salesOrganizationName,
+                regionCode: dataItem.regionCode,
+                countryCode: dataItem.countryCode,
+                geoName: dataItem.geoName,
+                geoRegion: dataItem.geoRegion,
+              },
+            ],
+          },
+        };
 
-      dispatch(setLoginResponse(updatedLoginResponse));
-      onClose();
-      setTimeout(() => window.location.reload(), 300);
+        // Store in localStorage first (before Redux update)
+        const soldToIdValue = dataItem.soldToId || dataItem.soldTo;
+        localStorage.setItem("soldToId", JSON.stringify([soldToIdValue]));
+        localStorage.setItem("soldto", dataItem.soldTo);
+        
+        // Call mpsaStatus to get widget flags (same pattern as DashboardClient)
+        // This will call: /ccr-dashboard-service/context/{soldToId}
+        console.log('🔄 Calling mpsaStatus for soldToId:', soldToIdValue);
+        const mpsaResponse = await request.get("mpsaStatus", {
+          pathParam: soldToIdValue
+        });
+        
+        if (mpsaResponse?.status === 200) {
+          // Store widget flags in localStorage for page reload
+          const widgetFlags = {
+            unlimitedCspTags: mpsaResponse?.data?.microsoft?.unlimitedCspTags || false,
+            haveMPSAData: mpsaResponse?.data?.microsoft?.haveMPSAData || false,
+            hasReservedInstanceOrAzureSavingsPlan: mpsaResponse?.data?.microsoft?.hasReservedInstanceOrAzureSavingsPlan || false,
+            hasAzureSpendWidgetData: mpsaResponse?.data?.microsoft?.hasAzureSpendWidgetData || false,
+            hasM365WidgetData: mpsaResponse?.data?.microsoft?.hasM365WidgetData || false,
+            hasMSSpendWidgetData: mpsaResponse?.data?.microsoft?.hasMSSpendWidgetData || false,
+            hasAwsSpendWidgetData: mpsaResponse?.data?.aws?.hasSpendWidgetData || false,
+            hasAwsConsumptionData: mpsaResponse?.data?.aws?.hasConsumptionData || false,
+            hasAdobeWidgetData: mpsaResponse?.data?.adobe?.hasSpendWidgetData || false,
+            salesOrganizationCountryCode: mpsaResponse?.data?.salesOrganizationCountryCode || false,
+          };
+          
+          localStorage.setItem("widgetFlags", JSON.stringify(widgetFlags));
+        }
+        
+        console.log('✅ Account switched:', {
+          newAccount: dataItem.soldToName,
+          newSoldToId: soldToIdValue
+        });
+        
+        // CRITICAL FIX: Pause Redux Persist to prevent it from overwriting our changes
+        console.log('⏸️ Pausing Redux Persist...');
+        persistor.pause();
+        
+        // Update Redux with new account (will NOT persist because we paused)
+        dispatch(setLoginResponse(updatedLoginResponse));
+        dispatch(clearDashboardData());
+        
+        console.log('🧹 Clearing Redux dashboard cache for account switch...');
+        
+        // Small delay to ensure Redux updates complete
+        await new Promise(resolve => setTimeout(resolve, 50));
+        
+        // NOW directly update persisted storage (Redux Persist won't overwrite it)
+        try {
+          const persistKey = 'persist:ccr-auth';
+          const existingData = localStorage.getItem(persistKey);
+          if (existingData) {
+            const parsed = JSON.parse(existingData);
+            
+            // Log old soldToId for verification
+            const oldLoginResponse = JSON.parse(parsed.loginResponse || '{}');
+            const oldSoldTo = oldLoginResponse.userProfile?.defaultContext?.[0]?.soldToId || 'unknown';
+            
+            // Update with new account data
+            parsed.loginResponse = JSON.stringify(updatedLoginResponse);
+            localStorage.setItem(persistKey, JSON.stringify(parsed));
+            
+            // VERIFY the write worked
+            const verifyData = localStorage.getItem(persistKey);
+            const verifyParsed = JSON.parse(verifyData);
+            const verifyLogin = JSON.parse(verifyParsed.loginResponse);
+            const newSoldTo = verifyLogin.userProfile?.defaultContext?.[0]?.soldToId || 'unknown';
+            
+            console.log('✅ Persisted storage updated (Persist is PAUSED):');
+            console.log('   OLD soldToId:', oldSoldTo);
+            console.log('   NEW soldToId:', newSoldTo);
+            console.log('   Expected soldToId:', soldToIdValue);
+            console.log('   Verification:', newSoldTo === soldToIdValue ? '✅ MATCH' : '❌ MISMATCH');
+            
+            if (newSoldTo !== soldToIdValue) {
+              console.error('❌ CRITICAL: localStorage update FAILED!');
+            }
+          }
+          
+          // CRITICAL: Also clear the dashboard persisted data
+          const dashboardPersistKey = 'persist:ccr-dashboard';
+          const dashboardData = localStorage.getItem(dashboardPersistKey);
+          if (dashboardData) {
+            console.log('🧹 Clearing persisted dashboard data for account switch...');
+            localStorage.removeItem(dashboardPersistKey);
+          }
+          
+        } catch (err) {
+          console.error('⚠️ Failed to update persisted storage:', err);
+        }
+        
+        // CRITICAL: Set cookies BEFORE navigation so server can read them
+        console.log('🍪 Setting cookies for server-side rendering...');
+        try {
+          // Set access_token cookie
+          const accessToken = loginResponse?.tokens?.bearerToken;
+          if (accessToken) {
+            document.cookie = `access_token=${accessToken}; path=/; max-age=86400; SameSite=Lax`;
+          }
+          
+          // Set soldToId cookie
+          document.cookie = `soldToId=${encodeURIComponent(soldToIdValue)}; path=/; max-age=86400; SameSite=Lax`;
+          
+          // Set user_context cookie
+          const userContext = {
+            soldToId: soldToIdValue,
+            userProfile: updatedLoginResponse.userProfile
+          };
+          document.cookie = `user_context=${encodeURIComponent(JSON.stringify(userContext))}; path=/; max-age=86400; SameSite=Lax`;
+          
+          console.log('✅ Cookies set successfully for new account:', soldToIdValue);
+        } catch (cookieError) {
+          console.error('❌ Failed to set cookies:', cookieError);
+        }
+        
+        // Set flag to bypass server cache on next dashboard load
+        sessionStorage.setItem('accountJustSwitched', 'true');
+        sessionStorage.setItem('newSoldToId', soldToIdValue);
+        console.log('🚩 Account switch flag set - dashboard will bypass cache');
+        
+        // Extra delay to ensure storage write is fully committed
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Navigate to dashboard with cache bypass flag
+        console.log('🔄 Navigating to dashboard with cache bypass flag...');
+        window.location.href = `/dashboard?bypassCache=true`;
+        
+      } catch (error) {
+        console.error("Error switching account:", error);
+        setError(true);
+        setErrorMessage(t("search.error"));
+        setIsLoading(false);
+      }
     },
-    [loginResponse, dispatch, onClose],
+    [loginResponse, dispatch, onClose, t],
   );
 
   const handleSearch = async () => {

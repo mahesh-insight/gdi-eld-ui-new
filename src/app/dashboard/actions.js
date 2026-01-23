@@ -286,16 +286,24 @@ export async function fetchMPSAWidget(accessToken, soldToId) {
  * Uses Promise.allSettled to prevent one widget failure from blocking others
  * Similar pattern to WidgetColumns.jsx but server-side
  */
-export async function fetchConsolidatedDashboardData(accessToken, soldToId) {
+export async function fetchConsolidatedDashboardData(accessToken, soldToId, bypassCache = false) {
   try {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('🚀 [SERVER ACTION] fetchConsolidatedDashboardData CALLED');
     console.log('   soldToId:', soldToId);
     console.log('   hasToken:', !!accessToken);
+    console.log('   bypassCache:', bypassCache);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     
     const cacheKey = `dashboard-consolidated:${soldToId}`;
     console.log('🔑 Consolidated cache key:', cacheKey);
+    
+    // If bypassCache is true, clear this specific cache entry first
+    if (bypassCache) {
+      console.log('🚩 BYPASS CACHE FLAG DETECTED - clearing cache for this soldToId');
+      const { invalidateCache } = await import('@/lib/cache/serverCache');
+      await invalidateCache(cacheKey);
+    }
     
     const data = await getOrSetCached(
       cacheKey,
