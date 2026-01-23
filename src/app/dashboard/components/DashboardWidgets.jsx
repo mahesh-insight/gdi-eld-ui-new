@@ -28,6 +28,7 @@ export default function DashboardWidgets({ ssrData, mode }) {
   const [m365ChartType, setM365ChartType] = useState('column');
   const [msCloudChartType, setMsCloudChartType] = useState('column');
   const [adobeChartType, setAdobeChartType] = useState('column');
+  const [awsChartType, setAwsChartType] = useState('column');
 
   // Chart type change handlers with logging
   const handleAzureChartTypeChange = useCallback((newType) => {
@@ -45,6 +46,11 @@ export default function DashboardWidgets({ ssrData, mode }) {
     setAdobeChartType(newType);
   }, []);
 
+  const handleAwsChartTypeChange = useCallback((newType) => {
+    console.log('🔄 AWS chart type changing to', newType);
+    setAwsChartType(newType);
+  }, []);
+
   const columnLineAreaOptions = [
     { type: 'column', icon: 'chartColumnStackedIcon', title: 'Column chart' },
     { type: 'line', icon: 'chartLineStackedIcon', title: 'Line chart' },
@@ -59,7 +65,8 @@ export default function DashboardWidgets({ ssrData, mode }) {
     chartTypes: {
       azure: azureChartType,
       msCloud: msCloudChartType,
-      adobe: adobeChartType
+      adobe: adobeChartType,
+      aws: awsChartType
     }
   });
   
@@ -472,23 +479,38 @@ export default function DashboardWidgets({ ssrData, mode }) {
     return (
       <div className="dashboard-widget">
         <div className="widget-header">
-          <h3>AWS Spend</h3>
+          <h3>Amazon Web Services</h3>
         </div>
         <div className="widget-body">
-          {currentEstimatedUsage > 0 && (
+          {/* {currentEstimatedUsage > 0 && ( */}
             <div className="widget-metric">
-              <MetricLabel title="Current estimated AWS usage">
-                Current Estimated Usage
-              </MetricLabel>
-              <span className="metric-value">{formatCurrency(currentEstimatedUsage, currencyCode)}</span>
+              <div className="widget-metric-row">
+                <MetricLabel title={`Current estimated AWS usage for ${formatMonthYear(latestBillableItemDate)}`}>
+                  Current Estimated Usage
+                </MetricLabel>
+                <CurrencyFormatter
+                  title={`Current estimated AWS usage for ${formatMonthYear(latestBillableItemDate)}`}
+                  value={currentEstimatedUsage}
+                  alignRight={true}
+                  showCurrencyCode={true}
+                  currency={currencyCode}
+                />
+              </div>
             </div>
-          )}
+          {/* )} */}
           <div className="widget-metric">
-            <MetricLabel title={`Latest AWS invoice for ${formatDate(latestBillableItemDate)}`}>
-              Latest Insight Invoice
-            </MetricLabel>
-            <span className="metric-value">{formatCurrency(totalSpend, currencyCode)}</span>
-            <span className="metric-date">{formatDate(latestBillableItemDate)}</span>
+            <div className="widget-metric-row">
+              <MetricLabel title={`Invoice for ${formatMonthYear(latestBillableItemDate)}`}>
+                Latest Insight Invoice
+              </MetricLabel>
+              <CurrencyFormatter
+                title={`Invoice for ${formatMonthYear(latestBillableItemDate)}`}
+                value={totalSpend}
+                alignRight={true}
+                showCurrencyCode={true}
+                currency={currencyCode}
+              />
+            </div>
           </div>
           {latestChange !== 0 && (
             <div className="widget-change">
@@ -506,8 +528,34 @@ export default function DashboardWidgets({ ssrData, mode }) {
           )}
         </div>
         <div className="widget-chart">
-          <h4>Trending 6 Month Spend</h4>
-          <div className="chart-placeholder">Chart will be rendered here</div>
+          <ChartTitleAndButtons
+            title="Trending 6 Month Spend"
+            trendingChartType={awsChartType}
+            handleChartTypeChange={handleAwsChartTypeChange}
+            chartOptions={columnLineAreaOptions}
+            dropDownList={false}
+            pageType="dashboard"
+          />
+          {data.billableItemTrend?.chartData && data.billableItemTrend.chartData.length > 0 ? (
+            <Chart key={awsChartType} onRefresh={() => {}} className="dashboard-chart">
+              <BasicGroupedChart
+                chartType={awsChartType}
+                data={data.billableItemTrend.chartData}
+                groupedByField="label"
+                valueField="value"
+                categoryField="group"
+                categoryFormat="MMM"
+                valueFormat="c0"
+                legendPosition="bottom"
+                showLabels={false}
+                stacked={awsChartType === 'column'}
+                yAxisLabelStep={2}
+                height={250}
+              />
+            </Chart>
+          ) : (
+            <div className="chart-placeholder">No chart data available</div>
+          )}
         </div>
       </div>
     );
@@ -523,31 +571,52 @@ export default function DashboardWidgets({ ssrData, mode }) {
       totals
     } = data;
 
+    // Map API labels to display labels with specific order and colors
+    const labelMapping = {
+      'ProductNames': { label: 'Products', color: 'vertical-pink', order: 0 },
+      'Licenses': { label: 'Licenses', color: 'vertical-blue', order: 1 },
+      'SoftwareAssurance': { label: 'Active SA', color: 'vertical-gray', order: 2 }
+    };
+
+    // Build counts array with mapped labels and colors
+    const mappedCounts = totals?.map(item => ({
+      label: labelMapping[item.label]?.label || item.label,
+      value: item.value,
+      color: labelMapping[item.label]?.color || 'vertical-gray',
+      order: labelMapping[item.label]?.order ?? 999
+    })).sort((a, b) => a.order - b.order) || [];
+
     return (
       <div className="dashboard-widget">
         <div className="widget-header">
-          <h3>MPSA</h3>
+          <h3>Microsoft MPSA Licenses</h3>
         </div>
         <div className="widget-body">
-          {mpsaExpirationSummaries && mpsaExpirationSummaries.length > 0 && (
-            <div className="widget-alerts">
-              {mpsaExpirationSummaries.map((alert, idx) => (
-                <div key={idx} className={`alert alert-${alert.iconType}`}>
-                  <span className="alert-icon">{alert.iconType === 'error' ? '🔴' : alert.iconType === 'warning' ? '⚠️' : 'ℹ️'}</span>
-                  <span className="alert-message">{alert.message}</span>
-                </div>
-              ))}
-            </div>
-          )}
-          
           <div className="widget-counts">
-            {totals && totals.map((item, idx) => (
-              <div key={idx} className="count-item">
+            {mappedCounts.map((item, idx) => (
+              <div key={idx} className={`count-item ${item.color}`}>
                 <span className="count-label">{item.label}</span>
                 <span className="count-value">{item.value}</span>
               </div>
             ))}
           </div>
+
+          {mpsaExpirationSummaries && mpsaExpirationSummaries.length > 0 && (
+            <div className="widget-alerts">
+              {mpsaExpirationSummaries.map((alert, idx) => (
+                <div key={idx} className={`alert alert-${alert.iconType}`}>
+                  <div className="alert-icon">
+                    <svg viewBox="0 0 512 512" fill={alert.iconStatus} width="1em" height="1em">
+                      {iconPaths[alert.iconType] && (
+                        <path d={iconPaths[alert.iconType]} />
+                      )}
+                    </svg>
+                  </div>
+                  <span className="alert-message">{alert.message}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     );

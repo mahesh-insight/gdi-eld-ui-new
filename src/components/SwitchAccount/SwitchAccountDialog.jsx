@@ -145,14 +145,9 @@ const SwitchAccountDialog = ({
         console.log('⏸️ Pausing Redux Persist...');
         persistor.pause();
         
-        // Update Redux with new account (will NOT persist because we paused)
-        dispatch(setLoginResponse(updatedLoginResponse));
-        dispatch(clearDashboardData());
-        
-        console.log('🧹 Clearing Redux dashboard cache for account switch...');
-        
-        // Small delay to ensure Redux updates complete
-        await new Promise(resolve => setTimeout(resolve, 50));
+        // NOTE: Don't update Redux here - we're doing a full page reload anyway
+        // Redux will rehydrate from localStorage after reload
+        // This prevents the UI from flickering (header changing while dialog is still open)
         
         // NOW directly update persisted storage (Redux Persist won't overwrite it)
         try {
