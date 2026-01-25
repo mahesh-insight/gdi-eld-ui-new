@@ -126,9 +126,10 @@ export default function AzureInvoiceClientContent(props) {
   const [isLoadingMonthData, setIsLoadingMonthData] = useState(false);
   const [isLoadingCustomerDropdown, setIsLoadingCustomerDropdown] = useState(false);
   const [isLoadingViewBilledLink, setIsLoadingViewBilledLink] = useState(false);
-  const [isLoadingSummary, setIsLoadingSummary] = useState(!extractedSummaryData);
-  const [isLoadingCredits, setIsLoadingCredits] = useState(!extractedCreditsData);
-  const [isLoadingTrends, setIsLoadingTrends] = useState(!extractedTrendsData);
+  const [isLoadingSummary, setIsLoadingSummary] = useState(mode !== 'ssr');
+  const [isLoadingCredits, setIsLoadingCredits] = useState(mode !== 'ssr');
+  const [isLoadingTrends, setIsLoadingTrends] = useState(mode !== 'ssr');
+  const [isLoadingTrendsPeriodChange, setIsLoadingTrendsPeriodChange] = useState(false);
   const [isLoadingTabData, setIsLoadingTabData] = useState(false);
   
   // Track if any filter has been changed to enable/disable Apply Filters button
@@ -176,7 +177,12 @@ export default function AzureInvoiceClientContent(props) {
       // Store complete pagination response, not just content array
       setCurrentMonthDetailData(monthDetail);
       setCurrentMonthlyDifferenceData(monthlyDifference);
+      
+      // Set all loading states to false when SSR data is loaded
       setIsLoading(false);
+      setIsLoadingSummary(false);
+      setIsLoadingCredits(false);
+      setIsLoadingTrends(false);
     }
   }, [mode, initialData]);
 
@@ -297,11 +303,13 @@ export default function AzureInvoiceClientContent(props) {
       
       // Call the SERVER ACTION for consolidated data (like invoices page)
       // This makes ONE server-side call that fetches all data together
+      const months = (trendingPeriod === 'Last 12 Months' || trendingPeriod === 'last12months') ? 12 : 6;
       const consolidatedResult = await fetchConsolidatedAzureInvoiceData(
         accessToken,
         selectedSoldToId,
         monthValue, // Pass the month value
-        customerFilterValue // Pass null since customer is reset to "All"
+        customerFilterValue, // Pass null since customer is reset to "All"
+        months // Pass trend months parameter
       );
       
       if (consolidatedResult.error) {
@@ -400,11 +408,13 @@ export default function AzureInvoiceClientContent(props) {
       const monthValue = getMonthValue(selectedMonth);
       
       // Call consolidated API with customer filter
+      const months = (trendingPeriod === 'Last 12 Months' || trendingPeriod === 'last12months') ? 12 : 6;
       const consolidatedResult = await fetchConsolidatedAzureInvoiceData(
         accessToken,
         selectedSoldToId,
         monthValue,
-        customerValue // Pass customer filter as 4th parameter
+        customerValue, // Pass customer filter as 4th parameter
+        months // Pass trend months parameter
       );
       
       if (consolidatedResult.error) {
@@ -462,9 +472,44 @@ export default function AzureInvoiceClientContent(props) {
   const handleTrendingPeriodChange = useCallback(async (period) => {
     console.log('📅 Period changed to:', period);
     setTrendingPeriod(period);
-    // Note: In azure-invoice, period change doesn't trigger API call
-    // Data is already loaded for both 6 and 12 months
-  }, []);
+    
+    // Determine months value for API call
+    const months = (period === 'Last 12 Months' || period === 'last12months') ? 12 : 6;
+    
+    if (!accessToken || !selectedSoldToId || !selectedMonth) {
+      console.error('❌ Missing required data for trend API call');
+      return;
+    }
+    
+    try {
+      setIsLoadingTrendsPeriodChange(true);
+      
+      // Fetch new trend data with the updated months parameter
+      const consolidatedResult = await fetchConsolidatedAzureInvoiceData(
+        accessToken,
+        selectedSoldToId,
+        selectedMonth?.value || selectedMonth?.date || selectedMonth,
+        selectedCustomer?.value !== 'All' ? selectedCustomer?.value : null,
+        months // Pass the months parameter
+      );
+      
+      if (consolidatedResult.error) {
+        console.error('❌ Trend fetch error:', consolidatedResult.error);
+        return;
+      }
+      
+      const consolidatedData = consolidatedResult.data;
+      
+      // Update trend data
+      if (consolidatedData?.trend) {
+        setCurrentTrendsData(consolidatedData.trend);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching trend data:', error);
+    } finally {
+      setIsLoadingTrendsPeriodChange(false);
+    }
+  }, [accessToken, selectedSoldToId, selectedMonth, selectedCustomer]);
 
   const handleApplyFilters = useCallback(async () => {
     if (!accessToken || !selectedSoldToId || !selectedMonth) {
@@ -900,8 +945,9 @@ export default function AzureInvoiceClientContent(props) {
       periodsData = currentTrendsData;
     }
     
-    const monthsToShow = trendingPeriod === 'last12months' ? 12 : 6;
+    const monthsToShow = (trendingPeriod === 'Last 12 Months' || trendingPeriod === 'last12months') ? 12 : 6;
     const data = [];
+    console.log('trendingPeriod:', trendingPeriod, 'monthsToShow:', monthsToShow);
     
     if (periodsData && periodsData.length > 0) {
       const lastMonths = periodsData?.slice(-monthsToShow) || [];
@@ -1041,6 +1087,25 @@ export default function AzureInvoiceClientContent(props) {
     );
   }
 
+  // No data available - show message when months data is empty
+  if (!isLoading && (!monthsData || monthsData.length === 0)) {
+    return (
+      <ErrorBoundary>
+        <div className="azure-invoice-page">
+          <div className="azure-invoice-container">
+            <div className="azure-invoice-header">
+              <h1 className="azure-invoice-title">Azure Plan Invoice</h1>
+            </div>
+            <div className="azure-invoice-no-data-message">
+              <SvgIcon icon={infoCircleIcon} size="medium" />
+              <span>{t('azureInvoice.noDataMessage', 'Azure Plan Invoice Data is not available for the client')}</span>
+            </div>
+          </div>
+        </div>
+      </ErrorBoundary>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <div className="azure-invoice-page">
@@ -1052,8 +1117,8 @@ export default function AzureInvoiceClientContent(props) {
               <div className="kpi-cards">
                 {/* Archera Link */}
                 {isLoadingSummary ? (
-                  <div style={{ width: '180px', height: '80px', flexShrink: 0 }}>
-                    <Skeleton style={{ width: '100%', height: '100%' }} />
+                  <div className="skeleton-kpi-wrapper">
+                    <Skeleton className="skeleton-full-size" />
                   </div>
                 ) : (
                   <div className="kpi-card archera-link">
@@ -1072,8 +1137,8 @@ export default function AzureInvoiceClientContent(props) {
 
                 {/* Invoice Total */}
                 {isLoadingSummary ? (
-                  <div style={{ width: '180px', height: '80px', flexShrink: 0 }}>
-                    <Skeleton style={{ width: '100%', height: '100%' }} />
+                  <div className="skeleton-kpi-wrapper">
+                    <Skeleton className="skeleton-full-size" />
                   </div>
                 ) : (
                   <div className="kpi-card invoice-total">
@@ -1093,8 +1158,8 @@ export default function AzureInvoiceClientContent(props) {
 
                 {/* Monthly Difference */}
                 {isLoadingSummary ? (
-                  <div style={{ width: '180px', height: '80px', flexShrink: 0 }}>
-                    <Skeleton style={{ width: '100%', height: '100%' }} />
+                  <div className="skeleton-kpi-wrapper">
+                    <Skeleton className="skeleton-full-size" />
                   </div>
                 ) : (
                   <div className="kpi-card monthly-difference">
@@ -1117,8 +1182,8 @@ export default function AzureInvoiceClientContent(props) {
 
                 {/* Invoice Credits */}
                 {isLoadingCredits ? (
-                  <div style={{ width: '180px', height: '80px', flexShrink: 0 }}>
-                    <Skeleton style={{ width: '100%', height: '100%' }} />
+                  <div className="skeleton-kpi-wrapper">
+                    <Skeleton className="skeleton-full-size" />
                   </div>
                 ) : (
                   <div className="kpi-card invoice-credits">
@@ -1153,19 +1218,19 @@ export default function AzureInvoiceClientContent(props) {
                     disabled={isLoading}
                   />
                 ) : (
-                  <Skeleton style={{ height: '36px', width: '200px' }} />
+                  <Skeleton className="skeleton-month-dropdown" />
                 )}
               </div>
               
               {isReseller && (
                 <div className="azure-invoice-month-selector">
                   {isLoadingCustomerDropdown ? (
-                    <Skeleton style={{ height: '20px', width: '120px', marginBottom: '8px' }} />
+                    <Skeleton className="skeleton-customer-label" />
                   ) : (
                     <label className="azure-invoice-month-label label-text-bold">Customer Name</label>
                   )}
                   {isLoadingCustomerDropdown ? (
-                    <Skeleton style={{ height: '36px', width: '200px' }} />
+                    <Skeleton className="skeleton-customer-dropdown" />
                   ) : (
                     <DropDownList
                       data={customerNames}
@@ -1180,7 +1245,7 @@ export default function AzureInvoiceClientContent(props) {
               )}
               
               {isLoadingViewBilledLink ? (
-                <Skeleton style={{ height: '20px', width: '130px' }} />
+                <Skeleton className="skeleton-view-billed-link" />
               ) : (
                 <a href="#" className="azure-invoice-view-usage-link">View Billed Usage</a>
               )}
@@ -1205,7 +1270,7 @@ export default function AzureInvoiceClientContent(props) {
                   <div className="o-grid__item u-1/1 u-1/2@desktop invoiceBreakdown azure-invoice-chart-container">
                     <div className="azure-invoice-chart-box">
                     {isLoadingTrends ? (
-                      <Skeleton shape={"rectangle"} style={{height: 500}} className="azure-invoice-loading-skeleton-chart" />
+                      <Skeleton shape={"rectangle"} className="skeleton-chart-500 azure-invoice-loading-skeleton-chart" />
                     ) : (
                       <>
                         <p className="u-text-center">
@@ -1244,41 +1309,44 @@ export default function AzureInvoiceClientContent(props) {
                   </div>
                   <div className="o-grid__item u-1/1 u-1/2@desktop trending6MonthSpend azure-invoice-chart-container">
                     <div className="azure-invoice-chart-box">
-                    {isLoadingTrends ? (
-                      <>
-                        <Skeleton style={{ width: '100%', height: '50px', marginBottom: '16px' }} />
-                        <Skeleton shape={"rectangle"} style={{height: 450}} className="azure-invoice-loading-skeleton-chart" />
-                      </>
-                    ) : (
-                      <>
-                      <ChartTitleAndButtons
-                        title="Trending Monthly Spend"
-                        trendingChartType={trendingChartType}
-                        handleChartTypeChange={handleChartTypeChange}
-                        chartOptions={[
-                          { type: 'column', icon: 'chartColumnStackedIcon', title: 'Column Chart' },
-                          { type: 'line', icon: 'chartLineStackedIcon', title: 'Line Chart' },
-                          { type: 'area', icon: 'chartAreaStackedIcon', title: 'Area Chart' }
-                        ]}
-                        dropDownList={true}
-                        apiEndPoint={''}
-                        pageType="invoice"
-                        onPeriodChange={handleTrendingPeriodChange}
-                        selectedPeriod={trendingPeriod}
-                      />
-                      <Chart 
-                        key={`${trendingChartType}-${invoiceTrendData.length}`}
-                        onRefresh={handleChartRefresh}
-                        seriesColors={getInsightThemeColors()}
-                        className="clickableChart"
-                      >
-                        <BasicGroupedChart
-                          chartType={trendingChartType}
-                          title=""
-                          subTitle=""
-                          data={invoiceTrendData}
-                          categoryField="group"
-                          categoryTitle=""
+                      {isLoadingTrends ? (
+                        <>
+                          <Skeleton className="skeleton-chart-title" />
+                          <Skeleton shape={"rectangle"} className="skeleton-chart-450 azure-invoice-loading-skeleton-chart" />
+                        </>
+                      ) : (
+                        <>
+                          <ChartTitleAndButtons
+                            title="Trending Monthly Spend"
+                            trendingChartType={trendingChartType}
+                            handleChartTypeChange={handleChartTypeChange}
+                            chartOptions={[
+                              { type: 'column', icon: 'chartColumnStackedIcon', title: 'Column Chart' },
+                              { type: 'line', icon: 'chartLineStackedIcon', title: 'Line Chart' },
+                              { type: 'area', icon: 'chartAreaStackedIcon', title: 'Area Chart' }
+                            ]}
+                            dropDownList={true}
+                            apiEndPoint={''}
+                            pageType="invoice"
+                            onPeriodChange={handleTrendingPeriodChange}
+                            selectedPeriod={trendingPeriod}
+                          />
+                          {isLoadingTrendsPeriodChange ? (
+                            <Skeleton shape={"rectangle"} className="skeleton-chart-450 azure-invoice-loading-skeleton-chart" />
+                          ) : (
+                            <Chart 
+                          key={`${trendingChartType}-${invoiceTrendData.length}`}
+                          onRefresh={handleChartRefresh}
+                          seriesColors={getInsightThemeColors()}
+                          className="clickableChart"
+                        >
+                          <BasicGroupedChart
+                            chartType={trendingChartType}
+                            title=""
+                            subTitle=""
+                            data={invoiceTrendData}
+                            categoryField="group"
+                            categoryTitle=""
                           categoryFormat="MMM yyyy"
                           valueField="value"
                           valueFormat="c2"
@@ -1292,86 +1360,87 @@ export default function AzureInvoiceClientContent(props) {
                           stacked={trendingChartType === "column"}
                         />
                       </Chart>
-                      </>
-                    )}
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
                 {/* Slide 2: Top Expensive Products - Full Width */}
                 <div className="azure-invoice-chart-container full-width">
                   <div className="azure-invoice-chart-box">
-                  {isLoadingTrends ? (
-                    <>
-                      <Skeleton style={{ width: '100%', height: '50px', marginBottom: '16px' }} />
-                      <Skeleton className="azure-invoice-loading-skeleton-chart" />
-                    </>
-                  ) : (
-                    <>
-                    <ChartTitleAndButtons
-                      title="Top Expensive Products"
-                      trendingChartType={topNExpensiveProductsChartType}
-                      handleChartTypeChange={handleTopNExpensiveProductsChartTypeChange}
-                      chartOptions={[
-                        { type: 'bar', icon: 'chartBarClusteredIcon', title: 'Bar Chart' },
-                        { type: 'pie', icon: 'chartPieIcon', title: 'Pie Chart' },
-                        { type: 'donut', icon: 'chartDoughnutIcon', title: 'Doughnut Chart' }
-                      ]}
-                    />
-                    {topNExpensiveProductsChartType === "bar" ? (
-                      <Chart 
-                        key={`${topNExpensiveProductsChartType}-${topNExpensiveProducts.length}`}
-                        onRefresh={handleChartRefresh}
-                        seriesColors={getInsightThemeColors()}
-                        className="chart3"
-                      >
-                      <BasicGroupedChart
-                        chartType={topNExpensiveProductsChartType}
-                        title=""
-                        subTitle=""
-                        data={topNExpensiveProducts}
-                        categoryField="label"
-                        valueField="value"
-                        categoryTitle=""
-                        showCategoryLabels={false}
-                        showValueLabels={false}
-                        legendPosition="bottom"
-                        legendTitle=""
-                        legendVisible={true}
-                        tooltipFormat="c2"
-                        showLabels={true}
-                        showCategoryInLabels={false}
-                        valueFormat="c2"
-                        labelFormat="c2"
-                        useColors={true}
-                        customTooltip={true}
-                      />
-                    </Chart>
+                    {isLoadingTrends ? (
+                      <>
+                        <Skeleton className="skeleton-chart-title" />
+                        <Skeleton className="azure-invoice-loading-skeleton-chart" />
+                      </>
+                    ) : (
+                      <>
+                        <ChartTitleAndButtons
+                          title="Top Expensive Products"
+                          trendingChartType={topNExpensiveProductsChartType}
+                          handleChartTypeChange={handleTopNExpensiveProductsChartTypeChange}
+                          chartOptions={[
+                            { type: 'bar', icon: 'chartBarClusteredIcon', title: 'Bar Chart' },
+                            { type: 'pie', icon: 'chartPieIcon', title: 'Pie Chart' },
+                            { type: 'donut', icon: 'chartDoughnutIcon', title: 'Doughnut Chart' }
+                          ]}
+                        />
+                        {topNExpensiveProductsChartType === "bar" ? (
+                          <Chart 
+                            key={`${topNExpensiveProductsChartType}-${topNExpensiveProducts.length}`}
+                            onRefresh={handleChartRefresh}
+                            seriesColors={getInsightThemeColors()}
+                            className="chart3"
+                          >
+                          <BasicGroupedChart
+                            chartType={topNExpensiveProductsChartType}
+                            title=""
+                            subTitle=""
+                            data={topNExpensiveProducts}
+                            categoryField="label"
+                            valueField="value"
+                            categoryTitle=""
+                            showCategoryLabels={false}
+                            showValueLabels={false}
+                            legendPosition="bottom"
+                            legendTitle=""
+                            legendVisible={true}
+                            tooltipFormat="c2"
+                            showLabels={true}
+                            showCategoryInLabels={false}
+                            valueFormat="c2"
+                            labelFormat="c2"
+                            useColors={true}
+                            customTooltip={true}
+                          />
+                        </Chart>
 
-                  ) : (
-                    <Chart 
-                      key={`${topNExpensiveProductsChartType}-${topNExpensiveProducts.length}`}
-                      onRefresh={handleChartRefresh}
-                      seriesColors={getInsightThemeColors()}
-                    >
-                      <BasicPieDoughnutChart
-                        key={topNExpensiveProductsChartType}
-                        chartType={topNExpensiveProductsChartType}
-                        title=""
-                        subTitle=""
-                        data={topNExpensiveProducts}
-                        categoryField="category"
-                        valueField="value"
-                        tooltipFormat="c2"
-                        legendPosition="bottom"
-                        legendVisible={true}
-                        showLabels={true}
-                        valueFormat="c2"
-                        labelFormat="c2"
-                      />
-                    </Chart>
+                      ) : (
+                        <Chart 
+                          key={`${topNExpensiveProductsChartType}-${topNExpensiveProducts.length}`}
+                          onRefresh={handleChartRefresh}
+                          seriesColors={getInsightThemeColors()}
+                        >
+                          <BasicPieDoughnutChart
+                            key={topNExpensiveProductsChartType}
+                            chartType={topNExpensiveProductsChartType}
+                            title=""
+                            subTitle=""
+                            data={topNExpensiveProducts}
+                            categoryField="category"
+                            valueField="value"
+                            tooltipFormat="c2"
+                            legendPosition="bottom"
+                            legendVisible={true}
+                            showLabels={true}
+                            valueFormat="c2"
+                            labelFormat="c2"
+                          />
+                        </Chart>
+                        )}
+                      </>
                     )}
-                    </>
-                  )}
                   </div>
                 </div>
               </Carousel>
@@ -1387,24 +1456,24 @@ export default function AzureInvoiceClientContent(props) {
               <div className="dropdown-row">
                 <div className="dropdown-group">
                   <label className="label-text-bold">
-                    <Skeleton style={{ width: '120px', height: '16px', marginBottom: '4px' }} />
+                    <Skeleton className="skeleton-filter-label-long" />
                   </label>
-                  <Skeleton style={{ width: '200px', height: '32px' }} />
+                  <Skeleton className="skeleton-filter-dropdown" />
                 </div>
                 <div className="dropdown-group">
                   <label className="label-text-bold">
-                    <Skeleton style={{ width: '100px', height: '16px', marginBottom: '4px' }} />
+                    <Skeleton className="skeleton-filter-label-medium" />
                   </label>
-                  <Skeleton style={{ width: '200px', height: '32px' }} />
+                  <Skeleton className="skeleton-filter-dropdown" />
                 </div>
                 <div className="dropdown-group">
                   <label className="label-text-bold">
-                    <Skeleton style={{ width: '80px', height: '16px', marginBottom: '4px' }} />
+                    <Skeleton className="skeleton-filter-label-short" />
                   </label>
-                  <Skeleton style={{ width: '200px', height: '32px' }} />
+                  <Skeleton className="skeleton-filter-dropdown" />
                 </div>
                 <div className="">
-                  <Skeleton style={{ width: '120px', height: '40px' }} />
+                  <Skeleton className="skeleton-filter-button" />
                 </div>
               </div>
             ) : (
@@ -1478,40 +1547,40 @@ export default function AzureInvoiceClientContent(props) {
             {isLoadingTabData ? (
               <>
                 {/* Tab headers skeleton */}
-                <div className="azure-invoice-skeleton-tabs" style={{ borderBottom: '1px solid #e0e0e0', paddingBottom: '8px', marginBottom: '16px' }}>
-                  <Skeleton style={{ width: '130px', height: '36px', marginRight: '8px', display: 'inline-block' }} />
-                  <Skeleton style={{ width: '170px', height: '36px', display: 'inline-block' }} />
+                <div className="azure-invoice-skeleton-tabs">
+                  <Skeleton className="skeleton-tab-1" />
+                  <Skeleton className="skeleton-tab-2" />
                 </div>
                 {/* Grid-like skeleton content */}
                 <div className="azure-invoice-skeleton-tab-content">
                   {/* Grid header row */}
-                  <div style={{ display: 'flex', gap: '16px', marginBottom: '12px', padding: '12px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
-                    <Skeleton style={{ flex: 1, height: '20px' }} />
-                    <Skeleton style={{ flex: 1, height: '20px' }} />
-                    <Skeleton style={{ flex: 1, height: '20px' }} />
-                    <Skeleton style={{ flex: 1, height: '20px' }} />
-                    <Skeleton style={{ flex: 1, height: '20px' }} />
+                  <div className="skeleton-grid-header">
+                    <Skeleton className="skeleton-grid-header-cell" />
+                    <Skeleton className="skeleton-grid-header-cell" />
+                    <Skeleton className="skeleton-grid-header-cell" />
+                    <Skeleton className="skeleton-grid-header-cell" />
+                    <Skeleton className="skeleton-grid-header-cell" />
                   </div>
                   {/* Grid data rows */}
                   {[...Array(8)].map((_, index) => (
-                    <div key={index} style={{ display: 'flex', gap: '16px', marginBottom: '8px', padding: '12px', borderBottom: '1px solid #e0e0e0' }}>
-                      <Skeleton style={{ flex: 1, height: '16px' }} />
-                      <Skeleton style={{ flex: 1, height: '16px' }} />
-                      <Skeleton style={{ flex: 1, height: '16px' }} />
-                      <Skeleton style={{ flex: 1, height: '16px' }} />
-                      <Skeleton style={{ flex: 1, height: '16px' }} />
+                    <div key={index} className="skeleton-grid-row">
+                      <Skeleton className="skeleton-grid-cell" />
+                      <Skeleton className="skeleton-grid-cell" />
+                      <Skeleton className="skeleton-grid-cell" />
+                      <Skeleton className="skeleton-grid-cell" />
+                      <Skeleton className="skeleton-grid-cell" />
                     </div>
                   ))}
                   {/* Pagination skeleton */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', padding: '12px' }}>
-                    <Skeleton style={{ width: '120px', height: '32px' }} />
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <Skeleton style={{ width: '32px', height: '32px' }} />
-                      <Skeleton style={{ width: '32px', height: '32px' }} />
-                      <Skeleton style={{ width: '32px', height: '32px' }} />
-                      <Skeleton style={{ width: '32px', height: '32px' }} />
+                  <div className="skeleton-pagination">
+                    <Skeleton className="skeleton-page-info" />
+                    <div className="skeleton-page-buttons">
+                      <Skeleton className="skeleton-page-button" />
+                      <Skeleton className="skeleton-page-button" />
+                      <Skeleton className="skeleton-page-button" />
+                      <Skeleton className="skeleton-page-button" />
                     </div>
-                    <Skeleton style={{ width: '100px', height: '32px' }} />
+                    <Skeleton className="skeleton-page-size" />
                   </div>
                 </div>
               </>

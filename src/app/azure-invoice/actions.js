@@ -11,7 +11,7 @@ import { CacheKeys, CacheTTL } from '@/lib/cache/cacheKeys';
  * This function fetches ALL data needed for the page in one cached operation
  * Similar to how invoices page works for consistent behavior
  */
-export async function fetchConsolidatedAzureInvoiceData(accessToken, soldToId, selectedMonth = null, customerFilter = null) {
+export async function fetchConsolidatedAzureInvoiceData(accessToken, soldToId, selectedMonth = null, customerFilter = null, trendMonths = 6) {
   try {
     // If no accessToken provided, try to get from cookies as fallback
     let finalAccessToken = accessToken;
@@ -32,7 +32,7 @@ export async function fetchConsolidatedAzureInvoiceData(accessToken, soldToId, s
     
     // Create cache key for consolidated data (similar to invoices page)
     const monthValue = selectedMonth || 'current';
-    const cacheKey = `azure-consolidated:${soldToId}:${monthValue}:${customerFilter || 'all'}`;
+    const cacheKey = `azure-consolidated:${soldToId}:${monthValue}:${customerFilter || 'all'}:trend${trendMonths}`;
     
     const data = await getOrSetCached(
       cacheKey,
@@ -86,7 +86,7 @@ export async function fetchConsolidatedAzureInvoiceData(accessToken, soldToId, s
             }).then(res => res.ok ? res.json() : Promise.reject(new Error(`Credits: ${res.status}`))),
             
             // Invoice Trend
-            fetch(`${baseURL}/ccr-invoice-service/trend?months=6&limit=6${filterParam ? '&' + filterParam.substring(1) : ''}`, {
+            fetch(`${baseURL}/ccr-invoice-service/trend?months=${trendMonths}&limit=6${filterParam ? '&' + filterParam.substring(1) : ''}`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
