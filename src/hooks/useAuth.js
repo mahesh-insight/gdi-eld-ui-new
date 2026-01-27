@@ -45,6 +45,22 @@ export const useAuth = () => {
   const logout = () => {
     console.log('🔧 Auth: Logging out - clearing all data');
     
+    // Clear session tracking data
+    if (typeof window !== 'undefined') {
+      try {
+        import('@/lib/auth/sessionManager').then((module) => {
+          if (module.clearLastVisitedPage) {
+            module.clearLastVisitedPage();
+            console.log('✅ Auth: Cleared last visited page tracking');
+          }
+        }).catch(err => {
+          console.warn('⚠️ Auth: Could not clear session tracking:', err);
+        });
+      } catch (err) {
+        console.warn('⚠️ Auth: Session cleanup error:', err);
+      }
+    }
+    
     // Clear Redux state (this clears all sensitive data from memory)
     dispatch(clearAuth());
     

@@ -7,6 +7,11 @@ import {
   initializeAuth
 } from '../store/authSlice';
 import { setProperties } from '../store/uiSlice';
+import { 
+  hasActiveSession, 
+  getAuthenticatedRedirectPath,
+  updateSessionTimestamp 
+} from '../lib/auth/sessionManager';
 import './HomePageClient.css';
 
 export default function HomePageClient({ authCode, soldTo, salesOrg }) {
@@ -15,8 +20,10 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
   const [uiPropertiesLoading, setUiPropertiesLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
+  const [sessionCheckComplete, setSessionCheckComplete] = useState(false);
   const uiPropertiesFetchingRef = useRef(false);
   const authProcessingRef = useRef(false);
+  const sessionCheckedRef = useRef(false);
 
   const router = useRouter();
   const dispatch = useDispatch();
@@ -119,8 +126,21 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
         dispatch(initializeAuth(authPayload));
         console.log('✅ Auth successful - redirecting to dashboard immediately');
         
-        // Use window.location for immediate redirect (not async like router.push)
-        // This ensures we navigate to dashboard page immediately and show its loading.js skeleton
+        // Clean the URL to remove auth code before redirecting
+        if (typeof window !== 'undefined') {
+          const cleanUrl = new URL(window.location.href);
+          cleanUrl.searchParams.delete('code');
+          cleanUrl.searchParams.delete('soldTo');
+          cleanUrl.searchParams.delete('soldto');
+          cleanUrl.searchParams.delete('salesorg');
+          window.history.replaceState({}, '', cleanUrl.pathname);
+        }
+        
+        // Reset processing ref and clear session storage
+        authProcessingRef.current = false;
+        sessionStorage.removeItem(hasProcessedKey);
+        
+        // Use router.push for navigation (not window.location to preserve React state)
         router.push('/dashboard');
       } else {
         console.error('❌ Auth response validation failed');
@@ -132,8 +152,48 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
       const errorStatus = error?.response?.status;
       setProcessingMessage(`Authentication failed: ${error.message || 'Unknown error'}. Please try logging in again.`);
       setIsProcessing(false);
+      
+      // Reset processing state on error
+      authProcessingRef.current = false;
+      sessionStorage.removeItem(hasProcessedKey);
     }
   }, [authState, dispatch, router]);
+
+  // Check for active session on mount - redirect if session exists
+  useEffect(() => {
+    // Only check once on component mount
+    if (sessionCheckedRef.current) return;
+    
+    sessionCheckedRef.current = true;
+    
+    // If there's an auth code, skip session check and let auth processing handle it
+    if (authCode) {
+      console.log('⏭️ Auth code present - skipping session check, will process auth code');
+      setSessionCheckComplete(true);
+      return;
+    }
+    
+    // If user is directly accessing login page (no auth code), check for active session
+    if (!authCode && typeof window !== 'undefined') {
+      console.log('🔍 Checking for active session on login page access...');
+      
+      if (hasActiveSession()) {
+        console.log('✅ Active session found - redirecting to last visited page');
+        const redirectPath = getAuthenticatedRedirectPath();
+        
+        // Update session activity
+        updateSessionTimestamp();
+        
+        // Redirect to the appropriate page
+        router.replace(redirectPath);
+        return;
+      } else {
+        console.log('❌ No active session found - showing login page');
+      }
+    }
+    
+    setSessionCheckComplete(true);
+  }, [authCode, router]);
 
   // Fetch UI properties on mount (client-side only)
   useEffect(() => {
@@ -334,12 +394,14 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
     });
   }
 
-  // Show loading state until we have both properties AND AUTH_URL
-  if (uiPropertiesLoading || !activeUiProperties || !AUTH_URL) {
+  // Show loading state until session check is complete and we have properties
+  if (!sessionCheckComplete || uiPropertiesLoading || !activeUiProperties || !AUTH_URL) {
     return (
       <div className="loading-container">
         <div className="loading-spinner" />
-        <div className="loading-text">Loading configuration...</div>
+        <div className="loading-text">
+          {!sessionCheckComplete ? 'Checking session...' : 'Loading configuration...'}
+        </div>
       </div>
     );
   }

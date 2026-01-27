@@ -8,6 +8,7 @@ import AuthContextInitializer from '@/components/AuthContextInitializer';
 import CookieSync from '@/components/CookieSync';
 import { usePathname } from 'next/navigation';
 import { KendoIntlProvider } from '@/components/KendoIntlProvider';
+import { saveLastVisitedPage, updateSessionTimestamp } from '@/lib/auth/sessionManager';
 
 // Pages where header should NOT show (pre-login / error pages)
 const NO_HEADER_PATHS = ['/', '/Unauthorised', '/SignIn'];
@@ -38,6 +39,15 @@ export default function ClientLayout({ children }) {
       window.removeEventListener('error', handleError);
     };
   }, []);
+
+  // Track page visits for session restoration
+  useEffect(() => {
+    // Save the current page if it's not a login/auth page
+    if (pathname && !NO_HEADER_PATHS.includes(pathname)) {
+      saveLastVisitedPage(pathname);
+      updateSessionTimestamp();
+    }
+  }, [pathname]);
 
   const showHeader = !NO_HEADER_PATHS.includes(pathname);
 
