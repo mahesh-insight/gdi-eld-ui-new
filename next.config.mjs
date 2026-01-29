@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Enable standalone output for Node.js deployment
+  output: 'standalone',
+  
   // Enable React strict mode for better error detection
   reactStrictMode: true, // Re-enabled with proper deduplication in components
   

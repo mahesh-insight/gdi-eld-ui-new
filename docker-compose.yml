@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  gdi-eld-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        BUILD_ENV: production
+    image: gdi-eld-ui:latest
+    container_name: gdi-eld-ui
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL:-https://api-ccrdev.insight.com}
+      - NEXT_PUBLIC_APPINSIGHTS_CONNECTION_STRING=${NEXT_PUBLIC_APPINSIGHTS_CONNECTION_STRING:-}
+      - PORT=3000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - gdi-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  gdi-network:
+    driver: bridge

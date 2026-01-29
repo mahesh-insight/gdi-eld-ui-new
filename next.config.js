@@ -6,6 +6,9 @@ module.exports = (phase, { defaultConfig }) => {
    * @type {import('next').NextConfig}
    */
   const nextConfig = {
+    // Enable standalone output for Node.js deployment
+    output: 'standalone',
+    
     // You can manage environment variables here for the client-side
     // Server-side variables are handled via Next.js environment variables.
     env: {
