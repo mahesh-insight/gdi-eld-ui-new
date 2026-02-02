@@ -248,11 +248,4 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   window.restoreAuthFromBackup = restoreAuthFromBackup;
   window.validatePersistedData = validatePersistedData;
   window.emergencyInjectToken = emergencyInjectToken;
-  
-  console.log('🛠️ Redux Persist Recovery Tools Available:');
-  console.log('  • window.inspectPersistedAuth() - View current persisted data');
-  console.log('  • window.backupAuthState() - Create backup of current auth');
-  console.log('  • window.restoreAuthFromBackup() - Restore from backup');
-  console.log('  • window.validatePersistedData() - Check for data corruption');
-  console.log('  • window.emergencyInjectToken(token, soldTo) - Manually inject token');
 }

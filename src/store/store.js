@@ -27,6 +27,13 @@ import pageSlice from './pageSlice';
 import userSlice from '../lib/store/slices/userSlice';
 import gridSlice from './gridSlice';
 import dashboardSlice from './dashboardSlice';
+import navigationContextReducer from './navigationContextSlice';
+// Persist config for navigation context (ephemeral, but survives navigation)
+const navigationContextPersistConfig = {
+  key: 'ccr-navigation-context',
+  storage,
+  whitelist: ['context'],
+};
 
 // Import recovery utilities (dev tools)
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
@@ -287,6 +294,7 @@ const rootReducer = combineReducers({
   page: pageSlice,
   user: userSlice,
   grid: gridSlice,
+  navigationContext: persistReducer(navigationContextPersistConfig, navigationContextReducer),
 });
 
 // Configure the Redux store

@@ -185,7 +185,7 @@ export const BasicGroupedChart = (props) => {
             <ChartSeriesItem
               key={index}
               type={chartType}
-              data={[{ value: item[valueField], label: item[categoryField] }]}
+              data={[{ value: item[valueField], label: item[categoryField], url: item.url }]}
               name={item[categoryField]}
               color={item.color}
               field="value"
@@ -201,7 +201,6 @@ export const BasicGroupedChart = (props) => {
               }}
             >
               <ChartSeriesItemTooltip format={item[categoryField] + " - " + "{0:" + tooltipFormat + "}"} />
-
             </ChartSeriesItem>
           ))
         ) : (

@@ -3,21 +3,12 @@
 import { useSelector } from 'react-redux';
 import { useState, useCallback, useEffect } from 'react';
 import './DashboardWidgets.css';
-import { BasicChart } from '@/common/Charts/BasicChart';
-import { BasicGroupedChart } from '@/common/Charts/BasicGroupedChart';
-import { Chart } from '@progress/kendo-react-charts';
-import ChartTitleAndButtons from '@/components/ChartTitleAndButtons';
-import { CurrencyFormatter } from '@/common/CurrencyFormatter';
-import { MetricLabel } from '@/common/MetricLabel';
-import { ChangeLabel } from '@/common/ChangeLabel';
-import { formatMonthYear } from '@/lib/utils';
-import { ArrowUpIcon, ArrowDownIcon } from '@/lib/svg/svgList';
-
-const iconPaths = {
-  warning: "M256 32 0 480h512zm-32 160h64v160h-64zm0 256v-64h64v64z",
-  error: "M256 32C132.3 32 32 132.3 32 256s100.3 224 224 224 224-100.3 224-224S379.7 32 256 32m-32 352L96 256l45-45 83 83 147-147 45 45z",
-  info: "M256 480c123.7 0 224-100.3 224-224S379.7 32 256 32 32 132.3 32 256s100.3 224 224 224m-32-352h64v160h-64zm0 256v-64h64v64z",
-};
+import AzureSpendWidget from './AzureSpendWidget';
+import M365Widget from './M365Widget';
+import MSCloudWidget from './MSCloudWidget';
+import AdobeWidget from './AdobeWidget';
+import AWSWidget from './AWSWidget';
+import MPSAWidget from './MPSAWidget';
 
 export default function DashboardWidgets({ ssrData, mode }) {
   const widgetFlags = useSelector(state => state.dashboard.widgetFlags);
@@ -56,19 +47,6 @@ export default function DashboardWidgets({ ssrData, mode }) {
     { type: 'line', icon: 'chartLineStackedIcon', title: 'Line chart' },
     { type: 'area', icon: 'chartAreaStackedIcon', title: 'Area chart' }
   ];
-
-  console.log('🎨 DashboardWidgets rendering:', {
-    mode,
-    hasSSRData: !!ssrData,
-    widgetKeys: Object.keys(widgets),
-    widgetFlags,
-    chartTypes: {
-      azure: azureChartType,
-      msCloud: msCloudChartType,
-      adobe: adobeChartType,
-      aws: awsChartType
-    }
-  });
   
   // Save widget count to localStorage for loading.js to use
   useEffect(() => {
@@ -97,529 +75,45 @@ export default function DashboardWidgets({ ssrData, mode }) {
   // Render Azure Spend Widget
   const renderAzureSpendWidget = () => {
     if (!widgetFlags.isAzureSpendWidgetDataState) return null;
-    
     const data = widgets.azureSpend?.data || {};
-    const { 
-      currentEstimatedUsage, 
-      latestBilledUsage, 
-      latestAzureUsage,
-      latestInvoiceDate,
-      latestBilledUsageDate,
-      latestAzureChange,
-      latestAzureChangePercent,
-      latestAzureChangePercentExists,
-      currencyCode
-    } = data;
-
     return (
-      <div className="dashboard-widget">
-        <div className="widget-header">
-          <h3>Azure Spend</h3>
-        </div>
-        <div className="widget-body">
-          <div className="widget-metric">
-            <div className="widget-metric-row">
-              <MetricLabel title={`Current estimated usage for ${formatMonthYear(latestInvoiceDate)}`}>
-                Current Estimated Usage
-              </MetricLabel>
-              <CurrencyFormatter
-                title={`Current estimated usage for ${formatMonthYear(latestInvoiceDate)}`}
-                value={currentEstimatedUsage}
-                alignRight={true}
-                showCurrencyCode={true}
-                currency={currencyCode}
-              />
-            </div>
-          </div>
-          <div className="widget-metric">
-            <div className="widget-metric-row">
-              <MetricLabel title={`Invoiced usage for ${formatMonthYear(latestBilledUsageDate)}`}>
-                Latest Billed Usage
-              </MetricLabel>
-              <CurrencyFormatter
-                title={`Invoiced usage for ${formatMonthYear(latestBilledUsageDate)}`}
-                value={latestAzureUsage}
-                alignRight={true}
-                showCurrencyCode={true}
-                currency={currencyCode}
-              />
-            </div>
-          </div>
-          <div className="widget-metric">
-            <div className="widget-metric-row">
-              <MetricLabel title={`Total Azure Spend for ${formatMonthYear(latestInvoiceDate)}`}>
-                Latest Azure Invoice
-              </MetricLabel>
-              <CurrencyFormatter
-                title={`Total Azure Spend for ${formatMonthYear(latestInvoiceDate)}`}
-                value={latestBilledUsage}
-                alignRight={true}
-                showCurrencyCode={true}
-                currency={currencyCode}
-              />
-            </div>
-          </div>
-          {latestAzureChange !== 0 && (
-            <div className="widget-change">
-              <span className={`change-indicator ${latestAzureChange > 0 ? 'up' : 'down'}`}>
-                {latestAzureChange > 0 ? <ArrowUpIcon className="svg-style"/> : <ArrowDownIcon className="svg-style"/>}
-              </span>
-              <ChangeLabel
-                title={`Difference in spend on ${formatMonthYear(latestInvoiceDate)} invoice from the previous month`}
-                value={Math.abs(latestAzureChange)}
-                currency={currencyCode}
-                percentage={latestAzureChangePercent}
-                showPercentage={latestAzureChangePercentExists}
-              />
-            </div>
-          )}
-        </div>
-        <div className="widget-chart">
-          <ChartTitleAndButtons
-            title="Trending 6 Month Spend"
-            trendingChartType={azureChartType}
-            handleChartTypeChange={handleAzureChartTypeChange}
-            chartOptions={columnLineAreaOptions}
-            dropDownList={false}
-            pageType="dashboard"
-          />
-          {data.latestInvoiceTrend?.chartData && data.latestInvoiceTrend.chartData.length > 0 ? (
-            <Chart key={azureChartType} onRefresh={() => {}} className="dashboard-chart">
-              <BasicGroupedChart
-                chartType={azureChartType}
-                data={data.latestInvoiceTrend.chartData}
-                groupedByField="label"
-                valueField="value"
-                categoryField="group"
-                categoryFormat="MMM"
-                valueFormat="c0"
-                legendPosition="bottom"
-                showLabels={false}
-                stacked={azureChartType === 'column'}
-                yAxisLabelStep={2}
-                height={250}
-              />
-            </Chart>
-          ) : (
-            <div className="chart-placeholder">No chart data available</div>
-          )}
-        </div>
-      </div>
+      <AzureSpendWidget data={data} />
     );
   };
 
   // Render M365 Widget
   const renderM365Widget = () => {
     if (!widgetFlags.isM365WidgetDataState) return null;
-    
     const data = widgets.m365?.data || {};
-    const { 
-      cloudLicenseTotalSpend,
-      latestBillableItemDate,
-      latestChange,
-      latestChangePercent,
-      haveLatestChangePercent,
-      subscriptionSummary,
-      subscriptionExpirationSummary,
-      currencyCode
-    } = data;
-
-    const totals = subscriptionSummary?.totals || [];
-
-    return (
-      <div className="dashboard-widget">
-        <div className="widget-header">
-          <h3>M365 | Modern Work</h3>
-        </div>
-        <div className="widget-body">
-          <div className="widget-metric">
-            <div className="widget-metric-row">
-              <MetricLabel title={`Invoiced M365 for ${formatDate(latestBillableItemDate)}`}>
-                Latest Invoice
-              </MetricLabel>
-              <CurrencyFormatter
-                title={`Invoiced M365 for ${formatMonthYear(latestBillableItemDate)}`}
-                value={cloudLicenseTotalSpend}
-                alignRight={true}
-                showCurrencyCode={true}
-                currency={currencyCode}
-              />
-            </div>
-          </div>
-          {latestChange !== 0 && (
-            <div className="widget-change">
-              <span className={`change-indicator ${latestChange > 0 ? 'up' : 'down'}`}>
-                {latestChange > 0 ? <ArrowUpIcon className="svg-style" /> : <ArrowDownIcon className="svg-style"/>}
-              </span>
-              <ChangeLabel
-                title={`Difference in spend on ${formatMonthYear(latestBillableItemDate)} M365 invoice from the previous month`}
-                value={Math.abs(latestChange)}
-                currency={currencyCode}
-                percentage={latestChangePercent}
-                showPercentage={haveLatestChangePercent}
-              />
-            </div>
-          )}
-          
-          {subscriptionExpirationSummary && subscriptionExpirationSummary.length > 0 && (
-            <div className="widget-alerts">
-              {subscriptionExpirationSummary.map((alert, idx) => (
-                <div key={idx} className={`alert alert-${alert.iconType}`}>
-                  <div className="alert-icon">
-                    <svg viewBox="0 0 512 512" fill={alert.iconStatus} width="1em" height="1em">
-                      {iconPaths[alert.iconType] && (
-                        <path d={iconPaths[alert.iconType]} />
-                      )}
-                    </svg>
-                  </div>
-                  <span className="alert-message">{alert.message}</span>
-                </div>
-              ))}
-            </div>
-          )}
-          
-          <div className="widget-counts">
-            {totals.map((item, idx) => {
-              const colorClasses = ['vertical-pink', 'vertical-blue', 'vertical-gray'];
-              const colorClass = colorClasses[idx] || 'vertical-gray';
-              return (
-                <div key={idx} className={`count-item ${colorClass}`}>
-                  <span className="count-label">{item.label}</span>
-                  <span className="count-value">{item.value}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    );
+    return <M365Widget data={data} />;
   };
 
   // Render MS Cloud Widget
   const renderMSCloudWidget = () => {
     if (!widgetFlags.isMSSpendWidgetDataState) return null;
-    
     const data = widgets.msCloud?.data || {};
-    const {
-      billableItemTotal,
-      latestBillableItemDate,
-      latestChange,
-      latestChangePercent,
-      latestChangePercentExists,
-      currencyCode
-    } = data;
-
-    return (
-      <div className="dashboard-widget">
-        <div className="widget-header">
-          <h3>Total Microsoft Cloud</h3>
-        </div>
-        <div className="widget-body">
-          <div className="widget-metric">
-            <div className="widget-metric-row">
-              <MetricLabel title={`Invoice for ${formatDate(latestBillableItemDate)}`}>
-                Latest Insight Invoice
-              </MetricLabel>
-              <CurrencyFormatter
-                title={`Invoice for ${formatMonthYear(latestBillableItemDate)}`}
-                value={billableItemTotal}
-                alignRight={true}
-                showCurrencyCode={true}
-                currency={currencyCode}
-              />
-            </div>
-          </div>
-          {latestChange !== 0 && (
-            <div className="widget-change">
-              <span className={`change-indicator ${latestChange > 0 ? 'up' : 'down'}`}>
-                {latestChange > 0 ? <ArrowUpIcon className="svg-style" /> : <ArrowDownIcon className="svg-style"/>}
-              </span>
-              <ChangeLabel
-                title={`Difference in spend on ${formatMonthYear(latestBillableItemDate)} invoice from the previous month`}
-                value={Math.abs(latestChange)}
-                currency={currencyCode}
-                percentage={latestChangePercent}
-                showPercentage={latestChangePercentExists}
-              />
-            </div>
-          )}
-        </div>
-        <div className="widget-chart">
-          <ChartTitleAndButtons
-            title="Trending 6 Month Spend"
-            trendingChartType={msCloudChartType}
-            handleChartTypeChange={handleMsCloudChartTypeChange}
-            chartOptions={columnLineAreaOptions}
-            dropDownList={false}
-            pageType="dashboard"
-          />
-          {data.billableItemTrend?.chartData && data.billableItemTrend.chartData.length > 0 ? (
-            <Chart key={msCloudChartType} onRefresh={() => {}} className="dashboard-chart">
-              <BasicGroupedChart
-                chartType={msCloudChartType}
-                data={data.billableItemTrend.chartData}
-                groupedByField="label"
-                valueField="value"
-                categoryField="group"
-                categoryFormat="MMM"
-                valueFormat="c0"
-                legendPosition="bottom"
-                showLabels={false}
-                stacked={msCloudChartType === 'column'}
-                yAxisLabelStep={2}
-                height={250}
-              />
-            </Chart>
-          ) : (
-            <div className="chart-placeholder">No chart data available</div>
-          )}
-        </div>
-      </div>
-    );
+    return <MSCloudWidget data={data} />;
   };
 
   // Render Adobe Widget
   const renderAdobeWidget = () => {
     if (!widgetFlags.isAdobeWidgetDataState) return null;
-    
     const data = widgets.adobeSpend?.data || {};
-    const {
-      totalSpend,
-      latestBillableItemDate,
-      latestChange,
-      latestPercent,
-      latestPercentExists,
-      currencyCode
-    } = data;
-
-    return (
-      <div className="dashboard-widget">
-        <div className="widget-header">
-          <h3>Adobe VIP</h3>
-        </div>
-        <div className="widget-body">
-          <div className="widget-metric">
-            <div className="widget-metric-row">
-              <MetricLabel title={`Invoice for ${formatDate(latestBillableItemDate)}`}>
-                Latest Insight Invoice
-              </MetricLabel>
-               <CurrencyFormatter
-                title={`Invoice for ${formatMonthYear(latestBillableItemDate)}`}
-                value={totalSpend}
-                alignRight={true}
-                showCurrencyCode={true}
-                currency={currencyCode}
-              />
-            </div>
-          </div>
-          {latestChange !== 0 && (
-            <div className="widget-change">
-              <span className={`change-indicator ${latestChange > 0 ? 'up' : 'down'}`}>
-                {latestChange > 0 ? <ArrowUpIcon className="svg-style" /> : <ArrowDownIcon className="svg-style"/>}
-              </span>
-              <ChangeLabel
-                title={`Difference in spend on ${formatMonthYear(latestBillableItemDate)} invoice from the previous month`}
-                value={Math.abs(latestChange)}
-                currency={currencyCode}
-                percentage={latestPercent}
-                showPercentage={latestPercentExists}
-              />
-            </div>
-          )}
-        </div>
-        <div className="widget-chart">
-          <ChartTitleAndButtons
-            title="Trending 6 Month Spend"
-            trendingChartType={adobeChartType}
-            handleChartTypeChange={handleAdobeChartTypeChange}
-            chartOptions={columnLineAreaOptions}
-            dropDownList={false}
-            pageType="dashboard"
-          />
-          {data.billableItemTrend?.chartData && data.billableItemTrend.chartData.length > 0 ? (
-            <Chart key={adobeChartType} onRefresh={() => {}} className="dashboard-chart">
-              <BasicGroupedChart
-                chartType={adobeChartType}
-                data={data.billableItemTrend.chartData}
-                groupedByField="label"
-                valueField="value"
-                categoryField="group"
-                categoryFormat="MMM"
-                valueFormat="c0"
-                legendPosition="bottom"
-                showLabels={false}
-                stacked={adobeChartType === 'column'}
-                yAxisLabelStep={2}
-                height={250}
-              />
-            </Chart>
-          ) : (
-            <div className="chart-placeholder">No chart data available</div>
-          )}
-        </div>
-      </div>
-    );
+    return <AdobeWidget data={data} />;
   };
 
   // Render AWS Widget
   const renderAWSWidget = () => {
     if (!widgetFlags.isAwsSpendWidgetDataState) return null;
-    
     const data = widgets.awsSpend?.data || {};
-    const {
-      totalSpend,
-      currentEstimatedUsage,
-      latestBillableItemDate,
-      latestChange,
-      latestPercent,
-      latestPercentExists,
-      currencyCode
-    } = data;
-
-    return (
-      <div className="dashboard-widget">
-        <div className="widget-header">
-          <h3>Amazon Web Services</h3>
-        </div>
-        <div className="widget-body">
-          {/* {currentEstimatedUsage > 0 && ( */}
-            <div className="widget-metric">
-              <div className="widget-metric-row">
-                <MetricLabel title={`Current estimated AWS usage for ${formatMonthYear(latestBillableItemDate)}`}>
-                  Current Estimated Usage
-                </MetricLabel>
-                <CurrencyFormatter
-                  title={`Current estimated AWS usage for ${formatMonthYear(latestBillableItemDate)}`}
-                  value={currentEstimatedUsage}
-                  alignRight={true}
-                  showCurrencyCode={true}
-                  currency={currencyCode}
-                />
-              </div>
-            </div>
-          {/* )} */}
-          <div className="widget-metric">
-            <div className="widget-metric-row">
-              <MetricLabel title={`Invoice for ${formatMonthYear(latestBillableItemDate)}`}>
-                Latest Insight Invoice
-              </MetricLabel>
-              <CurrencyFormatter
-                title={`Invoice for ${formatMonthYear(latestBillableItemDate)}`}
-                value={totalSpend}
-                alignRight={true}
-                showCurrencyCode={true}
-                currency={currencyCode}
-              />
-            </div>
-          </div>
-          {latestChange !== 0 && (
-            <div className="widget-change">
-              <span className={`change-indicator ${latestChange > 0 ? 'up' : 'down'}`}>
-                {latestChange > 0 ? <ArrowUpIcon className="svg-style" /> : <ArrowDownIcon className="svg-style" />}
-              </span>
-              <ChangeLabel
-                title={`Difference in spend on ${formatMonthYear(latestBillableItemDate)} invoice from the previous month`}
-                value={Math.abs(latestChange)}
-                currency={currencyCode}
-                percentage={latestPercent}
-                showPercentage={latestPercentExists}
-              />
-            </div>
-          )}
-        </div>
-        <div className="widget-chart">
-          <ChartTitleAndButtons
-            title="Trending 6 Month Spend"
-            trendingChartType={awsChartType}
-            handleChartTypeChange={handleAwsChartTypeChange}
-            chartOptions={columnLineAreaOptions}
-            dropDownList={false}
-            pageType="dashboard"
-          />
-          {data.billableItemTrend?.chartData && data.billableItemTrend.chartData.length > 0 ? (
-            <Chart key={awsChartType} onRefresh={() => {}} className="dashboard-chart">
-              <BasicGroupedChart
-                chartType={awsChartType}
-                data={data.billableItemTrend.chartData}
-                groupedByField="label"
-                valueField="value"
-                categoryField="group"
-                categoryFormat="MMM"
-                valueFormat="c0"
-                legendPosition="bottom"
-                showLabels={false}
-                stacked={awsChartType === 'column'}
-                yAxisLabelStep={2}
-                height={250}
-              />
-            </Chart>
-          ) : (
-            <div className="chart-placeholder">No chart data available</div>
-          )}
-        </div>
-      </div>
-    );
+    return <AWSWidget data={data} />;
   };
 
   // Render MPSA Widget
   const renderMPSAWidget = () => {
     if (!widgetFlags.isMPSAWidgetDataState) return null;
-    
     const data = widgets.mpsa?.data || {};
-    const {
-      mpsaExpirationSummaries,
-      totals
-    } = data;
-
-    // Map API labels to display labels with specific order and colors
-    const labelMapping = {
-      'ProductNames': { label: 'Products', color: 'vertical-pink', order: 0 },
-      'Licenses': { label: 'Licenses', color: 'vertical-blue', order: 1 },
-      'SoftwareAssurance': { label: 'Active SA', color: 'vertical-gray', order: 2 }
-    };
-
-    // Build counts array with mapped labels and colors
-    const mappedCounts = totals?.map(item => ({
-      label: labelMapping[item.label]?.label || item.label,
-      value: item.value,
-      color: labelMapping[item.label]?.color || 'vertical-gray',
-      order: labelMapping[item.label]?.order ?? 999
-    })).sort((a, b) => a.order - b.order) || [];
-
-    return (
-      <div className="dashboard-widget">
-        <div className="widget-header">
-          <h3>Microsoft MPSA Licenses</h3>
-        </div>
-        <div className="widget-body">
-          <div className="widget-counts">
-            {mappedCounts.map((item, idx) => (
-              <div key={idx} className={`count-item ${item.color}`}>
-                <span className="count-label">{item.label}</span>
-                <span className="count-value">{item.value}</span>
-              </div>
-            ))}
-          </div>
-
-          {mpsaExpirationSummaries && mpsaExpirationSummaries.length > 0 && (
-            <div className="widget-alerts">
-              {mpsaExpirationSummaries.map((alert, idx) => (
-                <div key={idx} className={`alert alert-${alert.iconType}`}>
-                  <div className="alert-icon">
-                    <svg viewBox="0 0 512 512" fill={alert.iconStatus} width="1em" height="1em">
-                      {iconPaths[alert.iconType] && (
-                        <path d={iconPaths[alert.iconType]} />
-                      )}
-                    </svg>
-                  </div>
-                  <span className="alert-message">{alert.message}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    );
+    return <MPSAWidget data={data} />;
   };
 
   const hasAnyWidgets = Object.values(widgetFlags).some(flag => flag === true);

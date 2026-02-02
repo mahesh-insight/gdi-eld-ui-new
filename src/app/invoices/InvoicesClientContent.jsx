@@ -1,8 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useDispatch } from 'react-redux';
+import { setNavigationContext } from '@/store/navigationContextSlice';
 import { useSelector } from 'react-redux';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { flushSync } from 'react-dom';
 import store from '@/store/store';
 import { useTranslation } from 'react-i18next';
@@ -77,6 +80,8 @@ const formatMonthValue = (monthValue) => {
 };
 
 export default function InvoicesClientContent({ mode = 'csr', initialData, userContext, ssrPerformance }) {
+  const router = useRouter();
+  const dispatch = useDispatch();
   // Translation hook
   const { t } = useTranslation();
   
@@ -316,7 +321,8 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       // Transform chart data for BasicGroupedChart component
       const transformedChartData = chartData.map(item => ({
         label: item.label || item.category || 'Unknown',
-        value: item.value || 0
+        value: item.value || 0,
+        url: item.url || ''
       }));
       
       return transformedChartData;
@@ -499,7 +505,8 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
             // Transform chart data for BasicGroupedChart component
             const transformedChartData = chartData.map(item => ({
               label: item.label || item.category || 'Unknown',
-              value: item.value || 0
+              value: item.value || 0,
+              url: item.url || ''
             }));
             
             console.log('🔍 Breakdown Chart Data Transformation:', {
@@ -710,7 +717,8 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         
         const transformedChartData = chartData.map(item => ({
           label: item.label || item.category || 'Unknown',
-          value: item.value || 0
+          value: item.value || 0,
+          url: item.url || ''
         }));
         
         setBreakdownChartData(transformedChartData);
@@ -866,7 +874,8 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         // Transform chart data for BasicGroupedChart component
         const transformedChartData = chartData.map(item => ({
           label: item.label || item.category || 'Unknown',
-          value: item.value || 0
+          value: item.value || 0,
+          url: item.url || ''
         }));
         
         setBreakdownChartData(transformedChartData);
@@ -1501,7 +1510,8 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       if (chartData && chartData.length > 0) {
         const transformedChartData = chartData.map(item => ({
           label: item.label || item.category || item.name || item.productCategory || 'Unknown',
-          value: item.value || item.amount || item.spend || item.totalSpend || 0
+          value: item.value || item.amount || item.spend || item.totalSpend || 0,
+          url: item.url || ''
         }));
         
         setBreakdownChartData(transformedChartData);
@@ -1649,6 +1659,23 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       }, 100);
     }
   }, [mode]);
+
+  const onChartClick = function (e) {
+    const { url, label, group } = e.dataItem || {};
+    if (url) {
+      // Store context in sessionStorage before navigating (synchronous)
+      if (typeof window !== 'undefined') {
+        const context = {
+          label: label || '',
+          month: selectedMonth?.value || '',
+          provider: apiEndpoint || '',
+        };
+        sessionStorage.setItem('navigationContext', JSON.stringify(context));
+        console.log('📤 Navigation context stored:', context);
+      }
+      router.push(url);
+    }
+  };
 
   // ✅ SSR BEHAVIOR: No automatic API calls on initial load
   // ✅ CSR BEHAVIOR: Only user interactions trigger client-side API calls  
@@ -1911,6 +1938,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
                 <Chart 
                   onRefresh={handleChartRefresh}
                   seriesColors={getInsightThemeColors()}
+                  onSeriesClick={onChartClick}
                 >
                   <BasicGroupedChart
                     chartType="column"
