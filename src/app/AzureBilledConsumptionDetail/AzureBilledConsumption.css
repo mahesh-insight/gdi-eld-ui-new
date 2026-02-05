@@ -1,0 +1,518 @@
+/* Azure Billed Consumption Detail Page Styles - Scoped to azure-billed only */
+
+.azure-billed-page {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding: 20px;
+}
+
+.azure-billed-page .azure-billed-container {
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Header Section */
+.azure-billed-page .azure-billed-header {
+  margin-bottom: 24px;
+}
+
+/* Breadcrumb and KPI Cards in same row (matching azure-invoice) */
+.azure-billed-page .azure-billed-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 20px;
+}
+
+/* Breadcrumb on left */
+.azure-billed-page .azure-billed-breadcrumb {
+  flex-shrink: 0;
+}
+
+/* KPI Cards on right */
+.azure-billed-page .kpi-cards {
+  display: flex;
+  gap: 16px;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.azure-billed-page .kpi-card {
+  flex: 0 1 auto;
+  min-width: 180px;
+  padding: 12px 16px;
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: box-shadow 0.2s ease;
+}
+
+.azure-billed-page .kpi-card:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+/* Specific KPI card border colors matching azure-invoice */
+.azure-billed-page .kpi-card.archera-link {
+  border: none;
+  border-left: none;
+  padding-top: 10px;
+  font-size: 14px;
+  background-color: transparent;
+  box-shadow: none;
+  min-height: auto;
+}
+
+.azure-billed-page .kpi-card.archera-link:hover {
+  box-shadow: none;
+}
+
+.azure-billed-page .kpi-card.archera-link .kpi-label {
+  color: #ae0a46;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.azure-billed-page .archera-icon {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.azure-billed-page .kpi-card.invoice-month {
+  border-left: 7px solid #9f177a;
+}
+
+.azure-billed-page .kpi-card.invoice-number {
+  border-left: 7px solid #007996;
+}
+
+.azure-billed-page .kpi-card.invoice-credits {
+  border-left: 7px solid #cbc4c3;
+}
+
+.azure-billed-page .kpi-card.azure-usage-total {
+  border-left: 7px solid #007996;
+}
+
+.azure-billed-page .kpi-label {
+  font-size: 14px;
+  font-weight: 400;
+  color: #7f8c8d;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.azure-billed-page .kpi-value {
+  font-size: 18px;
+  color: #3e332d;
+  line-height: 1.2;
+}
+
+/* Specific KPI value colors */
+.azure-billed-page .kpi-card.invoice-month .kpi-value {
+  color: #3e332d;
+}
+
+.azure-billed-page .kpi-card.invoice-credits .kpi-value {
+  color: #3e332d;
+}
+
+.azure-billed-page .kpi-card.azure-usage-total .kpi-value {
+  color: #3e332d;
+}
+
+.azure-billed-page .info-icon {
+  cursor: help;
+  font-size: 14px;
+  color: #666;
+}
+
+/* Skeleton wrappers */
+.azure-billed-page .skeleton-kpi-wrapper {
+  flex: 0 1 auto;
+  min-width: 180px;
+  height: 80px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  background-color: #ffffff;
+}
+
+.azure-billed-page .skeleton-kpi-wrapper .k-skeleton {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.azure-billed-page .skeleton-full-size {
+  width: 100%;
+  height: 100%;
+}
+
+/* Header Bottom */
+.azure-billed-page .azure-billed-header-bottom {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 10px 0 0;
+  border: 0;
+}
+
+.azure-billed-page .azure-billed-customer-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 23%;
+}
+
+.azure-billed-page .azure-billed-customer-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+.azure-billed-page .azure-billed-customer-dropdown {
+  width: 100%;
+}
+
+.azure-billed-page .skeleton-customer-label {
+  width: 100px;
+  height: 16px;
+}
+
+.azure-billed-page .skeleton-customer-dropdown {
+  width: 250px;
+  height: 38px;
+}
+
+.azure-billed-page .skeleton-tabs {
+  width: 100%;
+  height: 50px;
+  margin-bottom: 16px;
+}
+
+.azure-billed-page .skeleton-table {
+  width: 100%;
+  border-radius: 4px;
+}
+
+.azure-billed-page .azure-billed-tab-skeleton-content {
+  padding: 20px;
+  background-color: #fff;
+}
+
+/* Tabs Section */
+.azure-billed-page .azure-billed-tabs-section {
+  margin-top: 24px;
+}
+
+.azure-billed-page .azure-billed-tabstrip {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.azure-billed-page .azure-billed-tab-content {
+  padding: 20px;
+  background-color: #fff;
+  min-height: 400px;
+}
+
+/* Tab strip customization */
+.azure-billed-page .azure-billed-tabstrip .k-tabstrip-items-wrapper {
+  background-color: #f9f9f9;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.azure-billed-page .azure-billed-tabstrip .k-tabstrip-item {
+  font-weight: 500;
+  color: #666;
+}
+
+.azure-billed-page .azure-billed-tabstrip .k-tabstrip-item.k-active {
+  background-color: #fff;
+  color: #0078d4;
+  border-bottom-color: transparent;
+}
+
+/* Error Message */
+.azure-billed-page .error-message {
+  padding: 16px;
+  background-color: #fef0f0;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+  color: #721c24;
+  margin: 16px 0;
+}
+
+/* Loading States */
+.azure-billed-page .azure-billed-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  color: #666;
+}
+
+/* Summary Tables */
+.azure-billed-page .summary-tables {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.azure-billed-page .summary-section {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.azure-billed-page .summary-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.azure-billed-page .summary-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.azure-billed-page .stat-card {
+  background: #f8f9fa;
+  border-radius: 6px;
+  padding: 16px;
+  text-align: center;
+}
+
+.azure-billed-page .stat-label {
+  font-size: 12px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.azure-billed-page .stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #0078d4;
+}
+
+.azure-billed-page .summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.azure-billed-page .summary-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.azure-billed-page .summary-list-item:hover {
+  background: #e9ecef;
+}
+
+.azure-billed-page .summary-list-item.more-items {
+  font-style: italic;
+  color: #666;
+  justify-content: center;
+}
+
+.azure-billed-page .summary-item-label {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.azure-billed-page .summary-item-value {
+  font-size: 13px;
+  color: #666;
+  font-family: monospace;
+}
+
+.azure-billed-page .no-data-message {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.azure-billed-page .no-data-message p {
+  font-size: 16px;
+}
+
+.azure-billed-page .billable_item_grid {
+  width: 100%;
+  background: white;
+  border-radius: 4px;
+}
+
+/* Filter Section Styles (matching azure-invoice) - Now inside tabs */
+.azure-billed-page .azure-invoice-filters-section {
+  margin-bottom: 20px;
+  padding: 16px 20px;
+  background-color: #ffffff;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+}
+
+.azure-billed-page .dropdown-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.azure-billed-page .dropdown-group {
+  flex: 1;
+  min-width: 220px;
+  max-width: 320px;
+}
+
+.azure-billed-page .dropdown-group label,
+.azure-billed-page .label-text-bold {
+  display: block;
+  margin-bottom: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+.azure-billed-page .dropdown-group .k-multiselect {
+  width: 100%;
+  min-height: 36px;
+}
+
+.azure-billed-page .apply-filters-btn {
+  background-color: #ae0a46;
+  color: white;
+  border: none;
+  padding: 13px 35px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+  margin-top: 24px;
+  white-space: nowrap;
+}
+
+.azure-billed-page .apply-filters-btn:hover:not(:disabled) {
+  background-color: #6f062d;
+}
+
+.azure-billed-page .apply-filters-btn:disabled {
+  background-color: #ae0a46;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Chart Section */
+.azure-billed-page .azure-billed-chart-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+}
+
+/* Skeleton styles for filters */
+.azure-billed-page .skeleton-filter-label-long {
+  width: 140px;
+  height: 16px;
+  margin-bottom: 6px;
+}
+
+.azure-billed-page .skeleton-filter-label-medium {
+  width: 100px;
+  height: 16px;
+  margin-bottom: 6px;
+}
+
+.azure-billed-page .skeleton-filter-dropdown {
+  width: 100%;
+  height: 36px;
+}
+
+.azure-billed-page .skeleton-filter-button {
+  width: 120px;
+  height: 36px;
+  margin-top: 20px;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .azure-billed-page .azure-billed-header-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .azure-billed-page .kpi-cards {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .azure-billed-page .kpi-card {
+    min-width: calc(50% - 8px);
+  }
+}
+
+@media (max-width: 768px) {
+  .azure-billed-page {
+    padding: 10px;
+  }
+
+  .azure-billed-page .azure-billed-container {
+    padding: 16px;
+  }
+
+  .azure-billed-page .azure-billed-header-top {
+    flex-direction: column;
+  }
+
+  .azure-billed-page .kpi-cards {
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .azure-billed-page .kpi-card {
+    min-width: 100%;
+    max-width: 100%;
+  }
+
+  .azure-billed-page .azure-billed-header-bottom {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .azure-billed-page .dropdown-row {
+    flex-direction: column;
+  }
+
+  .azure-billed-page .dropdown-group {
+    max-width: 100%;
+    width: 100%;
+  }
+}

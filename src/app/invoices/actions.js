@@ -121,9 +121,29 @@ export async function fetchConsolidatedInvoiceData(soldToId, provider, selectedM
           })()
         ]);
         
-        // Process results
+        // Process results and add URLs to breakdown chart data
+        const summaryData = summaryResult.status === 'fulfilled' ? summaryResult.value : null;
+        
+        // Add URLs to chartData/breakdown items if they exist
+        if (summaryData?.chartData) {
+          summaryData.chartData = summaryData.chartData.map(item => ({
+            ...item,
+            url: item.label === 'Azure Usage' ? '/AzureBilledConsumptionDetail' : (item.url || '')
+          }));
+        } else if (summaryData?.breakdown) {
+          summaryData.breakdown = summaryData.breakdown.map(item => ({
+            ...item,
+            url: item.label === 'Azure Usage' ? '/AzureBilledConsumptionDetail' : (item.url || '')
+          }));
+        } else if (summaryData?.spendPeriod?.spend) {
+          summaryData.spendPeriod.spend = summaryData.spendPeriod.spend.map(item => ({
+            ...item,
+            url: (item.label === 'Azure Usage' || item.category === 'Azure Usage') ? '/AzureBilledConsumptionDetail' : (item.url || '')
+          }));
+        }
+        
         const consolidatedData = {
-          summaryResponse: summaryResult.status === 'fulfilled' ? { data: summaryResult.value } : { error: summaryResult.reason?.message },
+          summaryResponse: summaryResult.status === 'fulfilled' ? { data: summaryData } : { error: summaryResult.reason?.message },
           trendResponse: trendResult.status === 'fulfilled' ? { data: trendResult.value } : { error: trendResult.reason?.message },
           detailsResponse: gridResult.status === 'fulfilled' ? { data: gridResult.value } : { error: gridResult.reason?.message }
         };

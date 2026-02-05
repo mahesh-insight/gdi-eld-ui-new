@@ -1663,17 +1663,26 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
   const onChartClick = function (e) {
     const { url, label, group } = e.dataItem || {};
     if (url) {
-      // Store context in sessionStorage before navigating (synchronous)
       if (typeof window !== 'undefined') {
+        // Prepare navigation context with all filters
         const context = {
           label: label || '',
           month: selectedMonth?.value || '',
           provider: apiEndpoint || '',
+          customerValue: selectedCustomer?.value || 'All',
+          invoiceNumber: selectedInvoiceNumber?.value || null,
         };
+        
+        // Store in sessionStorage for client-side access
         sessionStorage.setItem('navigationContext', JSON.stringify(context));
+        
+        // Also set as cookie for server-side access
+        document.cookie = `billed_navigation=${encodeURIComponent(JSON.stringify(context))}; path=/; max-age=1800`;
+        
         console.log('📤 Navigation context stored:', context);
+        
+        router.push(url);
       }
-      router.push(url);
     }
   };
 
