@@ -31,7 +31,8 @@ export default function AzureBilledConsumptionDetailClient({
   mode = 'client-side', 
   initialData = null, 
   userContext = null,
-  ssrPerformance = null 
+  ssrPerformance = null,
+  ssrError = null
 }) {
   const router = useRouter();
   const { t } = useTranslation();
@@ -169,6 +170,42 @@ export default function AzureBilledConsumptionDetailClient({
     }));
   };
 
+  // Handle 401 errors on client side
+  useEffect(() => {
+    // Check ssrError prop (from server-side catch block)
+    if (ssrError && (ssrError.includes('401') || ssrError.includes('Authentication required') || ssrError.includes('Unauthorized'))) {
+      console.log('🔒 CLIENT: 401 Authentication error from SSR - logging out and redirecting');
+      if (typeof window !== 'undefined') {
+        localStorage.clear();
+        document.cookie.split(';').forEach(c => {
+          document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+        });
+        window.location.href = '/';
+      }
+      return;
+    }
+    
+    // Check initialData.errors (from successful SSR but API errors)
+    if (initialData?.errors) {
+      const hasAuthError = Object.values(initialData.errors).some(error => 
+        error && (error.includes('401') || 
+                  error.includes('Authentication required') ||
+                  error.includes('Unauthorized')));
+      
+      if (hasAuthError) {
+        console.log('🔒 CLIENT: 401 Authentication error from API - logging out and redirecting');
+        if (typeof window !== 'undefined') {
+          localStorage.clear();
+          document.cookie.split(';').forEach(c => {
+            document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+          });
+          window.location.href = '/';
+        }
+        return;
+      }
+    }
+  }, [initialData, ssrError]);
+
   useEffect(() => {
     console.log('🎯 CLIENT: Initializing with mode:', mode);
     console.log('📊 CLIENT: SSR data available:', !!initialData);
@@ -214,9 +251,27 @@ export default function AzureBilledConsumptionDetailClient({
           console.log('✅ CLIENT: Found customer list:', tenantIdList.items.length, 'customers');
           setCustomerNames(tenantIdList.items);
           setOriginalCustomerNames(tenantIdList.items);
-          const allCustomersOption = tenantIdList.items.find(item => item.value === 'All');
-          if (allCustomersOption) {
-            setSelectedCustomer(allCustomersOption);
+          
+          // Check if navigation context has a customer value to set
+          if (context?.customerValue) {
+            console.log('🎯 CLIENT: Setting customer from navigation context:', context.customerValue);
+            const matchingCustomer = tenantIdList.items.find(item => item.value === context.customerValue);
+            if (matchingCustomer) {
+              console.log('✅ CLIENT: Found matching customer:', matchingCustomer);
+              setSelectedCustomer(matchingCustomer);
+            } else {
+              console.log('⚠️ CLIENT: Customer not found in list, using "All Customers"');
+              const allCustomersOption = tenantIdList.items.find(item => item.value === 'All');
+              if (allCustomersOption) {
+                setSelectedCustomer(allCustomersOption);
+              }
+            }
+          } else {
+            // No navigation context, default to "All Customers"
+            const allCustomersOption = tenantIdList.items.find(item => item.value === 'All');
+            if (allCustomersOption) {
+              setSelectedCustomer(allCustomersOption);
+            }
           }
           setIsReseller(true);
         }

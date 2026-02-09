@@ -333,6 +333,35 @@ const instance = (serviceName, configuration = {}) => {
       const errorCode = [401];
       const { response } = error;
 
+      // Check for network errors (VPN disconnected, network unavailable)
+      if (!response && error.code === 'ERR_NETWORK') {
+        console.error('🚨 Network error detected - VPN may be disconnected');
+        
+        if (isBrowser) {
+          // Store error in Redux if available
+          try {
+            if (window.__REDUX_STORE__) {
+              const { setLastError, setRedirectReason } = await import('@/store/navigationContextSlice');
+              window.__REDUX_STORE__.dispatch(setLastError({
+                message: 'Network connection lost. Please check your VPN connection and try again.',
+                timestamp: new Date().toISOString(),
+                originalError: error.message,
+              }));
+              window.__REDUX_STORE__.dispatch(setRedirectReason('network_error'));
+            }
+          } catch (reduxError) {
+            console.warn('⚠️ Could not update Redux with network error:', reduxError);
+          }
+          
+          // Redirect to login with error parameter
+          setTimeout(() => {
+            window.location.href = '/?error=connection';
+          }, 100);
+        }
+        
+        return Promise.reject(error);
+      }
+
       if (
         response &&
         errorCode.includes(response.status) &&

@@ -1,5 +1,6 @@
 // src/app/AzureBilledConsumptionDetail/page.jsx
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import AzureBilledConsumptionDetailClient from './AzureBilledConsumptionDetailClient';
 import { fetchConsolidatedBilledConsumptionData } from './actions';
 
@@ -186,6 +187,12 @@ export default async function AzureBilledConsumptionDetail() {
     console.log(`✅ SERVER: Data fetched in ${fetchTime}ms`);
     
     if (consolidatedData.error) {
+      // Check for 401 authentication errors - throw error, let client handle redirect
+      if (consolidatedData.error.includes('401') || 
+          consolidatedData.error.includes('Authentication required') ||
+          consolidatedData.error.includes('Unauthorized')) {
+        console.log('🔒 SERVER: 401 Authentication error - client will handle logout');
+      }
       throw new Error(`Consolidated data fetch failed: ${consolidatedData.error}`);
     }
     
@@ -216,35 +223,14 @@ export default async function AzureBilledConsumptionDetail() {
     ssrError = error.message;
   }
   
-  // Error state
-  if (ssrError) {
-    return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
-        <h2>Data Fetch Error</h2>
-        <p>Failed to load consumption data: {ssrError}</p>
-        <a 
-          href="/AzureBilledConsumptionDetail"
-          style={{ 
-            display: 'inline-block',
-            padding: '10px 20px', 
-            backgroundColor: '#007bff', 
-            color: 'white', 
-            textDecoration: 'none',
-            borderRadius: '4px',
-            marginTop: '15px'
-          }}
-        >
-          Retry
-        </a>
-      </div>
-    );
-  }
-  
+  // Always pass data to client component, including errors
+  // Client will detect 401 and redirect, or show error UI for other errors
   return (
     <AzureBilledConsumptionDetailClient 
       mode="ssr"
       initialData={initialData}
       userContext={userContext}
+      ssrError={ssrError}
       ssrPerformance={{
         dataFetchTime: initialData ? initialData.fetchTime || 0 : 0,
         totalSSRTime: initialData ? initialData.fetchTime || 0 : 0,

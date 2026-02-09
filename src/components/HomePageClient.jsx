@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSelector, useDispatch } from 'react-redux';
 import { 
   initializeAuth
 } from '../store/authSlice';
 import { setProperties } from '../store/uiSlice';
+import { clearNavigationContext } from '../store/navigationContextSlice';
 import { 
   hasActiveSession, 
   getAuthenticatedRedirectPath,
@@ -21,16 +22,19 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
   const [sessionCheckComplete, setSessionCheckComplete] = useState(false);
+  const [globalError, setGlobalError] = useState(null);
   const uiPropertiesFetchingRef = useRef(false);
   const authProcessingRef = useRef(false);
   const sessionCheckedRef = useRef(false);
 
   const router = useRouter();
   const dispatch = useDispatch();
+  const searchParams = useSearchParams();
   const authState = useSelector(state => state.auth);
   const { isAuthenticated, user, accessToken, _persist } = authState;
   const storedUiProperties = useSelector(state => state.ui.properties);
   const uiCacheValid = useSelector(state => state.ui.loading === false);
+  const navigationContext = useSelector(state => state.navigationContext);
   
   // Use fetched UI properties or fall back to stored ones
   const activeUiProperties = uiProperties || storedUiProperties;
@@ -158,6 +162,24 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
       sessionStorage.removeItem(hasProcessedKey);
     }
   }, [authState, dispatch, router]);
+
+  // Check for network/auth errors from URL params or Redux
+  useEffect(() => {
+    const errorParam = searchParams?.get('error');
+    
+    if (errorParam === 'connection') {
+      setGlobalError('Network connection lost. Please check your VPN connection and try again.');
+    }
+    
+    // Check Redux navigation context for errors
+    if (navigationContext?.lastError) {
+      setGlobalError(navigationContext.lastError.message);
+      // Clear the error from Redux after displaying
+      setTimeout(() => {
+        dispatch(clearNavigationContext());
+      }, 100);
+    }
+  }, [searchParams, navigationContext, dispatch]);
 
   // Check for active session on mount - redirect if session exists
   useEffect(() => {
@@ -395,12 +417,13 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
   }
 
   // Show loading state until session check is complete and we have properties
-  if (!sessionCheckComplete || uiPropertiesLoading || !activeUiProperties || !AUTH_URL) {
+  // Show loading ONLY during session check, not for UI properties
+  if (!sessionCheckComplete) {
     return (
       <div className="loading-container">
         <div className="loading-spinner" />
         <div className="loading-text">
-          {!sessionCheckComplete ? 'Checking session...' : 'Loading configuration...'}
+          Checking session...
         </div>
       </div>
     );
@@ -495,65 +518,10 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
     }
   };
 
-  // Don't render anything until Redux is rehydrated to prevent flash
-  if (!isRehydrated) {
-    return (
-      <div className="login-content">
-        {/* Left Section */}
-        <div className="left-section">
-          <h1 className="page-title">
-            Cloud Consumption Reporting
-          </h1>
-          <p className="page-description">
-            Insight fully understands the increasingly vital role software
-                  plays in the IT environment of organizations. Insight has
-                  positioned itself as one of the world's largest software
-                  resellers, with the ability and expertise to deliver software
-                  solutions at a global level. In addition to our comprehensive
-                  licensing expertise, Insight offers a range of Software
-                  services. These center largely around Software Asset
-                  Management (SAM), a term that can be found on the agenda of
-                  almost every organization. Effective investment in SAM enables
-                  clients to gain control of their software licenses, delivering
-                  transparency and ensuring compliancy, while creating potential
-                  cost savings.
-          </p>
-          
-          <p style={{
-            fontSize: '14px',
-            color: '#666',
-            marginBottom: '40px',
-            lineHeight: '1.6'
-          }}>
-            The Enterprise License Dashboard service is reliant on the
-                  quality and accuracy of the data provided by the client and/or
-                  client installed inventory tools. As such, the Enterprise
-                  License Dashboard service does not guarantee that the client
-                  is appropriately licensed for all the software in use.
-                  Furthermore, the reporting produced by the Enterprise License
-                  Dashboard service does not constitute proof of the client’s
-                  ownership of or rights to the software licenses concerned.
-                  Actual proof of ownership is dependent upon each software
-                  publisher’s stipulated requirements
-          </p>
-        </div>
-        
-        {/* Right Section */}
-        <div className="right-section">
-          <h2 className="sign-in-title">
-            Sign In
-          </h2>
-          <div className="sign-in-placeholder">
-            Sign-in to my account
-          </div>
-        </div>
-      </div>
-    );
-  }
 
-  // Get display states
-  const showLoader = isProcessing || (authCode && !isAuthenticated);
-  const loaderMessage = isProcessing ? processingMessage : 'Initializing Authentication...';
+  // Get display states - only show loader during explicit processing, not during auth code processing
+  const showLoader = isProcessing;
+  const loaderMessage = processingMessage || 'Processing authentication...';
 
   // Manual clear function for debugging
   const clearAuthState = () => {
@@ -638,12 +606,47 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
         
         {/* Right Section */}
         <div className="right-section">
+          {/* Global Error Message */}
+          {globalError && (
+            <div style={{
+              backgroundColor: '#fff3cd',
+              border: '1px solid #ffc107',
+              borderRadius: '8px',
+              padding: '16px',
+              marginBottom: '20px',
+              color: '#856404'
+            }}>
+              <strong style={{ display: 'block', marginBottom: '8px' }}>⚠️ Connection Error</strong>
+              <p style={{ margin: 0, fontSize: '14px' }}>{globalError}</p>
+              <button
+                onClick={() => setGlobalError(null)}
+                style={{
+                  marginTop: '12px',
+                  padding: '6px 12px',
+                  backgroundColor: '#ffc107',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+          
           <h2 className="sign-in-title">
             Sign In
           </h2>
           <a 
-            href={buildAuthURL()}
-            className={`sign-in-link ${showLoader ? 'disabled' : ''}`}
+            href={AUTH_URL ? buildAuthURL() : '#'}
+            className={`sign-in-link ${showLoader || uiPropertiesLoading || !AUTH_URL ? 'disabled' : ''}`}
+            onClick={(e) => {
+              if (uiPropertiesLoading || !AUTH_URL) {
+                e.preventDefault();
+              }
+            }}
           >
             Sign-in to my account
           </a>

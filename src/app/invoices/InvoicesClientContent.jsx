@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useDispatch } from 'react-redux';
-import { setNavigationContext } from '@/store/navigationContextSlice';
 import { useSelector } from 'react-redux';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -80,10 +78,11 @@ const formatMonthValue = (monthValue) => {
 };
 
 export default function InvoicesClientContent({ mode = 'csr', initialData, userContext, ssrPerformance }) {
-  const router = useRouter();
-  const dispatch = useDispatch();
   // Translation hook
   const { t } = useTranslation();
+  
+  // Next.js router for navigation
+  const router = useRouter();
   
   // 🎯 RENDERING MODE CONFIRMATION
   console.log('🎯 INVOICES PAGE RENDERING:', {
@@ -318,11 +317,12 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
                        initialData.summaryResponse.data.breakdown || 
                        [];
       
-      // Transform chart data for BasicGroupedChart component
+      // Transform chart data for BasicGroupedChart component - preserve URL and clickKey for navigation
       const transformedChartData = chartData.map(item => ({
         label: item.label || item.category || 'Unknown',
         value: item.value || 0,
-        url: item.url || ''
+        url: item.url || null,
+        clickKey: item.clickKey || null
       }));
       
       return transformedChartData;
@@ -502,11 +502,12 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
             const spendData = summaryResponse.data?.spendPeriod?.spend || [];
             const chartData = summaryResponse.data?.chartData || summaryResponse.data?.breakdown || spendData;
             
-            // Transform chart data for BasicGroupedChart component
+            // Transform chart data for BasicGroupedChart component - preserve URL and clickKey for navigation
             const transformedChartData = chartData.map(item => ({
               label: item.label || item.category || 'Unknown',
               value: item.value || 0,
-              url: item.url || ''
+              url: item.url || null,
+              clickKey: item.clickKey || null
             }));
             
             console.log('🔍 Breakdown Chart Data Transformation:', {
@@ -718,7 +719,8 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         const transformedChartData = chartData.map(item => ({
           label: item.label || item.category || 'Unknown',
           value: item.value || 0,
-          url: item.url || ''
+          url: item.url || null,
+          clickKey: item.clickKey || null
         }));
         
         setBreakdownChartData(transformedChartData);
@@ -871,11 +873,12 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         const spendData = summaryResponse.data?.spendPeriod?.spend || [];
         const chartData = summaryResponse.data?.chartData || summaryResponse.data?.breakdown || spendData;
         
-        // Transform chart data for BasicGroupedChart component
+        // Transform chart data for BasicGroupedChart component - preserve URL and clickKey for navigation
         const transformedChartData = chartData.map(item => ({
           label: item.label || item.category || 'Unknown',
           value: item.value || 0,
-          url: item.url || ''
+          url: item.url || null,
+          clickKey: item.clickKey || null
         }));
         
         setBreakdownChartData(transformedChartData);
@@ -1000,10 +1003,12 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         const spendData = summaryResponse.data?.spendPeriod?.spend || [];
         const chartData = summaryResponse.data?.chartData || summaryResponse.data?.breakdown || spendData;
         
-        // Transform chart data for BasicGroupedChart component
+        // Transform chart data for BasicGroupedChart component - preserve URL and clickKey for navigation
         const transformedChartData = chartData.map(item => ({
           label: item.label || item.category || 'Unknown',
-          value: item.value || 0
+          value: item.value || 0,
+          url: item.url || null,
+          clickKey: item.clickKey || null
         }));
         
         setBreakdownChartData(transformedChartData);
@@ -1215,14 +1220,6 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
   }, [selectedSoldToId, apiEndpoint, selectedProvider]);
 
   const handleApplyFilters = async () => {
-    console.log('Applying filters:', {
-      productCategory: selectedProductCategory,
-      productName: selectedProductName,
-      subscriptionId: selectedSubscriptionId,
-      invoiceNumber: selectedInvoiceNumber,
-      customer: selectedCustomer
-    });
-    
     // Save current filter state as "last applied" for change detection
     setLastAppliedFilters({
       productCategory: [...(selectedProductCategory || [])],
@@ -1511,7 +1508,8 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         const transformedChartData = chartData.map(item => ({
           label: item.label || item.category || item.name || item.productCategory || 'Unknown',
           value: item.value || item.amount || item.spend || item.totalSpend || 0,
-          url: item.url || ''
+          url: item.url || null,
+          clickKey: item.clickKey || null
         }));
         
         setBreakdownChartData(transformedChartData);

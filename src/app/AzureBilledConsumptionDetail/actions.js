@@ -2,7 +2,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { getOrSetCached } from '@/lib/cache/serverCache';
+import { getOrSetCached, invalidateCache } from '@/lib/cache/serverCache';
 import { CacheTTL } from '@/lib/cache/cacheKeys';
 import { getService } from '@/lib/api/services';
 
@@ -80,6 +80,9 @@ export async function fetchConsolidatedBilledConsumptionData(soldToId, invoiceMo
               body: JSON.stringify([soldToId])
             });
             
+            if (response.status === 401) {
+              throw new Error('Authentication required - 401');
+            }
             if (!response.ok) {
               throw new Error(`Totals API error: ${response.status}`);
             }
@@ -101,6 +104,9 @@ export async function fetchConsolidatedBilledConsumptionData(soldToId, invoiceMo
               body: JSON.stringify([soldToId])
             });
             
+            if (response.status === 401) {
+              throw new Error('Authentication required - 401');
+            }
             if (!response.ok) {
               throw new Error(`Credits API error: ${response.status}`);
             }
@@ -122,6 +128,9 @@ export async function fetchConsolidatedBilledConsumptionData(soldToId, invoiceMo
               body: JSON.stringify([soldToId])
             });
             
+            if (response.status === 401) {
+              throw new Error('Authentication required - 401');
+            }
             if (!response.ok) {
               throw new Error(`Summary API error: ${response.status}`);
             }
@@ -143,12 +152,30 @@ export async function fetchConsolidatedBilledConsumptionData(soldToId, invoiceMo
               body: JSON.stringify([soldToId])
             });
             
+            if (response.status === 401) {
+              throw new Error('Authentication required - 401');
+            }
             if (!response.ok) {
               throw new Error(`Grid API error: ${response.status}`);
             }
             return await response.json();
           })()
         ]);
+        
+        // Check for 401 errors - don't cache if any API returned 401
+        const has401Error = [
+          totalsResult.status === 'rejected' && totalsResult.reason.message?.includes('401'),
+          creditsResult.status === 'rejected' && creditsResult.reason.message?.includes('401'),
+          summaryResult.status === 'rejected' && summaryResult.reason.message?.includes('401'),
+          gridResult.status === 'rejected' && gridResult.reason.message?.includes('401')
+        ].some(Boolean);
+        
+        if (has401Error) {
+          console.log('🔒 SERVER: 401 error detected in API calls - throwing authentication error');
+          // Clear cache for this user to prevent serving stale data
+          await invalidateCache(`billed-consumption:${soldToId}`);
+          throw new Error('Authentication required - 401');
+        }
         
         return {
           totalsResponse: totalsResult.status === 'fulfilled' ? totalsResult.value : null,
@@ -168,6 +195,13 @@ export async function fetchConsolidatedBilledConsumptionData(soldToId, invoiceMo
     
     return { error: null, data };
   } catch (error) {
+    // Clear cache on any error to prevent serving stale data
+    try {
+      await invalidateCache(`billed-consumption:${soldToId}`);
+      console.log('🧹 SERVER: Cleared cache due to error');
+    } catch (cacheError) {
+      console.error('⚠️ SERVER: Failed to clear cache:', cacheError);
+    }
     return { error: error.message, data: null };
   }
 }

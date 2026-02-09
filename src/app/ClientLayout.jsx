@@ -6,6 +6,7 @@ import Header from '@/components/Header/Header';
 import ReduxProvider from '@/components/ReduxProvider';
 import AuthContextInitializer from '@/components/AuthContextInitializer';
 import CookieSync from '@/components/CookieSync';
+import NetworkErrorBoundary from '@/components/NetworkErrorBoundary';
 import { usePathname } from 'next/navigation';
 import { KendoIntlProvider } from '@/components/KendoIntlProvider';
 import { saveLastVisitedPage, updateSessionTimestamp } from '@/lib/auth/sessionManager';
@@ -55,13 +56,15 @@ export default function ClientLayout({ children }) {
     <ReduxProvider>
       <KendoIntlProvider>
         <AuthContextInitializer>
-          <CookieSync />
-          <div className="App">
-            {showHeader && <Header />}
+          <NetworkErrorBoundary>
+            <CookieSync />
+            <div className="App">
+              {showHeader && <Header />}
 
-            {/* All your pages will render here */}
-            {children}
-          </div>
+              {/* All your pages will render here */}
+              {children}
+            </div>
+          </NetworkErrorBoundary>
         </AuthContextInitializer>
       </KendoIntlProvider>
     </ReduxProvider>
