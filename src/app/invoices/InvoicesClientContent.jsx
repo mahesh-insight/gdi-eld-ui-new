@@ -161,6 +161,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
   const lastMonthChangeTime = useRef(0);
   const lastMonthValue = useRef(null);
   const hasInitialized = useRef(false); // Track if initial data fetch has occurred
+  const hasRestoredState = useRef(false); // Track if state restoration has been processed
   
   // State to disable dropdown during month change (triggers re-render)
   const [isMonthChanging, setIsMonthChanging] = useState(false);
@@ -1443,6 +1444,35 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
     });
     
     if (mode === 'ssr' && initialData?.summaryResponse?.data) {
+      // 🎯 CHECK FOR SAVED STATE FIRST - prevent visual flicker
+      if (typeof window !== 'undefined') {
+        const savedStateRaw = sessionStorage.getItem('invoices_page_state');
+        if (savedStateRaw) {
+          try {
+            const savedState = JSON.parse(savedStateRaw);
+            
+            // Check if state is recent (within last 5 minutes)
+            if (Date.now() - savedState.timestamp <= 5 * 60 * 1000) {
+              console.log('⏭️ SSR: Found fresh saved state, skipping SSR initialization - restoration will handle it');
+              hasRestoredState.current = true; // Mark that we're in restoration mode
+              return; // Skip SSR initialization, let restoration handle everything
+            } else {
+              console.log('⏱️ SSR: Saved state is too old, proceeding with SSR initialization');
+              sessionStorage.removeItem('invoices_page_state');
+            }
+          } catch (error) {
+            console.error('❌ SSR: Error parsing saved state:', error);
+            sessionStorage.removeItem('invoices_page_state');
+          }
+        }
+      }
+      
+      // 🛡️ GUARD: If restoration has already been processed, don't run SSR init again
+      if (hasRestoredState.current) {
+        console.log('🛡️ SSR: State restoration already processed, skipping SSR init');
+        return;
+      }
+      
       console.log('🏗️ SSR: Starting data population process...');
       console.log('📦 SSR: Available initial data:', {
         hasSummary: !!initialData.summaryResponse,
@@ -1658,6 +1688,227 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
     }
   }, [mode]);
 
+  // 🔄 STATE RESTORATION: Check for saved page state after SSR initialization
+  useEffect(() => {
+    // Only run in SSR mode with initial data
+    if (mode !== 'ssr' || !initialData || isGlobalLoading) {
+      return;
+    }
+
+    // Immediate check for saved state - no delay needed since SSR init checks for this
+    const restoreState = async () => {
+      if (typeof window === 'undefined') return;
+      
+      const savedState = sessionStorage.getItem('invoices_page_state');
+      if (!savedState) return;
+      
+      try {
+        const state = JSON.parse(savedState);
+        
+        // Check if state is recent (within last 5 minutes)
+        if (Date.now() - state.timestamp > 5 * 60 * 1000) {
+          console.log('⏱️ Saved state is too old, ignoring');
+          sessionStorage.removeItem('invoices_page_state');
+          return;
+        }
+        
+        console.log('🔄 Found saved invoices page state:', state);
+        
+        // 🛡️ IMMEDIATELY clear saved state to prevent multiple restoration runs
+        sessionStorage.removeItem('invoices_page_state');
+        
+        // Check if we need to restore (if current state is different from saved state)
+        const needsRestore = 
+          state.selectedProvider?.abbreviation !== selectedProvider?.abbreviation ||
+          state.selectedMonth?.value !== selectedMonth?.value ||
+          state.selectedCustomer?.value !== selectedCustomer?.value;
+        
+        if (!needsRestore) {
+          console.log('✅ Current state matches saved state, no restoration needed');
+          return;
+        }
+        
+        console.log('🔄 Restoring invoices page state...');
+        
+        // 🎯 IMMEDIATELY set ALL values from saved state (optimistic UI)
+        // This prevents "null" flicker - user sees correct values right away
+        // API calls will then populate the dropdown options arrays to validate
+        if (state.selectedProvider && state.selectedProvider.abbreviation !== selectedProvider?.abbreviation) {
+          setSelectedProvider(state.selectedProvider);
+          setApiEndpoint(state.apiEndpoint);
+        }
+        
+        if (state.selectedMonth && state.selectedMonth.value) {
+          console.log('🎯 RESTORE: Setting month immediately:', state.selectedMonth);
+          setSelectedMonth(state.selectedMonth);
+        }
+        
+        if (state.selectedInvoiceNumber && state.selectedInvoiceNumber.value) {
+          console.log('🎯 RESTORE: Setting invoice immediately:', state.selectedInvoiceNumber);
+          setSelectedInvoiceNumber(state.selectedInvoiceNumber);
+        }
+        
+        if (state.selectedCustomer && state.selectedCustomer.value) {
+          console.log('🎯 RESTORE: Setting customer immediately:', state.selectedCustomer);
+          // 🎯 Pre-populate customerNames array to prevent layout shift when dropdown appears
+          // This ensures the dropdown exists immediately with the saved customer
+          setCustomerNames([state.selectedCustomer]);
+          setSelectedCustomer(state.selectedCustomer);
+        }
+        
+        // Now fetch data in background to populate dropdown options arrays
+        // Small delay to let provider state update, then fetch data with restored filters
+        setTimeout(async () => {
+          console.log('📡 RESTORE: Step 1 - Fetching invoice months for provider:', state.apiEndpoint);
+          
+          try {
+            // 🎯 STEP 1: Fetch invoice months for the restored provider
+            const monthsResponse = await fetchInvoiceMonthsServer(selectedSoldToId, state.apiEndpoint);
+            
+            if (monthsResponse.error) {
+              throw new Error(monthsResponse.error);
+            }
+            
+            console.log('📅 RESTORE: Invoice months fetched:', monthsResponse.data?.length, 'months');
+            setInvoiceMonths(monthsResponse.data || []);
+            
+            // 🎯 STEP 2: Fetch consolidated data with restored filters
+            console.log('📡 RESTORE: Step 2 - Fetching data with restored filters...');
+            
+            // Build filter for customer
+            let customerFilter = null;
+            if (state.selectedCustomer?.value && state.selectedCustomer.value !== 'All' && state.selectedCustomer.value !== 'all') {
+              customerFilter = state.selectedCustomer.value;
+            }
+            
+            const consolidatedResponse = await fetchConsolidatedInvoiceData(
+              selectedSoldToId,
+              state.apiEndpoint,
+              state.selectedMonth?.value,
+              state.selectedInvoiceNumber?.value || null,
+              customerFilter
+            );
+            
+            if (consolidatedResponse.error) {
+              throw new Error(consolidatedResponse.error);
+            }
+            
+            const { summaryResponse, trendResponse, detailsResponse } = consolidatedResponse.data;
+            
+            // Update data from response
+            if (summaryResponse?.data) {
+              console.log('🔄 RESTORE: Processing summary response data');
+              
+              setTotalSpend(summaryResponse.data?.spendPeriod?.totalSpend || 0);
+              setMonthlyDifference(summaryResponse.data?.spendPeriod?.differenceTotalSpend || 0);
+              setMonthlyDifferencePercent(summaryResponse.data?.spendPeriod?.differencePercentSpend || null);
+              setHaveDifferencePercent(summaryResponse.data?.spendPeriod?.haveDifferencePercentSpend || false);
+              setInvoiceStatus(summaryResponse.data?.invoiceStatus || '');
+              setIsReseller(summaryResponse.data?.isReseller || false);
+              setHaveUnbilledConsumption(summaryResponse.data?.haveUnbilledConsumption || false);
+              
+              const spendData = summaryResponse.data?.spendPeriod?.spend || [];
+              const chartData = summaryResponse.data?.chartData || summaryResponse.data?.breakdown || spendData;
+              
+              console.log('📊 RESTORE: Chart data source:', {
+                hasChartData: !!summaryResponse.data?.chartData,
+                hasBreakdown: !!summaryResponse.data?.breakdown,
+                hasSpend: spendData.length > 0,
+                usingSource: summaryResponse.data?.chartData ? 'chartData' : (summaryResponse.data?.breakdown ? 'breakdown' : 'spendPeriod.spend'),
+                rawData: chartData
+              });
+              
+              const transformedChartData = chartData.map(item => ({
+                label: item.label || item.category || 'Unknown',
+                value: item.value || 0,
+                url: item.url || null,
+                clickKey: item.clickKey || null
+              }));
+              
+              console.log('📊 RESTORE: Setting breakdown chart data:', {
+                length: transformedChartData.length,
+                data: transformedChartData
+              });
+              
+              setBreakdownChartData(transformedChartData);
+              
+              // 🎯 STEP 3: Extract and set dropdown options from selectLists
+              const selectLists = summaryResponse.data?.selectLists || [];
+              
+              // Extract invoice numbers
+              const invoiceNumbersList = selectLists.find(list => list.name === 'invoicenumber');
+              if (invoiceNumbersList && invoiceNumbersList.items) {
+                console.log('📋 RESTORE: Invoice numbers extracted:', invoiceNumbersList.items?.length, 'invoices');
+                setInvoiceNumbers(invoiceNumbersList.items);
+              } else {
+                console.log('⚠️ RESTORE: No invoice numbers found in selectLists');
+                setInvoiceNumbers([]);
+              }
+              
+              // Extract customer names (tenantId) WITHOUT resetting selectedCustomer
+              const tenantIdList = selectLists.find(list => list.name === 'tenantId');
+              if (tenantIdList && tenantIdList.items) {
+                console.log('👥 RESTORE: Customer names extracted:', tenantIdList.items?.length, 'customers');
+                setCustomerNames(tenantIdList.items);
+                // NOTE: NOT setting selectedCustomer here - it was already set at start
+              } else {
+                console.log('⚠️ RESTORE: No customer names found in selectLists');
+                setCustomerNames([{ label: 'All Customers', value: 'All' }]);
+              }
+              
+              // Update other filter dropdowns (product categories, names, subscriptions)
+              // We'll manually update these to avoid resetting customer
+              const productCategoryList = selectLists.find(list => list.name === 'productcategory');
+              if (productCategoryList && productCategoryList.items) {
+                setProductCategories(productCategoryList.items);
+              } else {
+                setProductCategories([]);
+              }
+              
+              const productNameList = selectLists.find(list => list.name === 'productname');
+              if (productNameList && productNameList.items) {
+                const validProducts = productNameList.items.filter(item => item.label && item.value);
+                setProductNames(validProducts);
+              } else {
+                setProductNames([]);
+              }
+              
+              const subscriptionIdList = selectLists.find(list => list.name === 'subscriptionid');
+              if (subscriptionIdList && subscriptionIdList.items) {
+                setSubscriptionIds(subscriptionIdList.items);
+              } else {
+                setSubscriptionIds([]);
+              }
+              
+              console.log('✅ RESTORE: Dropdown options populated - values already set at start of restoration');
+            }
+            
+            if (trendResponse?.data) {
+              setTrendData(trendResponse.data?.chartData || []);
+            }
+            
+            if (detailsResponse?.data) {
+              setGridData(detailsResponse.data?.content || detailsResponse.data || []);
+              setGridTotal(detailsResponse.data?.totalElements || detailsResponse.data?.length || 0);
+            }
+            
+            console.log('✅ Data restored with saved filters');
+            
+            // Note: Saved state already cleared at the start of restoration
+          } catch (error) {
+            console.error('❌ Error restoring data:', error);
+          }
+        }, 100);
+        
+      } catch (error) {
+        console.error('❌ Error parsing saved state:', error);
+      }
+    };
+    
+    // Execute restoration immediately
+    restoreState();
+  }, [mode, initialData, isGlobalLoading, selectedProvider, selectedMonth, selectedCustomer, selectedSoldToId]);
+
   const onChartClick = function (e) {
     const { url, label, group } = e.dataItem || {};
     if (url) {
@@ -1677,7 +1928,19 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         // Also set as cookie for server-side access
         document.cookie = `billed_navigation=${encodeURIComponent(JSON.stringify(context))}; path=/; max-age=1800`;
         
+        // Store current invoices page state for restoration on back navigation
+        const invoicesPageState = {
+          selectedProvider: selectedProvider,
+          selectedMonth: selectedMonth,
+          selectedInvoiceNumber: selectedInvoiceNumber,
+          selectedCustomer: selectedCustomer,
+          apiEndpoint: apiEndpoint,
+          timestamp: Date.now()
+        };
+        sessionStorage.setItem('invoices_page_state', JSON.stringify(invoicesPageState));
+        
         console.log('📤 Navigation context stored:', context);
+        console.log('💾 Invoices page state saved for restoration:', invoicesPageState);
         
         router.push(url);
       }
@@ -1943,6 +2206,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
               <p className="chart-title">Invoice Breakdown by Product Category</p>
               {breakdownChartData && breakdownChartData.length > 0 ? (
                 <Chart 
+                  key={`breakdown-chart-${selectedProvider?.abbreviation}-${selectedMonth?.value}-${selectedCustomer?.value || 'all'}-${breakdownChartData.length}`}
                   onRefresh={handleChartRefresh}
                   seriesColors={getInsightThemeColors()}
                   onSeriesClick={onChartClick}
