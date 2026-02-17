@@ -193,6 +193,12 @@ export default async function InvoicesPage() {
     );
   }
   
+  console.log('✅ SERVER: Rendering InvoicesClientContent with:', {
+    mode: 'ssr',
+    userContextSoldToId: userContext?.soldToId,
+    hasInitialData: !!initialData
+  });
+  
   return (
     <div>
       <InvoicesClientContent 

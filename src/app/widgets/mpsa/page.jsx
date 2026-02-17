@@ -1,21 +1,29 @@
 "use client";
 import { useEffect, useState } from 'react';
-import { useStore } from 'react-redux';
 import { apiClient } from '@/lib/api/request';
-import AzureSpendWidget from '../../dashboard/components/AzureSpendWidget';
-import AzureSpendSkeleton from './AzureSpendSkeleton';
+import MPSAWidget from '../../dashboard/components/MPSAWidget';
+import { Skeleton } from '@progress/kendo-react-indicators';
 
-export default function AzureSpendEmbedPage({ searchParams }) {
+function MPSASkeleton() {
+  return (
+    <div className="dashboard-widget">
+      <Skeleton shape="text" style={{ width: '200px', height: '24px', marginBottom: '16px' }} />
+      <Skeleton shape="text" style={{ width: '150px', height: '40px', marginBottom: '8px' }} />
+      <Skeleton shape="rectangle" style={{ width: '100%', height: '200px' }} />
+    </div>
+  );
+}
+
+export default function MPSAEmbedPage({ searchParams }) {
   const soldToId = searchParams.soldToId;
   const payload = [soldToId];
   const [apiData, setApiData] = useState(null);
 
-  const store = useStore();
   useEffect(() => {
     async function fetchData() {
       try {
         const response = await apiClient.post(
-          "https://api-ccrdev.insight.com/ccr-dashboard-service/microsoft/azurespend",
+          "https://api-ccrdev.insight.com/ccr-dashboard-service/microsoft/mpsa",
           payload
         );
         
@@ -31,12 +39,12 @@ export default function AzureSpendEmbedPage({ searchParams }) {
     }
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [soldToId, store]);
+  }, [soldToId]);
 
   const isLoading = apiData === null;
   return (
     <div className="dashboard-widget" style={{ maxWidth: 420, margin: "32px auto" }}>
-      {isLoading ? <AzureSpendSkeleton /> : <AzureSpendWidget data={apiData || {}} />}
+      {isLoading ? <MPSASkeleton /> : <MPSAWidget data={apiData || {}} />}
     </div>
   );
 }

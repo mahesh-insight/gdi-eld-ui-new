@@ -34,104 +34,64 @@ export async function fetchConsolidatedAzureInvoiceData(accessToken, soldToId, s
     const monthValue = selectedMonth || 'current';
     const cacheKey = `azure-consolidated:${soldToId}:${monthValue}:${customerFilter || 'all'}:trend${trendMonths}`;
     
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('🔑 SERVER ACTION: Cache key constructed:', cacheKey);
+    console.log('   Parameters:', {
+      selectedMonth,
+      soldToId,
+      customerFilter: customerFilter || 'all',
+      trendMonths
+    });
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    
+    // Use cache with month-specific key
     const data = await getOrSetCached(
       cacheKey,
       async () => {
-        console.log('📥 SERVER ACTION: Cache MISS - making SINGLE consolidated API call');
+        console.log('📥 SERVER ACTION: Cache MISS - fetching data for month:', selectedMonth || 'initial load');
         
-        // If selectedMonth is provided, fetch month-specific data (doesn't refetch invoiceMonths)
+        // If selectedMonth is provided, use the working getAzureInvoiceDataForMonth
         if (selectedMonth) {
-          const moment = (await import("moment")).default;
-          const services = await import('@/lib/api/services');
+          const { getAzureInvoiceDataForMonth } = await import('@/lib/azureInvoiceApi');
           
-          // Calculate previous month for monthly difference
-          const currentDate = new Date(`${selectedMonth.substring(0, 4)}-${selectedMonth.substring(4, 6)}-01`);
-          const prevMonth = moment(currentDate).subtract(1, "month").format("YYYYMM");
+          // Use the existing working implementation for month changes
+          console.log('📅 SERVER ACTION: Using getAzureInvoiceDataForMonth for month:', selectedMonth);
           
-          console.log('📅 SERVER ACTION: Month-specific fetch for:', selectedMonth, 'prev:', prevMonth);
+          // Get the months list first to build currentMonthObject
+          const invoiceMonths = await import('@/lib/azureInvoiceApi').then(m => 
+            m.fetchInvoiceMonths({ soldToId, accessToken: finalAccessToken })
+          );
           
-          // Build filter parameter for customer filtering
-          let filterParam = '';
-          if (customerFilter && customerFilter !== 'All' && customerFilter !== 'all') {
-            filterParam = `?filter=limittenantid%3D${encodeURIComponent(customerFilter)}`;
-            console.log('🔍 SERVER ACTION: Applying customer filter:', filterParam);
-          }
+          // Find the currentMonthObject from the months list
+          const currentMonthObject = invoiceMonths.find(m => m.value === selectedMonth) || 
+                                     invoiceMonths[0] || 
+                                     { value: selectedMonth, date: `${selectedMonth.substring(0, 4)}-${selectedMonth.substring(4, 6)}-01` };
           
-          // Get base URL from services config
-          const serviceConfig = services.default.getService('invoiceSummary');
-          const baseURL = serviceConfig.baseURL || process.env.NEXT_PUBLIC_API_BASE_URL;
+          console.log('📅 Current month object:', currentMonthObject);
           
-          // Make all 5 API calls in parallel on the SERVER
-          const [summary, credits, trend, monthDetail, monthlyDifference] = await Promise.allSettled([
-            // Invoice Summary
-            fetch(`${baseURL}/ccr-invoice-service/summary/${selectedMonth}${filterParam}`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${finalAccessToken}`
-              },
-              body: JSON.stringify([soldToId]),
-              cache: 'no-store'
-            }).then(res => res.ok ? res.json() : Promise.reject(new Error(`Summary: ${res.status}`))),
-            
-            // Invoice Credits (total with creditsonly=true)
-            fetch(`${baseURL}/ccr-invoice-service/total/${selectedMonth}?creditsonly=true${filterParam ? '&' + filterParam.substring(1) : ''}`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${finalAccessToken}`
-              },
-              body: JSON.stringify([soldToId]),
-              cache: 'no-store'
-            }).then(res => res.ok ? res.json() : Promise.reject(new Error(`Credits: ${res.status}`))),
-            
-            // Invoice Trend
-            fetch(`${baseURL}/ccr-invoice-service/trend?months=${trendMonths}&limit=6${filterParam ? '&' + filterParam.substring(1) : ''}`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${finalAccessToken}`
-              },
-              body: JSON.stringify([soldToId]),
-              cache: 'no-store'
-            }).then(res => res.ok ? res.json() : Promise.reject(new Error(`Trend: ${res.status}`))),
-            
-            // Month Detail (for grid tab 1)
-            fetch(`${baseURL}/ccr-invoice-service/month/${selectedMonth}?page=0&size=20${filterParam ? '&' + filterParam.substring(1) : ''}`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${finalAccessToken}`
-              },
-              body: JSON.stringify([soldToId]),
-              cache: 'no-store'
-            }).then(res => res.ok ? res.json() : Promise.reject(new Error(`MonthDetail: ${res.status}`))),
-            
-            // Monthly Difference (for grid tab 2)
-            fetch(`${baseURL}/ccr-invoice-service/month/sku-difference/${prevMonth}/${selectedMonth}?page=0&size=20${filterParam ? '&' + filterParam.substring(1) : ''}`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${finalAccessToken}`
-              },
-              body: JSON.stringify([soldToId]),
-              cache: 'no-store'
-            }).then(res => res.ok ? res.json() : Promise.reject(new Error(`MonthlyDiff: ${res.status}`))),
-          ]);
+          // Use the working implementation that goes through callAzureInvoiceAPI
+          const monthData = await getAzureInvoiceDataForMonth({
+            soldToId,
+            currentMonthObject,
+            accessToken: finalAccessToken,
+            customerFilter: customerFilter,
+            trendMonths: trendMonths
+          });
           
-          console.log('✅ SERVER ACTION: All 5 parallel API calls completed');
+          console.log('✅ SERVER ACTION: getAzureInvoiceDataForMonth completed:', {
+            hasSummary: !!monthData?.summary,
+            hasCredits: !!monthData?.credits,
+            hasTrend: !!monthData?.trend,
+            hasMonthDetail: !!monthData?.monthDetail,
+            hasMonthlyDifference: !!monthData?.monthlyDifference,
+            customerFilter: customerFilter,
+            trendMonths: trendMonths
+          });
           
-          return {
-            pageExistsError: false,
-            summary: summary.status === 'fulfilled' ? summary.value : null,
-            credits: credits.status === 'fulfilled' ? credits.value : null,
-            trend: trend.status === 'fulfilled' ? trend.value : null,
-            monthDetail: monthDetail.status === 'fulfilled' ? monthDetail.value : null,
-            monthlyDifference: monthlyDifference.status === 'fulfilled' ? monthlyDifference.value : null,
-          };
+          return monthData;
         }
         
-        // Initial load - fetch everything including invoiceMonths
+        // Initial page load - fetch everything including invoiceMonths
         console.log('📅 SERVER ACTION: Initial load - fetching all data including months');
         return await getInitialAzureInvoiceData({ 
           soldToId, 
@@ -139,10 +99,24 @@ export async function fetchConsolidatedAzureInvoiceData(accessToken, soldToId, s
           locationState: null
         });
       },
-      10 * 60 * 1000 // 10 minutes cache
+      // Use 5 minutes cache for month-specific data, 10 minutes for initial load
+      selectedMonth ? 5 * 60 * 1000 : 10 * 60 * 1000
     );
     
-    console.log('✅ SERVER ACTION: Consolidated data served:', data._fromCache ? 'CACHE HIT' : 'API CALL');
+    const cacheStatus = data._fromCache ? '🔴 CACHE HIT (returning old data)' : '🟢 CACHE MISS (fresh API data)';
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('✅ SERVER ACTION: Consolidated data served:', cacheStatus);
+    console.log('   Data structure:', {
+      hasSummary: !!data?.summary,
+      hasCredits: !!data?.credits,
+      hasTrend: !!data?.trend,
+      hasMonthDetail: !!data?.monthDetail,
+      hasMonthlyDifference: !!data?.monthlyDifference,
+      summaryTotal: data?.summary?.spendPeriod?.totalSpend,
+      creditsTotal: data?.credits?.totalSpend
+    });
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    
     return { 
       error: null, 
       data,

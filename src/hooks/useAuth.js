@@ -1,5 +1,5 @@
 // src/hooks/useAuth.js
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { 
   setAuthenticated, 
@@ -21,18 +21,16 @@ export const useAuth = () => {
   const dispatch = useDispatch();
   const auth = useSelector(state => state.auth);
 
-  // DEBUGGING: Log what we're actually getting from Redux
-  console.log('🔍 useAuth: Current auth state:', {
-    timestamp: new Date().toISOString(),
-    isAuthenticated: auth?.isAuthenticated,
-    hasUser: !!auth?.user,
-    hasAccessToken: !!auth?.accessToken,
-    hasLoginResponse: !!auth?.loginResponse,
-    userKeys: auth?.user ? Object.keys(auth.user) : [],
-    authKeys: Object.keys(auth || {}),
-    authStateRaw: auth,
-    reduxPersistState: auth?._persist
-  });
+  // DEBUGGING: Log auth state changes only (not on every render)
+  useEffect(() => {
+    console.log('🔍 useAuth: Auth state updated:', {
+      timestamp: new Date().toISOString(),
+      isAuthenticated: auth?.isAuthenticated,
+      hasUser: !!auth?.user,
+      hasAccessToken: !!auth?.accessToken,
+      hasLoginResponse: !!auth?.loginResponse
+    });
+  }, [auth?.isAuthenticated, auth?.accessToken]);
 
   const login = (loginData) => {
     dispatch(setAuthenticated(true));

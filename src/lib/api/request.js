@@ -154,6 +154,7 @@ const instance = (serviceName, configuration = {}) => {
 
   config.params = { ...serviceConfig.params, ...otherConfig.params };
   config.headers = {
+    'Content-Type': 'application/json',
     ...xCorrelationID,
     ...config.headers,
     ...serviceConfig.headers,
@@ -455,9 +456,6 @@ const get = async (serviceName, configuration = {}) => {
 const post = async (serviceName, { data, ...otherConfig } = {}) => {
   const config = Object.assign(
     {
-      headers: {
-        "Content-Type": "application/json",
-      },
       method: "post",
     },
     otherConfig
@@ -489,9 +487,6 @@ const post = async (serviceName, { data, ...otherConfig } = {}) => {
 const put = async (serviceName, { data, ...otherConfig } = {}) => {
   const config = Object.assign(
     {
-      headers: {
-        "Content-Type": "application/json",
-      },
       method: "PUT",
     },
     otherConfig
@@ -522,9 +517,6 @@ const put = async (serviceName, { data, ...otherConfig } = {}) => {
 const del = async (serviceName, { data = {}, ...otherConfig } = {}) => {
   const config = Object.assign(
     {
-      headers: {
-        "Content-Type": "application/json",
-      },
       method: "DELETE",
     },
     otherConfig
@@ -555,9 +547,6 @@ const del = async (serviceName, { data = {}, ...otherConfig } = {}) => {
 const patch = async (serviceName, { data, ...otherConfig } = {}) => {
   const config = Object.assign(
     {
-      headers: {
-        "Content-Type": "application/json",
-      },
       method: "PATCH",
     },
     otherConfig
@@ -585,6 +574,195 @@ const request = {
   put,
   del,
   patch,
+};
+
+/**
+ * Export a pre-configured axios client for direct use with custom URLs
+ * This client includes all interceptors (auth, error handling) and default headers
+ * 
+ * Usage:
+ * import { apiClient } from '@/lib/api/request';
+ * const response = await apiClient.post(url, data);
+ */
+export const apiClient = (() => {
+  const baseInstance = axios.create({
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  // Add Authorization interceptor
+  baseInstance.interceptors.request.use(
+    async function (config) {
+      if (isBrowser) {
+        // Check if this is an auth endpoint that doesn't need tokens
+        if (config?.noAuthHeader || config.url?.includes("ccr-login-service")) {
+          // No auth header needed
+        } else {
+          // Get token from Redux store with fallbacks
+          let accessToken = null;
+          
+          try {
+            // First try to get from Redux store
+            if (window.__REDUX_STORE__) {
+              const state = window.__REDUX_STORE__.getState();
+              let tokenFromRedux = state?.auth?.accessToken;
+              
+              // Handle case where accessToken might be an object
+              if (tokenFromRedux && typeof tokenFromRedux === 'object') {
+                tokenFromRedux = state?.auth?.loginResponse?.tokens?.bearerToken;
+              }
+              
+              // If still not found, try loginResponse.tokens.bearerToken
+              if (!tokenFromRedux || typeof tokenFromRedux !== 'string') {
+                tokenFromRedux = state?.auth?.loginResponse?.tokens?.bearerToken;
+              }
+              
+              accessToken = tokenFromRedux;
+            }
+          } catch (error) {
+            console.error('❌ Redux store access failed:', error);
+          }
+          
+          // Fallback to cookies, then localStorage
+          if (!accessToken) {
+            try {
+              const cookies = document.cookie.split(';');
+              const accessTokenCookie = cookies.find(cookie => 
+                cookie.trim().startsWith('access_token=')
+              );
+              if (accessTokenCookie) {
+                accessToken = accessTokenCookie.split('=')[1];
+              }
+            } catch (cookieError) {
+              console.warn('⚠️ Cookie access failed:', cookieError.message);
+            }
+          }
+          
+          if (!accessToken) {
+            try {
+              accessToken = localStorage.getItem("access_token");
+            } catch (storageError) {
+              console.warn('⚠️ localStorage access failed:', storageError.message);
+            }
+          }
+          
+          // Add token if available
+          if (accessToken) {
+            config.headers.Authorization = `Bearer ${accessToken}`;
+          }
+        }
+      }
+      
+      return config;
+    },
+    function (error) {
+      return Promise.reject(error);
+    }
+  );
+
+  // Add error handling interceptor
+  baseInstance.interceptors.response.use(
+    function (response) {
+      return response;
+    },
+    async function (error) {
+      const { response } = error;
+
+      // Check for network errors
+      if (!response && error.code === 'ERR_NETWORK') {
+        console.error('🚨 Network error detected - VPN may be disconnected');
+        
+        if (isBrowser) {
+          setTimeout(() => {
+            window.location.href = '/?error=connection';
+          }, 100);
+        }
+        
+        return Promise.reject(error);
+      }
+
+      // Handle 401 errors
+      if (response && response.status === 401) {
+        if (isBrowser) {
+          console.log('🔒 Token expired (401) - logging out and redirecting to login');
+          
+          // Clear all auth-related storage
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("authenticationURL");
+          localStorage.removeItem("logged_in");
+          localStorage.removeItem("soldToId");
+          localStorage.removeItem("user_data");
+          localStorage.removeItem("account_selection");
+          localStorage.removeItem("login_response");
+          localStorage.removeItem("uiProps");
+          localStorage.removeItem("persist:root");
+          localStorage.removeItem("persist:ccr-auth");
+          
+          sessionStorage?.clear();
+          
+          // Clear Redux store if available
+          try {
+            if (window.__REDUX_STORE__) {
+              const { clearAuth } = await import('@/store/authSlice');
+              window.__REDUX_STORE__.dispatch(clearAuth());
+            }
+          } catch (error) {
+            console.warn('⚠️ Could not clear Redux auth state:', error);
+          }
+          
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 100);
+        }
+      }
+
+      return Promise.reject(error);
+    }
+  );
+
+  return baseInstance;
+})();
+
+/**
+ * Export a pre-configured axios client for server-side use (Next.js server actions/components)
+ * This client includes default headers and accepts accessToken as a parameter
+ * 
+ * Usage in server actions:
+ * import { serverApiClient } from '@/lib/api/request';
+ * const response = await serverApiClient.post(url, data, accessToken);
+ */
+export const serverApiClient = {
+  /**
+   * Make a POST request from server-side code
+   * @param {string} url - The full URL to request
+   * @param {*} data - The request body data
+   * @param {string} accessToken - The access token for authorization
+   * @returns {Promise} Axios response
+   */
+  async post(url, data, accessToken) {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {})
+    };
+
+    return axios.post(url, data, { headers });
+  },
+
+  /**
+   * Make a GET request from server-side code
+   * @param {string} url - The full URL to request
+   * @param {string} accessToken - The access token for authorization
+   * @returns {Promise} Axios response
+   */
+  async get(url, accessToken) {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {})
+    };
+
+    return axios.get(url, { headers });
+  }
 };
 
 export default request;

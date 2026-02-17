@@ -54,7 +54,7 @@ const authPersistConfig = {
         try {
           // Ensure state is valid before persisting
           if (!inboundState || typeof inboundState !== 'object') {
-            console.warn('⚠️ Auth persist IN: Invalid state type, returning empty object');
+            // Silently return empty object - this is normal during initialization
             return {};
           }
           
@@ -63,16 +63,14 @@ const authPersistConfig = {
           Object.keys(inboundState).forEach(k => {
             const value = inboundState[k];
             
-            // Skip undefined, functions, symbols
+            // Skip undefined, functions, symbols (silently - this is normal)
             if (value === undefined || typeof value === 'function' || typeof value === 'symbol') {
-              console.warn(`⚠️ Auth persist IN: Skipping non-serializable field "${k}"`, typeof value);
               return;
             }
             
             // Convert Date objects to ISO strings
             if (value instanceof Date) {
               cleanState[k] = value.toISOString();
-              console.log(`📅 Auth persist IN: Converted Date field "${k}" to ISO string`);
               return;
             }
             

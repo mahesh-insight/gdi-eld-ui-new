@@ -599,12 +599,14 @@ export async function getInitialAzureInvoiceData({ soldToId, locationState, acce
  * Fetch Azure Invoice data for month change (without fetching invoiceMonths again)
  * This is used when user changes month - we already have the months list
  */
-export async function getAzureInvoiceDataForMonth({ soldToId, currentMonthObject, accessToken }) {
+export async function getAzureInvoiceDataForMonth({ soldToId, currentMonthObject, accessToken, customerFilter = null, trendMonths = 6 }) {
   try {
     console.log('🔄 getAzureInvoiceDataForMonth called for month change:', {
       soldToId: soldToId?.substring(0, 20) + '...',
       currentMonthObject,
-      hasAccessToken: !!accessToken
+      hasAccessToken: !!accessToken,
+      customerFilter,
+      trendMonths
     });
 
     const currentMonthValue = currentMonthObject.value;
@@ -617,14 +619,22 @@ export async function getAzureInvoiceDataForMonth({ soldToId, currentMonthObject
     const prevMonth = moment(date).subtract(1, "month").format("YYYYMM");
     const usageMonthDifference = `${prevMonth}/${currentMonthValue}`;
 
+    // Build filter query based on customer filter
     const filterQuery = [];
-    const trendFilter = "";
+    let trendFilter = "";
+    
+    if (customerFilter && customerFilter !== 'All' && customerFilter !== 'all') {
+      const customerFilterStr = `limittenantid=${customerFilter}`;
+      filterQuery.push(customerFilterStr);
+      trendFilter = customerFilterStr;
+      console.log('🔍 Applying customer filter:', customerFilterStr);
+    }
 
     // Parallel API calls - NO invoiceMonths call on month change
     const [summary, credits, trend, monthDetail, monthlyDifference] = await Promise.allSettled([
       fetchInvoiceSummary({ soldToId, value: currentMonthValue, filter: filterQuery, accessToken }),
       fetchInvoiceCredits({ soldToId, value: currentMonthValue, filter: filterQuery, accessToken }),
-      fetchInvoiceTrend({ soldToId, months: 6, filter: trendFilter, accessToken }),
+      fetchInvoiceTrend({ soldToId, months: trendMonths, filter: trendFilter, accessToken }),
       fetchInvoiceMonthDetail({ soldToId, value: `${currentMonthValue}?page=0&size=20`, filter: filterQuery, accessToken }),
       fetchInvoiceMonthlyDifferenceDetail({ soldToId, value: `${prevMonth}/${currentMonthValue}?page=0&size=20`, filter: filterQuery, accessToken })
     ]);

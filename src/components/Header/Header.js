@@ -123,14 +123,17 @@ const Header = () => {
   // Store access token
   const accessToken = loginResponse?.tokens?.bearerToken || loginResponse?.accessToken;
   
-  if (isAuthenticated && loginResponse) {
-    console.log('✅ Header: Reading soldToName from Redux store ONLY:', {
-      userDisplay: `${displayLastName ? displayLastName + ', ' : ''}${displayFirstName}`,
-      accountDisplay: `${companyName} - ${soldTo || 'N/A'}`,
-      dataIntegrity: 'Redux store → persists until logout (no time limits)',
-      simplifiedLogic: 'No fallback chains - only loginResponse.userProfile.defaultContext[0].soldToName'
-    });
-  }
+  // Log auth state only when it changes (not on every render)
+  useEffect(() => {
+    if (isAuthenticated && loginResponse) {
+      console.log('✅ Header: Reading soldToName from Redux store ONLY:', {
+        userDisplay: `${displayLastName ? displayLastName + ', ' : ''}${displayFirstName}`,
+        accountDisplay: `${companyName} - ${soldTo || 'N/A'}`,
+        dataIntegrity: 'Redux store → persists until logout (no time limits)',
+        simplifiedLogic: 'No fallback chains - only loginResponse.userProfile.defaultContext[0].soldToName'
+      });
+    }
+  }, [isAuthenticated, loginResponse, displayFirstName, displayLastName, companyName, soldTo]);
   
   const headerRef = useRef(null);
   const navLinkRefs = useRef([]);

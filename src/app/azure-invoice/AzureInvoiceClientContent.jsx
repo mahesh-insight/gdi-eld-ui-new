@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useSelector } from 'react-redux';
 import { store } from '@/store/store';
+import { apiClient } from '@/lib/api/request';
 import { BasicChart } from '@/common/Charts/BasicChart';
 import { BasicGroupedChart } from '@/common/Charts/BasicGroupedChart';
 import { BasicPieDoughnutChart } from '@/common/Charts/BasicPieDoughnutChart';
@@ -194,6 +195,12 @@ export default function AzureInvoiceClientContent(props) {
 
   // Extract isReseller flag and customer names from summary data
   useEffect(() => {
+    console.log('🔄 useEffect triggered for currentSummaryData:', {
+      hasSummaryData: !!currentSummaryData,
+      hasSpendPeriod: !!currentSummaryData?.spendPeriod,
+      totalSpend: currentSummaryData?.spendPeriod?.totalSpend
+    });
+    
     if (currentSummaryData) {
       // Extract isReseller flag
       const resellerFlag = currentSummaryData?.isReseller || false;
@@ -264,6 +271,14 @@ export default function AzureInvoiceClientContent(props) {
     const newMonth = event.value;
     const monthValue = getMonthValue(newMonth);
     
+    console.log('🔄 MONTH CHANGE TRIGGERED:', {
+      newMonth,
+      monthValue,
+      currentMonth: selectedMonth,
+      hasAccessToken: !!accessToken,
+      hasSoldToId: !!selectedSoldToId
+    });
+    
     setSelectedMonth(newMonth);
     
     // Reset customer selection to "All Customers" when month changes
@@ -303,6 +318,7 @@ export default function AzureInvoiceClientContent(props) {
       
       // Call the SERVER ACTION for consolidated data (like invoices page)
       // This makes ONE server-side call that fetches all data together
+      // Month-specific cache key ensures fresh data when needed
       const months = (trendingPeriod === 'Last 12 Months' || trendingPeriod === 'last12months') ? 12 : 6;
       const consolidatedResult = await fetchConsolidatedAzureInvoiceData(
         accessToken,
@@ -312,6 +328,14 @@ export default function AzureInvoiceClientContent(props) {
         months // Pass trend months parameter
       );
       
+      console.log('📬 CLIENT: Received consolidatedResult from server:', {
+        hasResult: !!consolidatedResult,
+        hasError: !!consolidatedResult?.error,
+        hasData: !!consolidatedResult?.data,
+        cached: consolidatedResult?.cached,
+        dataKeys: consolidatedResult?.data ? Object.keys(consolidatedResult.data) : []
+      });
+      
       if (consolidatedResult.error) {
         console.error('❌ Consolidated fetch error:', consolidatedResult.error);
         throw new Error(consolidatedResult.error);
@@ -319,30 +343,73 @@ export default function AzureInvoiceClientContent(props) {
       
       const consolidatedData = consolidatedResult.data;
       
+      console.log('📦 MONTH CHANGE: Consolidated data received:', {
+        hasData: !!consolidatedData,
+        hasSummary: !!consolidatedData?.summary,
+        hasCredits: !!consolidatedData?.credits,
+        hasTrend: !!consolidatedData?.trend,
+        hasMonthDetail: !!consolidatedData?.monthDetail,
+        hasMonthlyDifference: !!consolidatedData?.monthlyDifference,
+        monthDetailCount: consolidatedData?.monthDetail?.content?.length || consolidatedData?.monthDetail?.length || 0,
+        monthlyDiffCount: consolidatedData?.monthlyDifference?.content?.length || consolidatedData?.monthlyDifference?.length || 0
+      });
+      
       // Update all state from the single consolidated response
+      // Force new object references to ensure React detects changes
       if (consolidatedData?.summary) {
-        setCurrentSummaryData(consolidatedData.summary);
+        console.log('✅ Setting summary data with new reference');
+        setCurrentSummaryData({...consolidatedData.summary});
       } else {
         console.warn('⚠️ No summary data in consolidated response');
       }
       setIsLoadingSummary(false);
       
       if (consolidatedData?.credits) {
-        setCurrentCreditsData(consolidatedData.credits);
+        console.log('✅ Setting credits data with new reference');
+        setCurrentCreditsData({...consolidatedData.credits});
       } else {
         console.warn('⚠️ No credits data in consolidated response');
       }
       setIsLoadingCredits(false);
       
       if (consolidatedData?.trend) {
-        setCurrentTrendsData(consolidatedData.trend);
+        console.log('✅ Setting trend data with new reference');
+        setCurrentTrendsData({...consolidatedData.trend});
       } else {
         console.warn('⚠️ No trends data in consolidated response');
       }
       setIsLoadingTrends(false);
-            
-      setCurrentMonthDetailData(consolidatedData?.monthDetail);
-      setCurrentMonthlyDifferenceData(consolidatedData?.monthlyDifference);
+      
+      console.log('✅ Setting tab data (monthDetail and monthlyDifference) with new references');
+      // Deep copy: spread object AND its nested content array to force React re-render
+      const newMonthDetail = consolidatedData?.monthDetail ? {
+        ...consolidatedData.monthDetail,
+        content: consolidatedData.monthDetail.content ? [...consolidatedData.monthDetail.content] : consolidatedData.monthDetail.content,
+        data: consolidatedData.monthDetail.data ? [...consolidatedData.monthDetail.data] : consolidatedData.monthDetail.data
+      } : null;
+      const newMonthlyDiff = consolidatedData?.monthlyDifference ? {
+        ...consolidatedData.monthlyDifference,
+        content: consolidatedData.monthlyDifference.content ? [...consolidatedData.monthlyDifference.content] : consolidatedData.monthlyDifference.content,
+        data: consolidatedData.monthlyDifference.data ? [...consolidatedData.monthlyDifference.data] : consolidatedData.monthlyDifference.data
+      } : null;
+      
+      console.log('📦 MonthDetail data:', {
+        hasData: !!newMonthDetail,
+        hasContent: !!newMonthDetail?.content,
+        contentLength: newMonthDetail?.content?.length || 0,
+        hasDataArray: !!newMonthDetail?.data,
+        dataLength: newMonthDetail?.data?.length || 0
+      });
+      console.log('📦 MonthlyDifference data:', {
+        hasData: !!newMonthlyDiff,
+        hasContent: !!newMonthlyDiff?.content,
+        contentLength: newMonthlyDiff?.content?.length || 0,
+        hasDataArray: !!newMonthlyDiff?.data,
+        dataLength: newMonthlyDiff?.data?.length || 0
+      });
+      
+      setCurrentMonthDetailData(newMonthDetail);
+      setCurrentMonthlyDifferenceData(newMonthlyDiff);
       
       setIsLoadingTabData(false);
       setIsLoadingMonthData(false);
@@ -408,6 +475,7 @@ export default function AzureInvoiceClientContent(props) {
       const monthValue = getMonthValue(selectedMonth);
       
       // Call consolidated API with customer filter
+      // Month-specific cache key ensures fresh data when needed
       const months = (trendingPeriod === 'Last 12 Months' || trendingPeriod === 'last12months') ? 12 : 6;
       const consolidatedResult = await fetchConsolidatedAzureInvoiceData(
         accessToken,
@@ -423,12 +491,48 @@ export default function AzureInvoiceClientContent(props) {
       
       const consolidatedData = consolidatedResult.data;
       
-      // Update all state from the consolidated response
-      setCurrentSummaryData(consolidatedData?.summary);
-      setCurrentCreditsData(consolidatedData?.credits);
-      setCurrentTrendsData(consolidatedData?.trend);
-      setCurrentMonthDetailData(consolidatedData?.monthDetail);
-      setCurrentMonthlyDifferenceData(consolidatedData?.monthlyDifference);
+      console.log('📬 CUSTOMER CHANGE: Consolidated data received:', {
+        hasData: !!consolidatedData,
+        hasSummary: !!consolidatedData?.summary,
+        hasCredits: !!consolidatedData?.credits,
+        hasTrend: !!consolidatedData?.trend,
+        hasMonthDetail: !!consolidatedData?.monthDetail,
+        hasMonthlyDifference: !!consolidatedData?.monthlyDifference
+      });
+      
+      // Update all state from the consolidated response with new object references
+      setCurrentSummaryData(consolidatedData?.summary ? {...consolidatedData.summary} : null);
+      setCurrentCreditsData(consolidatedData?.credits ? {...consolidatedData.credits} : null);
+      setCurrentTrendsData(consolidatedData?.trend ? {...consolidatedData.trend} : null);
+      // Deep copy: spread object AND its nested content array to force React re-render
+      const newMonthDetail = consolidatedData?.monthDetail ? {
+        ...consolidatedData.monthDetail,
+        content: consolidatedData.monthDetail.content ? [...consolidatedData.monthDetail.content] : consolidatedData.monthDetail.content,
+        data: consolidatedData.monthDetail.data ? [...consolidatedData.monthDetail.data] : consolidatedData.monthDetail.data
+      } : null;
+      const newMonthlyDiff = consolidatedData?.monthlyDifference ? {
+        ...consolidatedData.monthlyDifference,
+        content: consolidatedData.monthlyDifference.content ? [...consolidatedData.monthlyDifference.content] : consolidatedData.monthlyDifference.content,
+        data: consolidatedData.monthlyDifference.data ? [...consolidatedData.monthlyDifference.data] : consolidatedData.monthlyDifference.data
+      } : null;
+      
+      console.log('📦 CUSTOMER CHANGE - MonthDetail data:', {
+        hasData: !!newMonthDetail,
+        hasContent: !!newMonthDetail?.content,
+        contentLength: newMonthDetail?.content?.length || 0,
+        hasDataArray: !!newMonthDetail?.data,
+        dataLength: newMonthDetail?.data?.length || 0
+      });
+      console.log('📦 CUSTOMER CHANGE - MonthlyDifference data:', {
+        hasData: !!newMonthlyDiff,
+        hasContent: !!newMonthlyDiff?.content,
+        contentLength: newMonthlyDiff?.content?.length || 0,
+        hasDataArray: !!newMonthlyDiff?.data,
+        dataLength: newMonthlyDiff?.data?.length || 0
+      });
+      
+      setCurrentMonthDetailData(newMonthDetail);
+      setCurrentMonthlyDifferenceData(newMonthlyDiff);
       
       // Restore the original customer list (don't let filtered data overwrite it)
       if (originalCustomerNames.length > 1) {
@@ -580,20 +684,12 @@ export default function AzureInvoiceClientContent(props) {
       // Construct the full URL with the service path
       const apiUrl = `${baseURL}/ccr-invoice-service/month/${formattedMonth}?page=0&size=20${filterQueryString}`;
       
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify(Array.isArray(selectedSoldToId) ? selectedSoldToId : [selectedSoldToId])
-      });
+      const response = await apiClient.post(
+        apiUrl,
+        Array.isArray(selectedSoldToId) ? selectedSoldToId : [selectedSoldToId]
+      );
 
-      if (!response.ok) {
-        throw new Error(`API call failed: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = response.data;
 
       // Store the complete response with pagination metadata
       setCurrentMonthDetailData(data);
@@ -686,24 +782,11 @@ export default function AzureInvoiceClientContent(props) {
       
       const apiUrl = `${baseURL}/ccr-invoice-service/month/${formattedMonth}?page=${pageNumber}&size=${newDataState.take}${filterQueryString}`;
       
-      const requestHeaders = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
-      };
-      
       const requestBody = Array.isArray(selectedSoldToId) ? selectedSoldToId : [selectedSoldToId];
       
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: requestHeaders,
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!response.ok) {
-        throw new Error(`API call failed: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const response = await apiClient.post(apiUrl, requestBody);
+      const data = response.data;
+      
       setCurrentMonthDetailData(data);
       
     } catch (error) {
@@ -786,24 +869,11 @@ export default function AzureInvoiceClientContent(props) {
       
       const apiUrl = `${baseURL}/ccr-invoice-service/month/sku-difference/${previousMonthValue}/${formattedMonth}?page=${pageNumber}&size=${newDataState.take}${filterQueryString}`;
       
-      const requestHeaders = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
-      };
-      
       const requestBody = Array.isArray(selectedSoldToId) ? selectedSoldToId : [selectedSoldToId];
       
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: requestHeaders,
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!response.ok) {
-        throw new Error(`API call failed: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const response = await apiClient.post(apiUrl, requestBody);
+      const data = response.data;
+      
       setCurrentMonthlyDifferenceData(data);      
     } catch (error) {
       console.error('❌ Error changing page:', error);
@@ -891,19 +961,27 @@ export default function AzureInvoiceClientContent(props) {
 
   // Calculate summary values
   const invoiceTotal = useMemo(() => {
-    return currentSummaryData?.spendPeriod?.totalSpend || 0;
+    const total = currentSummaryData?.spendPeriod?.totalSpend || 0;
+    console.log('💰 Recalculating invoiceTotal:', total);
+    return total;
   }, [currentSummaryData]);
 
   const monthlyDifference = useMemo(() => {
-    return currentSummaryData?.spendPeriod?.differenceTotalSpend || 0;
+    const diff = currentSummaryData?.spendPeriod?.differenceTotalSpend || 0;
+    console.log('📊 Recalculating monthlyDifference:', diff);
+    return diff;
   }, [currentSummaryData]);
 
   const monthlyDifferencePercent = useMemo(() => {
-    return currentSummaryData?.spendPeriod?.differencePercentSpend || 0;
+    const percent = currentSummaryData?.spendPeriod?.differencePercentSpend || 0;
+    console.log('📈 Recalculating monthlyDifferencePercent:', percent);
+    return percent;
   }, [currentSummaryData]);
 
   const invoiceCredits = useMemo(() => {
-    return currentCreditsData?.totalSpend || 0;
+    const credits = currentCreditsData?.totalSpend || 0;
+    console.log('💳 Recalculating invoiceCredits:', credits);
+    return credits;
   }, [currentCreditsData]);
 
   // Prepare data for charts using useMemo (same pattern as invoices page)
@@ -1630,7 +1708,8 @@ export default function AzureInvoiceClientContent(props) {
                     };
                     
                     return (
-                      <GridTable 
+                      <GridTable
+                        key={`month-detail-${getMonthValue(selectedMonth)}-${selectedCustomer?.value || 'all'}`}
                         data={gridData}
                         columns={azureInvoiceDetailsColumns(t)}
                         className="azure-invoice-details-grid"
@@ -1675,7 +1754,8 @@ export default function AzureInvoiceClientContent(props) {
                     };
                     
                     return (
-                      <GridTable 
+                      <GridTable
+                        key={`monthly-diff-${getMonthValue(selectedMonth)}-${selectedCustomer?.value || 'all'}`}
                         data={gridData}
                         columns={monthlyDifferenceColumns(t)}
                         className="azure-invoice-differences-grid"

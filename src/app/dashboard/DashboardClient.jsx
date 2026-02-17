@@ -17,8 +17,9 @@ import DashboardWidgets from './components/DashboardWidgets';
  * - userContext: User context from server cookies (when mode='ssr')
  * - cached: Whether SSR data came from cache
  * - error: Error from server-side fetch (when mode='client-side')
+ * - useEmbeddedPages: Whether to use iframe-embedded widget pages (default: false for performance)
  */
-export default function DashboardClient({ mode = 'client-side', ssrData = null, userContext = null, cached = false, error = null }) {
+export default function DashboardClient({ mode = 'client-side', ssrData = null, userContext = null, cached = false, error = null, useEmbeddedPages = false }) {
   const dispatch = useDispatch();
   const { user, logout, isAuthenticated, loginResponse } = useAuth();
   const { username, firstName, persona } = loginResponse || {};
@@ -261,7 +262,7 @@ export default function DashboardClient({ mode = 'client-side', ssrData = null, 
 
         {/* Dashboard Widgets */}
         {mpsaStatusData?.data && !mpsaError && (
-          <DashboardWidgets ssrData={dashboardData} mode={mode} />
+          <DashboardWidgets ssrData={dashboardData} mode={mode} useEmbeddedPages={useEmbeddedPages} />
         )}
       </div>
     </ProtectedRoute>

@@ -11,7 +11,7 @@ import { DropDownList, MultiSelect } from '@progress/kendo-react-dropdowns';
 import { Skeleton } from '@progress/kendo-react-indicators';
 import { Grid, GridColumn } from '@progress/kendo-react-grid';
 import { Chart } from '@progress/kendo-react-charts';
-import request from '@/lib/api/request';
+import request, { apiClient } from '@/lib/api/request';
 import { exceptionHandler, formatCurrency } from '@/lib/utils';
 import ChartTitleAndButtons from '@/components/ChartTitleAndButtons';
 import { Tooltip } from '@progress/kendo-react-tooltip';
@@ -154,6 +154,15 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       }
     }
   }
+  
+  // Final validation and logging
+  console.log('🔍 InvoicesClientContent soldToId extraction:', {
+    mode,
+    selectedSoldToId,
+    hasUserContext: !!userContext,
+    hasLoginResponse: !!loginResponse,
+    source: mode === 'ssr' ? 'userContext' : (loginResponse ? 'Redux loginResponse' : 'localStorage fallback')
+  });
   
   // Ref to track in-flight API calls - prevents duplicate requests
   const monthChangeInProgress = useRef(false);
@@ -1068,13 +1077,8 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       const authState = store.getState().auth;
       const accessToken = authState?.loginResponse?.tokens?.bearerToken || authState?.accessToken;
       
-      // Extract soldToId using comprehensive path
-      const soldToId = authState?.loginResponse?.userProfile?.defaultContext?.[0]?.soldToId ||
-                       authState?.loginResponse?.userProfile?.defaultContext?.soldToId ||
-                       authState?.loginResponse?.soldToId ||
-                       authState?.loginResponse?.userProfile?.soldToId ||
-                       authState?.soldTo ||
-                       authState?.user?.soldToId;
+      // Use component-level selectedSoldToId (already has all fallbacks)
+      const soldToId = selectedSoldToId;
       
       const monthValue = selectedMonth?.value || selectedMonth?.date || selectedMonth?.display;
       
@@ -1100,13 +1104,13 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       const formattedMonth = monthValue.replace(/-/g, '');
       const pageNumber = Math.floor(newDataState.skip / newDataState.take);
       
-      // Build filter query string
+      // Build filter query string with consistent format using = (not "equals" keyword)
       const filterParams = [];
       if (selectedProductCategory && selectedProductCategory.length > 0) {
         selectedProductCategory.forEach(category => {
           const categoryValue = typeof category === 'object' ? category.value : category;
           if (categoryValue !== 'all') {
-            filterParams.push(`filter=productcategory equals ${categoryValue}`);
+            filterParams.push(`filter=productcategory%3D${encodeURIComponent(categoryValue)}`);
           }
         });
       }
@@ -1114,7 +1118,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         selectedProductName.forEach(name => {
           const nameValue = typeof name === 'object' ? name.value : name;
           if (nameValue !== 'all') {
-            filterParams.push(`filter=productname equals ${nameValue}`);
+            filterParams.push(`filter=productname%3D${encodeURIComponent(nameValue)}`);
           }
         });
       }
@@ -1122,10 +1126,22 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         selectedSubscriptionId.forEach(sub => {
           const subValue = typeof sub === 'object' ? sub.value : sub;
           if (subValue !== 'all') {
-            filterParams.push(`filter=subscriptionid equals ${subValue}`);
+            filterParams.push(`filter=subscriptionid%3D${encodeURIComponent(subValue)}`);
           }
         });
       }
+      
+      // Customer filter (limittenantid) - if customer is selected and not "All"
+      if (selectedCustomer && selectedCustomer.value && selectedCustomer.value !== 'All') {
+        filterParams.push(`filter=limittenantid%3D${encodeURIComponent(selectedCustomer.value)}`);
+      }
+      
+      // Invoice Number filter
+      const invoiceValue = selectedInvoiceNumber?.value || selectedInvoiceNumber;
+      if (invoiceValue && invoiceValue !== 'All' && invoiceValue !== 'all') {
+        filterParams.push(`filter=invoicenumber%3D${encodeURIComponent(invoiceValue)}`);
+      }
+      
       const filterQueryString = filterParams.length > 0 ? `&${filterParams.join('&')}` : '';
 
       const services = (await import('@/lib/api/services')).default;
@@ -1134,33 +1150,17 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       
       const apiUrl = `${baseURL}/ccr-billableitem-service/${apiEndpoint}/month/${formattedMonth}?page=${pageNumber}&size=${newDataState.take}${filterQueryString}`;
       
-      const requestHeaders = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
-      };
-      
       const requestBody = Array.isArray(soldToId) ? soldToId : [soldToId];
       
       console.log('📄 Fetching Grid page:', { 
         pageNumber, 
         size: newDataState.take, 
         url: apiUrl,
-        hasAuthHeader: !!requestHeaders.Authorization,
-        authHeaderValue: requestHeaders.Authorization ? `Bearer ...${accessToken?.slice(-10)}` : 'MISSING',
         requestBody
       });
 
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: requestHeaders,
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!response.ok) {
-        throw new Error(`API call failed: ${response.status}`);
-      }
-
-      const detailsResponse = await response.json();
+      const response = await apiClient.post(apiUrl, requestBody);
+      const detailsResponse = response.data;
       
       if (detailsResponse?.data) {
         setGridData(detailsResponse.data?.content || detailsResponse.data || []);
@@ -1175,7 +1175,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
     } finally {
       setIsLoadingGridPagination(false);
     }
-  }, [selectedMonth, selectedProductCategory, selectedProductName, selectedSubscriptionId, apiEndpoint]);
+  }, [selectedSoldToId, selectedMonth, selectedProductCategory, selectedProductName, selectedSubscriptionId, selectedCustomer, selectedInvoiceNumber, apiEndpoint]);
   
   // Chart type change handler
   const handleChartTypeChange = useCallback(async (newType) => {
@@ -1236,13 +1236,8 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       const authState = store.getState().auth;
       const accessToken = authState?.loginResponse?.tokens?.bearerToken || authState?.accessToken;
       
-      // Extract soldToId using comprehensive path
-      const soldToId = authState?.loginResponse?.userProfile?.defaultContext?.[0]?.soldToId ||
-                       authState?.loginResponse?.userProfile?.defaultContext?.soldToId ||
-                       authState?.loginResponse?.soldToId ||
-                       authState?.loginResponse?.userProfile?.soldToId ||
-                       authState?.soldTo ||
-                       authState?.user?.soldToId;
+      // Use component-level selectedSoldToId (already has all fallbacks)
+      const soldToId = selectedSoldToId;
       
       const monthValue = selectedMonth?.value || selectedMonth?.date || selectedMonth?.display;
       
@@ -1258,7 +1253,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
 
       const formattedMonth = monthValue.replace(/-/g, '');
       
-      // Build filter query string
+      // Build filter query string with consistent format using = (not "equals" keyword)
       const filterParams = [];
       
       // Product Category filter
@@ -1266,7 +1261,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         selectedProductCategory.forEach(category => {
           const categoryValue = typeof category === 'object' ? category.value : category;
           if (categoryValue && categoryValue !== 'all') {
-            filterParams.push(`filter=productcategory equals ${encodeURIComponent(categoryValue)}`);
+            filterParams.push(`filter=productcategory%3D${encodeURIComponent(categoryValue)}`);
           }
         });
       }
@@ -1276,7 +1271,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         selectedSubscriptionId.forEach(sub => {
           const subValue = typeof sub === 'object' ? sub.value : sub;
           if (subValue && subValue !== 'all') {
-            filterParams.push(`filter=subscriptionid equals ${encodeURIComponent(subValue)}`);
+            filterParams.push(`filter=subscriptionid%3D${encodeURIComponent(subValue)}`);
           }
         });
       }
@@ -1286,7 +1281,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
         selectedProductName.forEach(name => {
           const nameValue = typeof name === 'object' ? name.value : name;
           if (nameValue && nameValue !== 'all') {
-            filterParams.push(`filter=productname equals ${encodeURIComponent(nameValue)}`);
+            filterParams.push(`filter=productname%3D${encodeURIComponent(nameValue)}`);
           }
         });
       }
@@ -1299,7 +1294,7 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       // Invoice Number filter
       const invoiceValue = selectedInvoiceNumber?.value || selectedInvoiceNumber;
       if (invoiceValue && invoiceValue !== 'All' && invoiceValue !== 'all') {
-        filterParams.push(`filter=invoicenumber equals ${encodeURIComponent(invoiceValue)}`);
+        filterParams.push(`filter=invoicenumber%3D${encodeURIComponent(invoiceValue)}`);
       }
       
       const filterQueryString = filterParams.length > 0 ? `&${filterParams.join('&')}` : '';
@@ -1310,30 +1305,20 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       
       const apiUrl = `${baseURL}/ccr-billableitem-service/${apiEndpoint}/month/${formattedMonth}?page=0&size=${gridDataState.take}${filterQueryString}`;
       
-      const requestHeaders = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
-      };
-      
       const requestBody = Array.isArray(soldToId) ? soldToId : [soldToId];
       
       console.log('🔍 Applying filters with API call:', { 
         url: apiUrl,
         filters: filterParams,
-        requestBody
+        soldToId: soldToId,
+        soldToIdType: typeof soldToId,
+        soldToIdIsArray: Array.isArray(soldToId),
+        requestBody: requestBody,
+        requestBodyString: JSON.stringify(requestBody)
       });
 
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: requestHeaders,
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!response.ok) {
-        throw new Error(`API call failed: ${response.status}`);
-      }
-
-      const detailsResponse = await response.json();
+      const response = await apiClient.post(apiUrl, requestBody);
+      const detailsResponse = response.data;
       
       console.log('📦 Apply Filters Response:', {
         hasData: !!detailsResponse?.data,

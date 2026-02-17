@@ -10,9 +10,25 @@ import AdobeWidget from './AdobeWidget';
 import AWSWidget from './AWSWidget';
 import MPSAWidget from './MPSAWidget';
 
-export default function DashboardWidgets({ ssrData, mode }) {
+export default function DashboardWidgets({ ssrData, mode, useEmbeddedPages = false }) {
   const widgetFlags = useSelector(state => state.dashboard.widgetFlags);
   const widgets = ssrData?.widgets || {};
+  const [soldToId, setSoldToId] = useState(null);
+
+  // Get soldToId from localStorage for embedded pages
+  useEffect(() => {
+    if (useEmbeddedPages && typeof window !== 'undefined') {
+      try {
+        const storedSoldToId = localStorage.getItem('soldToId');
+        if (storedSoldToId) {
+          const parsed = JSON.parse(storedSoldToId);
+          setSoldToId(Array.isArray(parsed) ? parsed[0] : parsed);
+        }
+      } catch (e) {
+        console.warn('Failed to parse soldToId from localStorage:', e);
+      }
+    }
+  }, [useEmbeddedPages]);
 
   // Chart type states for each widget
   const [azureChartType, setAzureChartType] = useState('line');
@@ -72,48 +88,85 @@ export default function DashboardWidgets({ ssrData, mode }) {
     return monthIndex >= 0 && monthIndex < 12 ? `${monthNames[monthIndex]} ${year}` : "Invalid Month";
   };
 
+  // Render widget as embedded page (iframe) or component
+  const renderWidget = (flag, widgetPath, WidgetComponent, widgetData) => {
+    if (!flag) return null;
+
+    if (useEmbeddedPages && soldToId) {
+      return (
+        <div className="widget-iframe-container">
+          <iframe
+            src={`/widgets/${widgetPath}?soldToId=${soldToId}`}
+            title={`${widgetPath} widget`}
+            className="widget-iframe"
+            loading="lazy"
+          />
+        </div>
+      );
+    }
+
+    const data = widgetData?.data || {};
+    return <WidgetComponent data={data} />;
+  };
+
   // Render Azure Spend Widget
   const renderAzureSpendWidget = () => {
-    if (!widgetFlags.isAzureSpendWidgetDataState) return null;
-    const data = widgets.azureSpend?.data || {};
-    return (
-      <AzureSpendWidget data={data} />
+    return renderWidget(
+      widgetFlags.isAzureSpendWidgetDataState,
+      'azure-spend',
+      AzureSpendWidget,
+      widgets.azureSpend
     );
   };
 
   // Render M365 Widget
   const renderM365Widget = () => {
-    if (!widgetFlags.isM365WidgetDataState) return null;
-    const data = widgets.m365?.data || {};
-    return <M365Widget data={data} />;
+    return renderWidget(
+      widgetFlags.isM365WidgetDataState,
+      'm365',
+      M365Widget,
+      widgets.m365
+    );
   };
 
   // Render MS Cloud Widget
   const renderMSCloudWidget = () => {
-    if (!widgetFlags.isMSSpendWidgetDataState) return null;
-    const data = widgets.msCloud?.data || {};
-    return <MSCloudWidget data={data} />;
+    return renderWidget(
+      widgetFlags.isMSSpendWidgetDataState,
+      'mscloud',
+      MSCloudWidget,
+      widgets.msCloud
+    );
   };
 
   // Render Adobe Widget
   const renderAdobeWidget = () => {
-    if (!widgetFlags.isAdobeWidgetDataState) return null;
-    const data = widgets.adobeSpend?.data || {};
-    return <AdobeWidget data={data} />;
+    return renderWidget(
+      widgetFlags.isAdobeWidgetDataState,
+      'adobe',
+      AdobeWidget,
+      widgets.adobeSpend
+    );
   };
 
   // Render AWS Widget
   const renderAWSWidget = () => {
-    if (!widgetFlags.isAwsSpendWidgetDataState) return null;
-    const data = widgets.awsSpend?.data || {};
-    return <AWSWidget data={data} />;
+    return renderWidget(
+      widgetFlags.isAwsSpendWidgetDataState,
+      'aws',
+      AWSWidget,
+      widgets.awsSpend
+    );
   };
 
   // Render MPSA Widget
   const renderMPSAWidget = () => {
-    if (!widgetFlags.isMPSAWidgetDataState) return null;
-    const data = widgets.mpsa?.data || {};
-    return <MPSAWidget data={data} />;
+    return renderWidget(
+      widgetFlags.isMPSAWidgetDataState,
+      'mpsa',
+      MPSAWidget,
+      widgets.mpsa
+    );
   };
 
   const hasAnyWidgets = Object.values(widgetFlags).some(flag => flag === true);

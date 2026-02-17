@@ -124,7 +124,7 @@ export default function AuthContextInitializer({ children }) {
             dispatch(setAuthenticated(false));
             dispatch(setIsLoggedInState(false));
         }
-    }, [dispatch, authState]);
+    }, [dispatch]);
 
     return <>{children}</>;
 }

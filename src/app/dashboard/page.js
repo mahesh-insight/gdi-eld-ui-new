@@ -33,8 +33,14 @@ export default async function DashboardPage(props) {
   // Check for cache bypass flag (set during account switch)
   const searchParams = await props.searchParams;
   const bypassCache = searchParams?.bypassCache === 'true';
+  const useEmbeddedPages = searchParams?.embed === 'true';
+  
   if (bypassCache) {
     console.log('🚩 [SERVER] Account switch detected - will bypass cache');
+  }
+  
+  if (useEmbeddedPages) {
+    console.log('📱 [SERVER] Embedded pages mode enabled - widgets will load as iframes');
   }
   
   // Get authentication data from server-side cookies (same pattern as invoices/azure-invoice)
@@ -123,6 +129,7 @@ export default async function DashboardPage(props) {
       ssrData={result.data}
       userContext={userContext}
       cached={result.cached}
+      useEmbeddedPages={useEmbeddedPages}
     />
   );
 }

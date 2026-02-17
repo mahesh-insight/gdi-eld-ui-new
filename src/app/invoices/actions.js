@@ -5,6 +5,7 @@ import { cookies } from 'next/headers';
 import { getOrSetCached } from '@/lib/cache/serverCache';
 import { CacheTTL } from '@/lib/cache/cacheKeys';
 import { getService } from '@/lib/api/services';
+import { serverApiClient } from '@/lib/api/request';
 
 /**
  * Consolidated fetch for all invoice data (optimized like azure-invoice)
@@ -73,16 +74,8 @@ export async function fetchConsolidatedInvoiceData(soldToId, provider, selectedM
             const serviceConfig = getService('providers'); // Get base URL
             const url = `${serviceConfig.baseURL}/ccr-billableitem-service/${abbreviation}/summary/${monthValue}${summaryFilterParam}`;
             console.log('📡 SERVER: Summary API URL:', url);
-            const response = await fetch(url, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${accessToken}`
-              },
-              body: JSON.stringify([soldToId])
-            });
-            if (!response.ok) throw new Error(`Summary API error: ${response.status}`);
-            return response.json();
+            const response = await serverApiClient.post(url, [soldToId], accessToken);
+            return response.data;
           })(),
           
           // Trend data
@@ -91,16 +84,8 @@ export async function fetchConsolidatedInvoiceData(soldToId, provider, selectedM
             const trendFilter = trendFilterParam ? '&' + trendFilterParam.substring(1) : '';
             const url = `${serviceConfig.baseURL}/ccr-billableitem-service/${abbreviation}/trend?months=6&limit=6${trendFilter}`;
             console.log('📈 SERVER: Trend API URL:', url);
-            const response = await fetch(url, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${accessToken}`
-              },
-              body: JSON.stringify([soldToId])
-            });
-            if (!response.ok) throw new Error(`Trend API error: ${response.status}`);
-            return response.json();
+            const response = await serverApiClient.post(url, [soldToId], accessToken);
+            return response.data;
           })(),
           
           // Grid data (details)
@@ -108,16 +93,8 @@ export async function fetchConsolidatedInvoiceData(soldToId, provider, selectedM
             const serviceConfig = getService('providers'); // Get base URL
             const url = `${serviceConfig.baseURL}/ccr-billableitem-service/${abbreviation}/month/${monthValue}${summaryFilterParam}`;
             console.log('📋 SERVER: Grid API URL:', url);
-            const response = await fetch(url, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${accessToken}`
-              },
-              body: JSON.stringify([soldToId])
-            });
-            if (!response.ok) throw new Error(`Grid API error: ${response.status}`);
-            return response.json();
+            const response = await serverApiClient.post(url, [soldToId], accessToken);
+            return response.data;
           })()
         ]);
         
@@ -172,20 +149,12 @@ export async function fetchProvidersServer(soldToId) {
       async () => {
         console.log('📥 Cache MISS - fetching providers from API');
         const serviceConfig = getService('providers');
-        const result = await fetch(serviceConfig.baseURL + serviceConfig.url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessTokenCookie.value}`
-          },
-          body: JSON.stringify([soldToId])
-        });
-        
-        if (!result.ok) {
-          throw new Error(`HTTP error! status: ${result.status}`);
-        }
-        
-        return result.json();
+        const response = await serverApiClient.post(
+          serviceConfig.baseURL + serviceConfig.url,
+          [soldToId],
+          accessTokenCookie.value
+        );
+        return response.data;
       },
       CacheTTL.MEDIUM // 30 minutes
     );
@@ -229,20 +198,8 @@ export async function fetchInvoiceMonthsServer(soldToId, provider) {
         const url = `${serviceConfig.baseURL}/ccr-billableitem-service/${abbreviation}/months`;
         
         console.log('🔍 Constructed URL:', url);
-        const result = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessTokenCookie.value}`
-          },
-          body: JSON.stringify([soldToId])
-        });
-        
-        if (!result.ok) {
-          throw new Error(`HTTP error! status: ${result.status}`);
-        }
-        
-        return result.json();
+        const response = await serverApiClient.post(url, [soldToId], accessTokenCookie.value);
+        return response.data;
       },
       CacheTTL.MEDIUM // 30 minutes
     );
@@ -283,21 +240,8 @@ export async function fetchInvoiceTrendServer(soldToId, abbreviation, months = 6
     const serviceConfig = getService('providers');
     const url = `${serviceConfig.baseURL}/ccr-billableitem-service/${abbreviation}/trend?months=${months}&limit=6`;
     
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
-      },
-      body: JSON.stringify([soldToId])
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Trend API error: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return { error: null, data };
+    const response = await serverApiClient.post(url, [soldToId], accessToken);
+    return { error: null, data: response.data };
   } catch (error) {
     console.error('❌ fetchInvoiceTrendServer error:', error);
     return { error: error.message, data: null };
