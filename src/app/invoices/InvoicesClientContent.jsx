@@ -30,6 +30,7 @@ import {
 } from './actions';
 import './invoices.css';
 import { Button } from '@progress/kendo-react-buttons';
+import { DownloadButton } from '@/lib/download';
 
 const initialSort = [
   {
@@ -1055,10 +1056,6 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
       }, remainingTime);
     }
   }, [selectedSoldToId, selectedProvider, apiEndpoint, selectedMonth, selectedInvoiceNumber, totalSpend, monthlyDifference, breakdownChartData.length, trendData.length, gridData.length, gridTotal]);
-
-  const handleDownload = useCallback(() => {
-    console.log('💾 Download triggered');
-  }, []);
   
   // Handle grid pagination changes
   const handleGridDataStateChange = useCallback(async (event) => {
@@ -2386,14 +2383,19 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
               >
                 Apply Filters
               </button>&nbsp;
-                <Button
-                  onClick={handleDownload}
-                  className="k-grid-download"
-                  fillMode="outline"
-                  title="Schedule Download"
-                >
+              <DownloadButton
+                requestTypeID="Billing_Items"
+                fileName="Invoice-Report"
+                soldToId={selectedSoldToId}
+                invoiceMonth={selectedMonth?.value}
+                filterState={typeof window !== 'undefined' ? window.location.search : ''}
+                gridTotalElements={gridTotal}
+                fillMode="outline"
+                className="k-grid-download"
+                title="Schedule Download"
+              >
                 <ImportIcon className="svg-style-sm" />
-              </Button>
+              </DownloadButton>
             </div>
           </div>
         )}

@@ -10,6 +10,7 @@ import NetworkErrorBoundary from '@/components/NetworkErrorBoundary';
 import { usePathname } from 'next/navigation';
 import { KendoIntlProvider } from '@/components/KendoIntlProvider';
 import { saveLastVisitedPage, updateSessionTimestamp } from '@/lib/auth/sessionManager';
+import { DownloadWindow } from '@/lib/download';
 
 // Pages where header should NOT show (pre-login / error pages)
 const NO_HEADER_PATHS = ['/', '/Unauthorised', '/SignIn'];
@@ -58,6 +59,7 @@ export default function ClientLayout({ children }) {
         <AuthContextInitializer>
           <NetworkErrorBoundary>
             <CookieSync />
+            <DownloadWindow />
             <div className="App">
               {showHeader && <Header />}
 

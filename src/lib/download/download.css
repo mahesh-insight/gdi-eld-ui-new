@@ -1,0 +1,270 @@
+.download-window-centered {
+  z-index: 10000;
+}
+
+.download-window-centered .k-window-titlebar {
+  background-color: #666;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.download-window-content {
+  padding: 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.download-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 35%;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-label {
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+}
+
+.form-label-small {
+  font-weight: 500;
+  font-size: 12px;
+  color: #555;
+  margin-bottom: 4px;
+}
+
+.date-range-fields {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.date-range-fields > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.radio-group {
+  display: flex;
+  gap: 0px;
+
+  .k-radio-label{
+    margin-right: 15px;
+  }
+}
+
+.hint-text {
+    font-size: 14px;
+    color: #007996;
+    font-style: italic;
+    margin: 0;
+}
+
+.hint-error {
+  color: #d32f2f;
+  font-size: 12px;
+}
+
+.previous-downloads-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.section-header h3 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.downloads-grid {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 16px;
+  overflow: visible;
+}
+
+.downloads-grid .k-grid {
+  border: none;
+}
+
+.download-history-grid {
+  width: 100%;
+}
+
+.download-history-grid .k-grid-table {
+  font-size: 13px;
+}
+
+.download-link-grid {
+  padding: 4px 12px;
+  background-color: #1976d2;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  font-size: 12px;
+  display: inline-block;
+  transition: background-color 0.2s;
+}
+
+.download-link-grid:hover {
+  background-color: #1565c0;
+  color: white;
+}
+
+.loading-message,
+.no-downloads-message {
+  text-align: center;
+  color: #666;
+  padding: 40px;
+}
+
+.downloads-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.download-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background-color: #fafafa;
+}
+
+.download-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.download-name {
+  font-weight: 500;
+  font-size: 14px;
+  color: #333;
+}
+
+.download-status {
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: 12px;
+  display: inline-block;
+  width: fit-content;
+  font-weight: 500;
+}
+
+.status-complete {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-pending {
+  background-color: #fff3e0;
+  color: #e65100;
+}
+
+.status-processing {
+  background-color: #e3f2fd;
+  color: #1565c0;
+}
+
+.status-failed,
+.status-error {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.download-link {
+  padding: 6px 16px;
+  background-color: #1976d2;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.download-link:hover {
+  background-color: #1565c0;
+}
+
+/* Action Cell Styles */
+.k-command-cell {
+  padding: 8px !important;
+}
+
+.k-command-cell .k-button {
+  font-size: 12px !important;
+  padding: 6px 12px !important;
+  min-width: 80px;
+}
+
+/* Progress Bar Styles */
+.k-progressbar {
+  border-radius: 4px !important;
+}
+
+.k-progressbar-value {
+  border-radius: 4px !important;
+}
+
+/* Download History Grid */
+.download-history-grid {
+  width: 100%;
+}
+
+.download-history-grid .k-grid-header {
+  background-color: #f5f5f5;
+  font-weight: 600;
+}
+
+.download-history-grid .k-grid-content {
+  overflow-x: auto;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #e0e0e0;
+  margin: 20px 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .date-range-fields {
+    flex-direction: column;
+  }
+  
+  .section-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .download-item {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+}

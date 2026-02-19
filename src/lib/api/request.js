@@ -762,6 +762,21 @@ export const serverApiClient = {
     };
 
     return axios.get(url, { headers });
+  },
+
+  /**
+   * Make a DELETE request from server-side code
+   * @param {string} url - The full URL to request
+   * @param {string} accessToken - The access token for authorization
+   * @returns {Promise} Axios response
+   */
+  async delete(url, accessToken) {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {})
+    };
+
+    return axios.delete(url, { headers });
   }
 };
 

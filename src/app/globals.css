@@ -331,3 +331,8 @@ a {
 .k-button-text{
   font-size: 16px !important;
 }
+.apply-filters-btn:hover {
+  border: 0 !important;
+  border-radius: unset !important;
+  outline: none !important;
+}

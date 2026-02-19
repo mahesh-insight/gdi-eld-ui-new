@@ -5,6 +5,7 @@ import '@progress/kendo-theme-default/dist/all.css';
 import "Insight-Theme/dist/css/insight-theme.css"; 
 import "@/styles/chart-theme.css";
 import "@/i18n";
+import { DownloadProvider } from '@/lib/download';
 
 export const metadata = {
   title: 'CCR',
@@ -15,7 +16,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body suppressHydrationWarning={true}>
-        <ClientLayout>{children}</ClientLayout>
+        <DownloadProvider>
+          <ClientLayout>{children}</ClientLayout>
+        </DownloadProvider>
       </body>
     </html>
   );

@@ -126,7 +126,7 @@ const GridTable = (props) => {
             key={index}
             field={column.field}
             title={column.title}
-            width={setWidth ? setWidth(column.minWidth) : column.minWidth}
+            width={setWidth ? setWidth(column.width || column.minWidth) : (column.width || column.minWidth)}
             format={column.format}
             cell={column.cell}
           />
