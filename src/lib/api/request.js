@@ -777,6 +777,25 @@ export const serverApiClient = {
     };
 
     return axios.delete(url, { headers });
+  },
+
+  /**
+   * Download a file (blob) from server-side code
+   * @param {string} url - The full URL to request
+   * @param {string} accessToken - The access token for authorization
+   * @returns {Promise<ArrayBuffer>} File data as ArrayBuffer
+   */
+  async downloadBlob(url, accessToken) {
+    const headers = {
+      ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {})
+    };
+
+    const response = await axios.get(url, { 
+      headers,
+      responseType: 'arraybuffer'
+    });
+    
+    return response;
   }
 };
 

@@ -176,3 +176,44 @@ export async function deleteDownloadRequest(downloadId) {
     };
   }
 }
+
+/**
+ * Download a file by ID
+ * @param {string} downloadId - The download ID
+ * @returns {Promise<Object>} Download response with file data
+ */
+export async function downloadFileById(downloadId) {
+  try {
+    const accessToken = await getAccessToken();
+    
+    if (!accessToken) {
+      return {
+        success: false,
+        error: 'Authentication required',
+      };
+    }
+    
+    const baseURL = getBaseURL();
+    const url = `${baseURL}/ccr-download-service/download/${downloadId}`;
+    
+    console.log('📥 Downloading file:', { url, downloadId });
+    
+    // Use serverApiClient to download blob with proper authentication
+    const response = await serverApiClient.downloadBlob(url, accessToken);
+    
+    // Convert ArrayBuffer to Uint8Array for serialization
+    const uint8Array = new Uint8Array(response.data);
+    
+    return {
+      success: true,
+      data: Array.from(uint8Array), // Convert to regular array for serialization
+      contentType: response.headers['content-type'],
+    };
+  } catch (error) {
+    console.error('downloadFileById error:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to download file',
+    };
+  }
+}

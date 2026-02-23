@@ -19,7 +19,7 @@ export function ProgressBarCell(props) {
   if (status === 'Complete' && percentComplete === 100) {
     return (
       <td>
-        <span style={{ color: '#107c10', fontWeight: '500' }}>
+        <span>
           Complete
         </span>
       </td>
