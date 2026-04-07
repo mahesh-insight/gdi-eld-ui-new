@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Azure Spend Widget - Embed Example</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+    }
+    .widget-container {
+      margin-top: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    iframe {
+      width: 100%;
+      height: 600px;
+      border: none;
+    }
+    .status {
+      margin: 20px 0;
+      padding: 10px;
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      border-radius: 4px;
+    }
+    .error {
+      background: #ffebee;
+      border-left-color: #f44336;
+    }
+    .success {
+      background: #e8f5e9;
+      border-left-color: #4caf50;
+    }
+    .controls {
+      margin: 20px 0;
+      padding: 15px;
+      background: #f9f9f9;
+      border-radius: 4px;
+    }
+    input {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    button {
+      padding: 10px 20px;
+      background: #2196f3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: #1976d2;
+    }
+    .log {
+      background: #263238;
+      color: #aed581;
+      padding: 10px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Azure Spend Widget - Embed Example</h1>
+    <p>This demonstrates how to embed the Azure Spend widget using postMessage for secure token passing.</p>
+
+    <div class="controls">
+      <h3>Configuration</h3>
+      <label>
+        Access Token:
+        <input type="text" id="accessToken" placeholder="Enter your access token" />
+      </label>
+      <label>
+        Sold To ID:
+        <input type="text" id="soldToId" value="Insight|SAP|0011035258|2400" />
+      </label>
+      <label>
+        Widget URL:
+        <input type="text" id="widgetUrl" value="http://localhost:3000/widgets/azure-spend" />
+      </label>
+      <button onclick="loadWidget()">Load Widget</button>
+    </div>
+
+    <div id="status" class="status" style="display: none;"></div>
+
+    <div class="widget-container">
+      <iframe id="widgetFrame" src=""></iframe>
+    </div>
+
+    <div class="log" id="log"></div>
+  </div>
+
+  <script>
+    let widgetFrame;
+    const logContainer = document.getElementById('log');
+    const statusContainer = document.getElementById('status');
+
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+      logContainer.textContent += logEntry;
+      logContainer.scrollTop = logContainer.scrollHeight;
+      console.log(message);
+    }
+
+    function showStatus(message, type = 'info') {
+      statusContainer.style.display = 'block';
+      statusContainer.textContent = message;
+      statusContainer.className = `status ${type}`;
+    }
+
+    function loadWidget() {
+      const accessToken = document.getElementById('accessToken').value;
+      const soldToId = document.getElementById('soldToId').value;
+      const widgetUrl = document.getElementById('widgetUrl').value;
+
+      if (!accessToken) {
+        showStatus('Please enter an access token', 'error');
+        return;
+      }
+
+      if (!soldToId) {
+        showStatus('Please enter a soldToId', 'error');
+        return;
+      }
+
+      log('Loading widget...');
+      showStatus('Loading widget...', 'info');
+
+      // Load the iframe
+      widgetFrame = document.getElementById('widgetFrame');
+      widgetFrame.src = widgetUrl;
+
+      // Listen for messages from the widget
+      window.addEventListener('message', handleWidgetMessage);
+
+      // Store token for when widget is ready
+      widgetFrame.dataset.token = accessToken;
+      widgetFrame.dataset.soldToId = soldToId;
+    }
+
+    function handleWidgetMessage(event) {
+      // Validate origin (make sure it matches your widget URL)
+      const widgetUrl = document.getElementById('widgetUrl').value;
+      const widgetOrigin = new URL(widgetUrl).origin;
+      
+      if (event.origin !== widgetOrigin) {
+        log(`Ignored message from unauthorized origin: ${event.origin}`, 'warn');
+        return;
+      }
+
+      const { type, ...data } = event.data;
+      log(`Received message: ${type}`, 'info');
+
+      switch (type) {
+        case 'WIDGET_READY':
+          log('Widget is ready, sending authentication token...', 'success');
+          showStatus('Widget ready, authenticating...', 'info');
+          
+          // Send the token securely via postMessage
+          const iframe = document.getElementById('widgetFrame');
+          iframe.contentWindow.postMessage(
+            {
+              type: 'AUTH_TOKEN',
+              token: iframe.dataset.token,
+              soldToId: iframe.dataset.soldToId
+            },
+            widgetOrigin
+          );
+          break;
+
+        case 'WIDGET_LOADED':
+          log('Widget loaded successfully!', 'success');
+          showStatus('Widget loaded successfully!', 'success');
+          break;
+
+        case 'WIDGET_ERROR':
+          log(`Widget error: ${JSON.stringify(data)}`, 'error');
+          showStatus(`Error: ${data.error || 'Unknown error'}`, 'error');
+          break;
+
+        default:
+          log(`Unknown message type: ${type}`, 'warn');
+      }
+    }
+
+    // Clean up event listener
+    window.addEventListener('beforeunload', () => {
+      window.removeEventListener('message', handleWidgetMessage);
+    });
+
+    // Initial log
+    log('Parent page loaded. Configure and click "Load Widget" to start.');
+  </script>
+</body>
+</html>

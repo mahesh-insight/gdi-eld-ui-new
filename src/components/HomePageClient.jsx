@@ -240,7 +240,7 @@ export default function HomePageClient({ authCode, soldTo, salesOrg }) {
     async function fetchUiProperties() {
       try {
         const baseUrl = process.env.NEXT_PUBLIC_UI_PROPERTIES_BASE_URL || 'https://ccrdev.insight.com';
-        const endpoint = `${baseUrl}/ccr-authentication-service/uiproperties`;
+        const endpoint = `${'http://localhost:80'}/ccr-authentication-service/uiproperties`;
         
         console.log('🔍 Fetching UI properties from:', { baseUrl, endpoint });
         
