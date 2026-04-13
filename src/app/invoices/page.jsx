@@ -1,5 +1,6 @@
 // src/app/invoices/page.jsx
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import InvoicesClientContent from './InvoicesClientContent';
 import {
   fetchProvidersServer,
@@ -7,6 +8,7 @@ import {
   fetchConsolidatedInvoiceData
 } from './actions';
 import { fetchMpsaStatus } from '../dashboard/actions';
+import { isJwtExpired } from '@/lib/auth-utils';
 
 /**
  * TRUE SERVER-SIDE RENDERING (SSR):
@@ -32,15 +34,17 @@ export default async function InvoicesPage() {
   
   // Check if we have enough data for SSR
   const hasSoldToId = soldToIdCookie?.value || userContextCookie?.value;
-  const hasAccessToken = accessTokenCookie?.value && accessTokenCookie.value !== '{}' && accessTokenCookie.value.length > 100;
+  const tokenValue = accessTokenCookie?.value;
+  const hasAccessToken = tokenValue && tokenValue !== '{}' && tokenValue.length > 100 && !isJwtExpired(tokenValue);
   
   if (!hasSoldToId || !hasAccessToken) {
-    console.log('⚠️ SERVER: Missing authentication data - rendering client fallback', {
+    const expired = tokenValue && isJwtExpired(tokenValue);
+    console.log('⚠️ SERVER: Missing or expired authentication — redirecting to login', {
       hasSoldToId: !!hasSoldToId,
       hasAccessToken: !!hasAccessToken,
-      accessTokenLength: accessTokenCookie?.value?.length || 0
+      tokenExpired: !!expired
     });
-    return <InvoicesClientContent mode="client-side" />;
+    redirect('/');
   }
   
   // Extract soldToId for server-side data fetching (same pattern as azure-invoice)
@@ -169,28 +173,18 @@ export default async function InvoicesPage() {
     ssrError = error.message;
   }
   
-  // Error state
+  // If SSR fetch failed with an auth-related error, redirect to login.
+  // For other transient errors, fall back to client-side so the user can still interact.
   if (ssrError) {
-    return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
-        <h2>Data Fetch Error</h2>
-        <p>Failed to load invoice data: {ssrError}</p>
-        <a 
-          href="/invoices"
-          style={{ 
-            display: 'inline-block',
-            padding: '10px 20px', 
-            backgroundColor: '#007bff', 
-            color: 'white', 
-            textDecoration: 'none',
-            borderRadius: '4px',
-            marginTop: '15px'
-          }}
-        >
-          Retry
-        </a>
-      </div>
-    );
+    const isAuthError = ssrError.includes('401') || ssrError.includes('403') ||
+                        ssrError.toLowerCase().includes('unauthorized') ||
+                        ssrError.toLowerCase().includes('forbidden');
+    if (isAuthError) {
+      console.warn('⚠️ SERVER: Auth error during SSR fetch — redirecting to login:', ssrError);
+      redirect('/');
+    }
+    console.warn('⚠️ SERVER: Non-auth SSR error — falling back to client-side mode:', ssrError);
+    return <InvoicesClientContent mode="client-side" />;
   }
   
   console.log('✅ SERVER: Rendering InvoicesClientContent with:', {

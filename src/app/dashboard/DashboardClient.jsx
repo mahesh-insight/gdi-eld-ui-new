@@ -27,7 +27,17 @@ export default function DashboardClient({ mode = 'client-side', ssrData = null, 
   // Get widget flags from Redux store
   const widgetFlags = useSelector(state => state.dashboard.widgetFlags);
   const mpsaStatusData = useSelector(state => state.dashboard.mpsaStatusData);
-  
+
+  // Derived: true only when mpsaStatusData holds a real successful API response (not an error body)
+  const hasValidMpsaData = Boolean(
+    mpsaStatusData &&
+    mpsaStatusData.status === 200 &&
+    mpsaStatusData.data &&
+    typeof mpsaStatusData.data === 'object' &&
+    !mpsaStatusData.data.error &&
+    Object.keys(mpsaStatusData.data).length > 0
+  );
+
   const [mpsaError, setMpsaError] = useState(error);
   const [mpsaLoading, setMpsaLoading] = useState(mode === 'client-side');
   const [dashboardData, setDashboardData] = useState(ssrData);
@@ -107,12 +117,7 @@ export default function DashboardClient({ mode = 'client-side', ssrData = null, 
       }
       
       // Check if mpsaStatusData has actual SUCCESSFUL data (not error responses)
-      const hasValidMpsaData = mpsaStatusData && 
-        mpsaStatusData.status === 200 && 
-        mpsaStatusData.data && 
-        typeof mpsaStatusData.data === 'object' && 
-        !mpsaStatusData.data.error &&
-        Object.keys(mpsaStatusData.data).length > 0;
+      // (reuses the component-level hasValidMpsaData derived value)
       
       console.log('='.repeat(80));
       console.log('🏠 Dashboard mounted - MPSA Status Check (Client-side fallback)');
@@ -150,8 +155,15 @@ export default function DashboardClient({ mode = 'client-side', ssrData = null, 
             pathParam: soldToId
           });
           
-          console.log('✅ mpsaStatus response received:', response);
-          
+          console.log('✅ mpsaStatus response received, status:', response?.status);
+
+          if (!response || response.status !== 200) {
+            console.warn('⚠️ mpsaStatus returned non-200 status:', response?.status, '- skipping Redux update (auth interceptor will redirect)');
+            hasFetchedMpsa.current = false;
+            setMpsaLoading(false);
+            return;
+          }
+
           // Store ONLY serializable data in Redux (no AxiosHeaders, config, etc.)
           const serializableResponse = {
             data: response.data,
@@ -162,13 +174,6 @@ export default function DashboardClient({ mode = 'client-side', ssrData = null, 
           // Store mpsaStatus data in Redux store (will extract widget flags automatically)
           dispatch(setMpsaStatusData(serializableResponse));
           console.log('✅ Redux store updated with mpsaStatus data and widget flags');
-          
-          // Update dashboardData state so widgets can render with fresh data
-          setDashboardData({
-            mpsaStatus: serializableResponse,
-            widgetFlags: response.data // Widget flags for rendering
-          });
-          console.log('✅ Dashboard data updated with fresh mpsaStatus response');
           
         } catch (error) {
           console.error('❌ mpsaStatus API failed:', {
@@ -227,7 +232,7 @@ export default function DashboardClient({ mode = 'client-side', ssrData = null, 
       <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
         
         {/* Loading State */}
-        {(mpsaLoading || (!mpsaStatusData?.data && !mpsaError)) && (
+        {(mpsaLoading || (!hasValidMpsaData && !mpsaError)) && (
           <div className="dashboard-loading">
             <div style={{ 
               fontSize: '48px',
@@ -239,7 +244,7 @@ export default function DashboardClient({ mode = 'client-side', ssrData = null, 
         )}
 
         {/* Error State */}
-        {mpsaError && !mpsaStatusData?.data && (
+        {mpsaError && !hasValidMpsaData && (
           <div className="dashboard-error">
             <div style={{ fontSize: '48px', marginBottom: '15px' }}>❌</div>
             <h3>Failed to Load Dashboard</h3>
@@ -261,7 +266,7 @@ export default function DashboardClient({ mode = 'client-side', ssrData = null, 
         )}
 
         {/* Dashboard Widgets */}
-        {mpsaStatusData?.data && !mpsaError && (
+        {hasValidMpsaData && !mpsaError && (
           <DashboardWidgets ssrData={dashboardData} mode={mode} useEmbeddedPages={useEmbeddedPages} />
         )}
       </div>

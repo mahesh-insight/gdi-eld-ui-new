@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { isJwtExpired } from '@/lib/auth-utils';
+import { clearAuth } from '@/store/authSlice';
 
 export default function CookieSync() {
+    const dispatch = useDispatch();
     const authState = useSelector(state => state.auth);
     
     useEffect(() => {
@@ -107,6 +110,23 @@ export default function CookieSync() {
         });
         
         if (isValidToken && isValidSoldToId && loginResponse) {
+            // Guard: don't sync an expired JWT — clear auth instead
+            if (isJwtExpired(accessToken)) {
+                console.warn('⚠️ CookieSync: JWT is expired — clearing auth state instead of syncing cookies');
+                // Clear cookies
+                ['access_token', 'user_context', 'soldToId'].forEach(name => {
+                    document.cookie = `${name}=; path=/; max-age=0; SameSite=Strict`;
+                    document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+                });
+                // Clear persisted Redux auth so it doesn't resurrect
+                localStorage.removeItem('persist:ccr-auth');
+                localStorage.removeItem('persist:ccr-dashboard');
+                localStorage.removeItem('persist:ccr-azure-invoice');
+                // Clear Redux in-memory state → triggers ProtectedRoute redirect to login
+                dispatch(clearAuth());
+                return;
+            }
+
             console.log('✅ Valid authentication data found, setting cookies...');
             
             const maxAge = 7 * 24 * 60 * 60;

@@ -1670,6 +1670,16 @@ export default function InvoicesClientContent({ mode = 'csr', initialData, userC
     }
   }, [mode]);
 
+  // 🔄 CLIENT-SIDE INIT: When rendered in client-side mode (SSR skipped), auto-fetch data.
+  // This surfaces 401s immediately so the Axios interceptor can redirect to login.
+  useEffect(() => {
+    if (mode !== 'client-side') return;
+    if (!selectedSoldToId) return;
+    fetchProviders();
+    // fetchProviders is stable (useCallback with [selectedSoldToId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, selectedSoldToId]);
+
   // 🔄 STATE RESTORATION: Check for saved page state after SSR initialization
   useEffect(() => {
     // Only run in SSR mode with initial data

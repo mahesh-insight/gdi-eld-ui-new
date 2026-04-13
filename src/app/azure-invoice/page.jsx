@@ -1,9 +1,11 @@
 // src/app/azure-invoice/page.jsx
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import AzureInvoiceClientContent from './AzureInvoiceClientContent';
 import { 
   fetchConsolidatedAzureInvoiceData
 } from './actions';
+import { isJwtExpired } from '@/lib/auth-utils';
 
 /**
  * TRUE SERVER-SIDE RENDERING (SSR):
@@ -39,7 +41,8 @@ export default async function AzureInvoicePage() {
   });
   
   // Check if we have enough data for SSR
-  const hasAccessToken = accessTokenCookie?.value && accessTokenCookie.value !== '{}' && accessTokenCookie.value.length > 100;
+  const tokenValue = accessTokenCookie?.value;
+  const hasAccessToken = tokenValue && tokenValue !== '{}' && tokenValue.length > 100 && !isJwtExpired(tokenValue);
   
   // ✅ DEFENSIVE: Check soldToId cookie first, fallback to extracting from user_context
   let hasSoldToId = !!soldToIdCookie?.value;
@@ -55,12 +58,12 @@ export default async function AzureInvoicePage() {
   }
   
   if (!hasSoldToId || !hasAccessToken) {
-    console.log('⚠️ [SERVER] Missing authentication data - rendering client fallback', {
+    console.log('⚠️ [SERVER] Missing or expired authentication — redirecting to login', {
       hasSoldToId,
       hasAccessToken,
-      accessTokenLength: accessTokenCookie?.value?.length || 0
+      tokenExpired: tokenValue ? isJwtExpired(tokenValue) : 'no token'
     });
-    return <AzureInvoiceClientContent mode="client-side" />;
+    redirect('/');
   }
   
   console.log('✅ [SERVER] SSR prerequisites met - will use SSR');

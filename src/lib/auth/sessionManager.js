@@ -1,5 +1,7 @@
 // Session Manager - Handles last visited page tracking and session validation
 
+import { isJwtExpired } from '@/lib/auth-utils';
+
 const LAST_VISITED_PAGE_KEY = 'ccr_last_visited_page';
 const SESSION_TIMESTAMP_KEY = 'ccr_session_timestamp';
 
@@ -54,8 +56,31 @@ export function clearLastVisitedPage() {
 }
 
 /**
+ * Clear all stale auth data from cookies and localStorage (without Redux dispatch)
+ */
+function clearExpiredSession() {
+  try {
+    // Clear auth cookies
+    ['access_token', 'user_context', 'soldToId'].forEach(name => {
+      document.cookie = `${name}=; path=/; max-age=0; SameSite=Strict`;
+      document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+    });
+    // Clear persisted Redux auth state so it doesn't resurrect after page reload
+    localStorage.removeItem('persist:ccr-auth');
+    localStorage.removeItem('persist:ccr-dashboard');
+    localStorage.removeItem('persist:ccr-azure-invoice');
+    // Clear last visited page so next login sends user to dashboard, not expired page
+    localStorage.removeItem(LAST_VISITED_PAGE_KEY);
+    localStorage.removeItem(SESSION_TIMESTAMP_KEY);
+    console.log('🧹 SessionManager: Cleared expired session data');
+  } catch (err) {
+    console.error('SessionManager: Failed to clear expired session:', err);
+  }
+}
+
+/**
  * Check if user has an active session
- * @returns {boolean} True if session is active
+ * @returns {boolean} True if session is active AND token is not expired
  */
 export function hasActiveSession() {
   if (typeof window === 'undefined') return false;
@@ -68,6 +93,11 @@ export function hasActiveSession() {
     if (accessTokenCookie) {
       const token = accessTokenCookie.split('=')[1];
       if (token && token !== 'null' && token !== 'undefined' && token.length > 10) {
+        if (isJwtExpired(token)) {
+          console.log('⚠️ SessionManager: Cookie token is expired — clearing session');
+          clearExpiredSession();
+          return false;
+        }
         console.log('✅ Active session detected from cookie');
         return true;
       }
@@ -86,6 +116,11 @@ export function hasActiveSession() {
             accessToken !== 'null' && 
             accessToken !== 'undefined' &&
             accessToken.length > 10) {
+          if (isJwtExpired(accessToken)) {
+            console.log('⚠️ SessionManager: Persisted token is expired — clearing session');
+            clearExpiredSession();
+            return false;
+          }
           console.log('✅ Active session detected from Redux persist');
           return true;
         }

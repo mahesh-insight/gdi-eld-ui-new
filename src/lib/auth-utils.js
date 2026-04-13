@@ -3,6 +3,57 @@
  */
 
 /**
+ * Decode a JWT token's payload without verifying the signature.
+ * Safe to use on server or client just for reading claims (e.g. exp).
+ * @param {string} token - The JWT token string
+ * @returns {object|null} - The decoded payload, or null on failure
+ */
+export function decodeJwtPayload(token) {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, '=');
+    let json;
+    if (typeof Buffer !== 'undefined') {
+      json = Buffer.from(padded, 'base64').toString('utf8');
+    } else {
+      json = atob(padded);
+    }
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Check whether a JWT token is expired by reading its `exp` claim.
+ * Works on both server (uses Buffer) and client (uses atob).
+ * @param {string} token - The JWT token string
+ * @returns {boolean} - true if the token is expired or unreadable
+ */
+export function isJwtExpired(token) {
+  if (!token || typeof token !== 'string') return true;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return true;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, '=');
+    let json;
+    if (typeof Buffer !== 'undefined') {
+      json = Buffer.from(padded, 'base64').toString('utf8');
+    } else {
+      json = atob(padded);
+    }
+    const payload = JSON.parse(json);
+    if (!payload.exp) return false; // No expiry claim — treat as valid
+    return Date.now() >= payload.exp * 1000;
+  } catch {
+    return true; // If we can't decode, treat as expired
+  }
+}
+
+/**
  * Check if the access token is valid and not expired
  * @param {string} token - The access token
  * @param {string} tokenExpiry - The token expiry timestamp

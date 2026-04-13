@@ -1,7 +1,9 @@
 // src/app/dashboard/page.js
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import DashboardClient from './DashboardClient';
 import { fetchConsolidatedDashboardData } from './actions';
+import { isJwtExpired } from '@/lib/auth-utils';
 
 /**
  * TRUE SERVER-SIDE RENDERING (SSR):
@@ -58,7 +60,8 @@ export default async function DashboardPage(props) {
   
   // Check if we have enough data for SSR
   const hasSoldToId = soldToIdCookie?.value || userContextCookie?.value;
-  const hasAccessToken = accessTokenCookie?.value && accessTokenCookie.value !== '{}' && accessTokenCookie.value.length > 100;
+  const tokenValue = accessTokenCookie?.value;
+  const hasAccessToken = tokenValue && tokenValue !== '{}' && tokenValue.length > 100 && !isJwtExpired(tokenValue);
   
   console.log('🔍 [SERVER] SSR readiness check:');
   console.log('  - hasSoldToId:', !!hasSoldToId);
@@ -66,9 +69,9 @@ export default async function DashboardPage(props) {
   console.log('  - Will use SSR:', !!(hasSoldToId && hasAccessToken));
   
   if (!hasSoldToId || !hasAccessToken) {
-    console.log('⚠️ [SERVER] Missing authentication data - rendering client fallback');
+    console.log('⚠️ [SERVER] Missing or expired authentication — redirecting to login');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    return <DashboardClient mode="client-side" />;
+    redirect('/');
   }
 
   // Extract soldToId from cookies
@@ -95,8 +98,8 @@ export default async function DashboardPage(props) {
   const accessToken = accessTokenCookie?.value;
   
   if (!soldToId || !accessToken) {
-    console.log('⚠️ SERVER: Missing soldToId or access token - rendering client fallback');
-    return <DashboardClient mode="client-side" />;
+    console.log('⚠️ SERVER: Missing soldToId or access token - redirecting to login');
+    redirect('/');
   }
 
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -113,6 +116,11 @@ export default async function DashboardPage(props) {
   
   if (result.error) {
     console.error('❌ SERVER: Failed to fetch dashboard data:', result.error);
+    const isAuthError = result.error.includes('401') || result.error.includes('403') ||
+                        result.error.toLowerCase().includes('unauthorized');
+    if (isAuthError) {
+      redirect('/');
+    }
     return <DashboardClient mode="client-side" error={result.error} />;
   }
   

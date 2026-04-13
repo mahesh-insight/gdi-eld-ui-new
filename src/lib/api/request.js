@@ -11,6 +11,44 @@ get, post, put, delete & patch */
 import axios from "axios";
 import services from "./services";
 import { parseISO } from "date-fns";
+import { isJwtExpired } from "@/lib/auth-utils";
+
+/**
+ * Clears all auth data and redirects to the login page.
+ * Called from both request interceptors when an expired token is detected.
+ */
+async function handleExpiredToken(reason) {
+  if (!isBrowser) return;
+  console.warn(`🔒 ${reason} - clearing session and redirecting to login`);
+
+  // Clear all auth-related storage
+  [
+    'access_token', 'authenticationURL', 'logged_in', 'soldToId',
+    'user_data', 'account_selection', 'login_response', 'uiProps',
+    'persist:root', 'persist:ccr-auth', 'persist:ccr-dashboard',
+    'persist:ccr-azure-invoice',
+  ].forEach(key => localStorage.removeItem(key));
+
+  sessionStorage.clear();
+
+  // Expire auth cookies
+  ['access_token', 'user_context', 'soldToId'].forEach(name => {
+    document.cookie = `${name}=; path=/; max-age=0; SameSite=Strict`;
+    document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  });
+
+  // Clear Redux in-memory state
+  try {
+    if (window.__REDUX_STORE__) {
+      const { clearAuth } = await import('@/store/authSlice');
+      window.__REDUX_STORE__.dispatch(clearAuth());
+    }
+  } catch {
+    // Best-effort
+  }
+
+  window.location.href = '/';
+}
 
 const defaultTimeout = 600000;
 let defaultRetry = 1;
@@ -234,7 +272,17 @@ const instance = (serviceName, configuration = {}) => {
               console.warn('⚠️ localStorage access failed:', storageError.message);
             }
           }
-          
+
+          // ── Central JWT expiry check ──────────────────────────────────────
+          // Abort the request immediately if the token is already expired.
+          // This prevents a network round-trip that would return a 401 and
+          // removes the need for every component to run its own expiry check.
+          if (accessToken && isJwtExpired(accessToken)) {
+            await handleExpiredToken('Token expired before request');
+            return Promise.reject(new Error('Token expired'));
+          }
+          // ─────────────────────────────────────────────────────────────────
+
           // Add token if available
           if (accessToken) {
             config.headers.Authorization = `Bearer ${accessToken}`;
@@ -369,43 +417,7 @@ const instance = (serviceName, configuration = {}) => {
         !configuration.stopRetry
       ) {
         if (isBrowser) {
-          console.log('🔒 Token expired (401) - logging out and redirecting to login');
-          
-          // Clear localStorage items
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("authenticationURL");
-          localStorage.removeItem("logged_in");
-          localStorage.removeItem("soldToId");
-          localStorage.removeItem("user_data");
-          localStorage.removeItem("account_selection");
-          localStorage.removeItem("login_response");
-          localStorage.removeItem("uiProps");
-          
-          // Clear Redux persist store items
-          localStorage.removeItem("persist:root");
-          localStorage.removeItem("persist:ccr-auth");
-          
-          sessionStorage?.clear();
-          
-          // Clear Redux store if available
-          try {
-            if (window.__REDUX_STORE__) {
-              const { clearAuth } = await import('@/store/authSlice');
-              window.__REDUX_STORE__.dispatch(clearAuth());
-              console.log('✅ Redux auth state cleared');
-            }
-          } catch (error) {
-            console.warn('⚠️ Could not clear Redux auth state:', error);
-          }
-          
-          // Clear cookies
-          document.cookie = 'access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-          document.cookie = 'user_context=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-          
-          // Redirect to login
-          setTimeout(() => {
-            window.location.href = '/';
-          }, 100);
+          await handleExpiredToken('Token rejected by server (401)');
         }
         configuration.stopRetry = true;
         return response;
@@ -646,7 +658,14 @@ export const apiClient = (() => {
               console.warn('⚠️ localStorage access failed:', storageError.message);
             }
           }
-          
+
+          // ── Central JWT expiry check ──────────────────────────────────────
+          if (accessToken && isJwtExpired(accessToken)) {
+            await handleExpiredToken('Token expired before request (apiClient)');
+            return Promise.reject(new Error('Token expired'));
+          }
+          // ─────────────────────────────────────────────────────────────────
+
           // Add token if available
           if (accessToken) {
             config.headers.Authorization = `Bearer ${accessToken}`;
@@ -685,35 +704,7 @@ export const apiClient = (() => {
       // Handle 401 errors
       if (response && response.status === 401) {
         if (isBrowser) {
-          console.log('🔒 Token expired (401) - logging out and redirecting to login');
-          
-          // Clear all auth-related storage
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("authenticationURL");
-          localStorage.removeItem("logged_in");
-          localStorage.removeItem("soldToId");
-          localStorage.removeItem("user_data");
-          localStorage.removeItem("account_selection");
-          localStorage.removeItem("login_response");
-          localStorage.removeItem("uiProps");
-          localStorage.removeItem("persist:root");
-          localStorage.removeItem("persist:ccr-auth");
-          
-          sessionStorage?.clear();
-          
-          // Clear Redux store if available
-          try {
-            if (window.__REDUX_STORE__) {
-              const { clearAuth } = await import('@/store/authSlice');
-              window.__REDUX_STORE__.dispatch(clearAuth());
-            }
-          } catch (error) {
-            console.warn('⚠️ Could not clear Redux auth state:', error);
-          }
-          
-          setTimeout(() => {
-            window.location.href = '/';
-          }, 100);
+          await handleExpiredToken('Token rejected by server (401) via apiClient');
         }
       }
 

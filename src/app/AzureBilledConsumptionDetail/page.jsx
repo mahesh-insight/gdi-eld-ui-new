@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import AzureBilledConsumptionDetailClient from './AzureBilledConsumptionDetailClient';
 import { fetchConsolidatedBilledConsumptionData } from './actions';
+import { isJwtExpired } from '@/lib/auth-utils';
 
 /**
  * TRUE SERVER-SIDE RENDERING (SSR):
@@ -28,15 +29,16 @@ export default async function AzureBilledConsumptionDetail() {
   
   // Check if we have enough data for SSR
   const hasSoldToId = soldToIdCookie?.value || userContextCookie?.value;
-  const hasAccessToken = accessTokenCookie?.value && accessTokenCookie.value !== '{}' && accessTokenCookie.value.length > 100;
+  const tokenValue = accessTokenCookie?.value;
+  const hasAccessToken = tokenValue && tokenValue !== '{}' && tokenValue.length > 100 && !isJwtExpired(tokenValue);
   
   if (!hasSoldToId || !hasAccessToken) {
-    console.log('⚠️ SERVER: Missing authentication data - rendering client fallback', {
+    console.log('⚠️ SERVER: Missing or expired authentication — redirecting to login', {
       hasSoldToId: !!hasSoldToId,
       hasAccessToken: !!hasAccessToken,
-      accessTokenLength: accessTokenCookie?.value?.length || 0
+      tokenExpired: tokenValue ? isJwtExpired(tokenValue) : 'no token'
     });
-    return <AzureBilledConsumptionDetailClient mode="client-side" />;
+    redirect('/');
   }
   
   // Extract soldToId for server-side data fetching
