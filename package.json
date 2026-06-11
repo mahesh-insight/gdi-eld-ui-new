@@ -13,6 +13,7 @@
     "dev:check": "concurrently \"npm run dev\" \"npm run type-check -- --watch\""
   },
   "dependencies": {
+    "@module-federation/nextjs-mf": "^8.8.64",
     "@progress/kendo-data-query": "^1.7.1",
     "@progress/kendo-date-math": "^1.5.14",
     "@progress/kendo-drawing": "^1.21.2",

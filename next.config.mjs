@@ -1,3 +1,7 @@
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { NextFederationPlugin } = require('@module-federation/nextjs-mf');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Enable standalone output for Node.js deployment
@@ -65,6 +69,25 @@ const nextConfig = {
         ],
       },
     ];
+  },
+  webpack(config, { isServer }) {
+    config.plugins.push(
+      new NextFederationPlugin({
+        name: 'gdi_eld_ui',
+        filename: 'static/chunks/remoteEntry.js',
+        exposes: {
+          './AzureSpendWidget': './src/app/dashboard/components/AzureSpendWidgetFederated',
+        },
+        shared: {
+          react: { singleton: true, requiredVersion: false },
+          'react-dom': { singleton: true, requiredVersion: false },
+        },
+        extraOptions: {
+          skipSharingNextInternals: false,
+        },
+      })
+    );
+    return config;
   },
 };
 
