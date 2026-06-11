@@ -80,8 +80,8 @@ const navItems = [
   {
     label: "License Subscriptions",
     children: [
-      { label: "View Subscriptions", href: "/licenses/view" },
-      { label: "Manage Subscriptions", href: "/licenses/manage" },
+      { label: "M365 | Modern Work", href: "/subscriptions" },
+      { label: "Adobe VIP Marketplace", href: "/AdobeSubscriptions" },
     ],
   },
   { label: "Download Reports", href: "/reports", children: [] },
