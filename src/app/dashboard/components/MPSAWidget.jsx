@@ -1,3 +1,5 @@
+import { iconPaths } from "../iconConfig";
+
 const labelMapping = {
   'ProductNames': { label: 'Products', color: 'vertical-pink', order: 0 },
   'Licenses': { label: 'Licenses', color: 'vertical-blue', order: 1 },
@@ -32,8 +34,8 @@ export default function MPSAWidget({ data = {} }) {
               <div key={idx} className={`alert alert-${alert.iconType}`}>
                 <div className="alert-icon">
                   <svg viewBox="0 0 512 512" fill={alert.iconStatus} width="1em" height="1em">
-                    {alert.iconType && (
-                      <path d={alert.iconType} />
+                   {iconPaths[alert.iconType] && (
+                      <path d={iconPaths[alert.iconType]} />
                     )}
                   </svg>
                 </div>
