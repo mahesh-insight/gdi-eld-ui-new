@@ -221,6 +221,30 @@ const services = {
     url: `/ccr-billableitem-service/adobe/trend`
   },
 
+  // Invoice History
+  invoiceHistoryProviders: {
+    method: 'GET',
+    url: `/ccr-billableitem-service/provider`
+  },
+  invoiceHistoryMonths: {
+    method: 'GET',
+    url: `/ccr-billableitem-service/history/months`
+  },
+  invoiceHistoryTrend: {
+    method: 'GET',
+    url: `/ccr-billableitem-service/history/trend`
+  },
+  invoiceHistorySummary: {
+    method: 'GET',
+    url: `/ccr-billableitem-service/history/summary`,
+    urlParam: true
+  },
+  invoiceHistoryDetail: {
+    method: 'GET',
+    url: `/ccr-billableitem-service/history/range`,
+    urlParam: true
+  },
+
   //SoldTo Search
   customerSearch:{
     method: 'GET',

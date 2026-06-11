@@ -1,0 +1,193 @@
+/* src/app/invoices/history/invoice-history.css */
+
+.invoice-history-container {
+  width: 100%;
+  margin: 0 auto;
+  padding: 15px 25px 25px;
+  display: flex;
+  flex-direction: column;
+  background: #f0eeed;
+  gap: 16px;
+}
+
+/* ─── Header ─────────────────────────────────────────────── */
+.invoice-history-header {
+  background: white;
+  padding: 20px 24px;
+}
+
+.invoice-history-header h1 {
+  font-family: "klinic-slab", Verdana, serif;
+  font-size: 24px;
+  font-weight: normal;
+  margin: 0;
+}
+
+/* ─── Provider dropdown row ──────────────────────────────── */
+.invoice-history-provider-row {
+  background: white;
+  padding: 16px 24px;
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.invoice-history-dropdown-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 180px;
+}
+
+.invoice-history-dropdown-group label {
+  font-size: 12px;
+  color: #495057;
+  font-weight: 500;
+}
+
+/* ─── Trend chart ────────────────────────────────────────── */
+.invoice-history-chart-section {
+  background: white;
+  padding: 0 24px 16px;
+}
+
+/* ─── Filters (date range + invoice number + Apply) ─────── */
+.invoice-history-filters {
+  background: white;
+  padding: 16px 24px;
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.invoice-history-filter-label {
+  font-size: 12px;
+  color: #495057;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.invoice-history-date-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 150px;
+}
+
+.invoice-history-invoice-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  flex: 1;
+}
+
+.invoice-history-invoice-clear {
+  position: absolute;
+  right: 30px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #666;
+  font-size: 12px;
+  padding: 2px 4px;
+}
+
+.invoice-history-invoice-wrapper {
+  position: relative;
+}
+
+.invoice-history-apply-btn {
+  height: 32px;
+  margin-bottom: 0;
+}
+
+.invoice-history-download-btn {
+  height: 32px;
+  margin-bottom: 0;
+}
+
+.invoice-history-download-note {
+  color: #007bff;
+  font-size: 12px;
+  font-style: italic;
+  margin-top: 8px;
+  width: 100%;
+}
+
+/* ─── Grid ───────────────────────────────────────────────── */
+.invoice-history-grid-section {
+  background: white;
+  padding: 8px 24px 24px;
+}
+
+/* ─── Download PDF link in grid ──────────────────────────── */
+.invoice-history-pdf-link {
+  color: #e91e63;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.invoice-history-pdf-link:hover {
+  text-decoration: underline;
+}
+
+/* ─── View Details link in grid ─────────────────────────── */
+.invoice-history-detail-link {
+  color: #e91e63;
+  text-decoration: none;
+  font-size: 13px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.invoice-history-detail-link:hover {
+  text-decoration: underline;
+}
+
+/* ─── Status badge ───────────────────────────────────────── */
+.invoice-history-status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.invoice-history-status-badge.paid {
+  background: #d4edda;
+  color: #155724;
+}
+
+.invoice-history-status-badge.unpaid {
+  background: #fff3cd;
+  color: #856404;
+}
+
+/* ─── Skeletons ──────────────────────────────────────────── */
+.invoice-history-skeleton-title {
+  width: 200px !important;
+  height: 28px !important;
+  margin-bottom: 4px;
+}
+
+.invoice-history-skeleton-dropdown {
+  width: 180px !important;
+  height: 32px !important;
+}
+
+.invoice-history-skeleton-chart {
+  width: 100% !important;
+  height: 280px !important;
+}
+
+.invoice-history-skeleton-row {
+  width: 100% !important;
+  height: 36px !important;
+  margin-bottom: 4px;
+}
