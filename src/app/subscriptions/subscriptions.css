@@ -1,0 +1,173 @@
+/* src/app/subscriptions/subscriptions.css */
+
+/* ─── Page shell ─────────────────────────────────────────────── */
+.sub-page {
+  width: 100%;
+  background-color: #f5f5f5;
+  padding: 20px;
+}
+
+.sub-container {
+  background-color: #ffffff;
+  padding: 24px;
+}
+
+/* ─── Header ─────────────────────────────────────────────────── */
+.sub-header {
+  margin-bottom: 16px;
+}
+
+.sub-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 12px;
+}
+
+.sub-title-area { flex: 1; }
+
+.sub-title {
+  font-family: "klinic-slab", Verdana, serif;
+  font-size: 22px;
+  font-weight: normal;
+  margin: 0 0 6px;
+}
+
+.sub-note {
+  font-size: 12px;
+  color: #6c757d;
+  margin: 0;
+}
+
+.sub-link {
+  color: #007bff;
+  text-decoration: none;
+}
+.sub-link:hover { text-decoration: underline; }
+
+/* ─── KPI cards ──────────────────────────────────────────────── */
+.sub-kpi-row {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.sub-kpi {
+  border-left: 4px solid transparent;
+  padding: 8px 16px;
+  min-width: 110px;
+}
+
+.sub-kpi-pink  { border-left-color: #ae0a46; }
+.sub-kpi-blue  { border-left-color: #0072c6; }
+
+.sub-kpi-label {
+  font-size: 12px;
+  color: #6c757d;
+  margin-bottom: 2px;
+}
+
+.sub-kpi-value {
+  font-size: 22px;
+  font-weight: 600;
+  color: #212529;
+}
+
+/* ─── Status row ─────────────────────────────────────────────── */
+.sub-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.sub-status-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #495057;
+}
+
+/* ─── TabStrip ───────────────────────────────────────────────── */
+.sub-tabstrip { margin-top: 8px; }
+
+.sub-tab-content { padding: 16px 0 0; }
+
+/* ─── Charts ─────────────────────────────────────────────────── */
+.sub-charts-row {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.sub-chart-half  { flex: 1; }
+
+.sub-chart-full  {
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+/* ─── Filters row ─────────────────────────────────────────────── */
+.sub-filters-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e9ecef;
+  margin-bottom: 16px;
+}
+
+.sub-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 180px;
+  flex: 1;
+}
+
+.sub-filter-group label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #495057;
+}
+
+.sub-filter-checkbox {
+  display: flex;
+  align-items: center;
+  padding-bottom: 6px;
+}
+
+.sub-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 2px;
+}
+
+.sub-history-filters { flex-wrap: wrap; }
+
+/* ─── Download button ────────────────────────────────────────── */
+.sub-download-btn {
+  border: 1px solid #dee2e6 !important;
+  padding: 4px 8px !important;
+  min-width: 32px;
+}
+
+/* ─── Download row below history chart ──────────────────────── */
+.sub-history-download-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+/* ─── No-data placeholder ────────────────────────────────────── */
+.sub-no-data {
+  padding: 40px;
+  text-align: center;
+  color: #6c757d;
+  font-size: 14px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+}
