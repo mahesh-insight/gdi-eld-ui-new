@@ -36,15 +36,15 @@ async function apiPost(url, soldToId, accessToken) {
  * Build query string for subscription / license-detail APIs.
  * Filter operator: "equals" (e.g. filter=Status%20equals%20Active)
  */
-function buildSubFilterQS({ status = 'Active', productName, renewalPeriod, autoRenew, tenantId, page = 0, size = 20 } = {}) {
+function buildSubFilterQS({ status = 'Active', productNames, renewalPeriods, autoRenews, tenantId, page = 0, size = 20 } = {}) {
   const parts = [];
   if (page !== undefined) parts.push(`page=${page}`);
   if (size !== undefined) parts.push(`size=${size}`);
+  if (tenantId && tenantId !== 'All') parts.push(`filter=limittenantid%3D${encodeURIComponent(tenantId)}`);
   parts.push(`filter=Status%20equals%20${encodeURIComponent(status)}`);
-  if (productName)   parts.push(`filter=offername%20equals%20${encodeURIComponent(productName)}`);
-  if (renewalPeriod) parts.push(`filter=renewalperiod%20equals%20${encodeURIComponent(renewalPeriod)}`);
-  if (autoRenew)     parts.push(`filter=autorenew%20equals%20${encodeURIComponent(autoRenew)}`);
-  if (tenantId && tenantId !== 'All') parts.push(`filter=tenantId%20equals%20${encodeURIComponent(tenantId)}`);
+  if (productNames?.length) productNames.forEach(n => parts.push(`filter=offername%20equals%20${encodeURIComponent(n)}`));
+  if (renewalPeriods?.length) renewalPeriods.forEach(r => parts.push(`filter=renewalperiod%20equals%20${encodeURIComponent(r)}`));
+  if (autoRenews?.length) autoRenews.forEach(a => parts.push(`filter=autorenew%20equals%20${encodeURIComponent(a)}`));
   return parts.join('&');
 }
 
@@ -55,7 +55,7 @@ function buildSubFilterQS({ status = 'Active', productName, renewalPeriod, autoR
 function buildHistoryFilterQS({
   status = 'Active',
   commitmentPeriod = 'Monthly',
-  productName,
+  productNames,
   lookbackMonths = 12,
   includeUnchanged = true,
   page = 0,
@@ -69,7 +69,7 @@ function buildHistoryFilterQS({
   }
   parts.push(`filter=Status%20eq%20${encodeURIComponent(status)}`);
   parts.push(`filter=commitmentperiod%20eq%20${encodeURIComponent(commitmentPeriod)}`);
-  if (productName) parts.push(`filter=offerName%20eq%20${encodeURIComponent(productName)}`);
+  if (productNames?.length) productNames.forEach(n => parts.push(`filter=offerName%20eq%20${encodeURIComponent(n)}`));
   if (forDetail) {
     parts.push(`filter=includeunchanged%3D${includeUnchanged}`);
   } else {

@@ -5,7 +5,6 @@ import { IntlProvider } from '@progress/kendo-react-intl';
 import { TabStrip, TabStripTab } from '@progress/kendo-react-layout';
 import { DropDownList, MultiSelect } from '@progress/kendo-react-dropdowns';
 import { Button } from '@progress/kendo-react-buttons';
-import { Input } from '@progress/kendo-react-inputs';
 import { Checkbox } from '@progress/kendo-react-inputs';
 import { Skeleton } from '@progress/kendo-react-indicators';
 import { Tooltip } from '@progress/kendo-react-tooltip';
@@ -126,13 +125,19 @@ export default function SubscriptionsClient({ mode = 'client-side', initialData 
   const [totalSubs,     setTotalSubs]     = useState(0);
   const [totalLicenses, setTotalLicenses] = useState(0);
 
+  // ─── Summary extras ───────────────────────────────────────────────────────
+  const [isReseller,       setIsReseller]       = useState(false);
+  const [offerOptions,     setOfferOptions]     = useState([]);
+  const [tenantOptions,    setTenantOptions]    = useState([]);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+
   // ─── Tab 1: Subscription Details ─────────────────────────────────────────
   const [subData,            setSubData]            = useState(initialData?.subscriptions?.content || []);
   const [subTotal,           setSubTotal]           = useState(initialData?.subscriptions?.totalElements || 0);
   const [subDataState,       setSubDataState]       = useState({ skip: 0, take: 20 });
-  const [filterProduct,      setFilterProduct]      = useState('');
-  const [filterRenewal,      setFilterRenewal]      = useState(null);
-  const [filterAutoRenew,    setFilterAutoRenew]    = useState(null);
+  const [filterProduct,      setFilterProduct]      = useState([]);
+  const [filterRenewal,      setFilterRenewal]      = useState([]);
+  const [filterAutoRenew,    setFilterAutoRenew]    = useState([]);
   const [renewalOptions,     setRenewalOptions]     = useState([]);
   const [autoRenewOptions,   setAutoRenewOptions]   = useState([]);
   const [isLoadingSubGrid,   setIsLoadingSubGrid]   = useState(false);
@@ -141,7 +146,7 @@ export default function SubscriptionsClient({ mode = 'client-side', initialData 
   const [licData,           setLicData]           = useState(initialData?.licenses?.content || []);
   const [licTotal,          setLicTotal]          = useState(initialData?.licenses?.totalElements || 0);
   const [licDataState,      setLicDataState]      = useState({ skip: 0, take: 20 });
-  const [filterLicProduct,  setFilterLicProduct]  = useState('');
+  const [filterLicProduct,  setFilterLicProduct]  = useState([]);
   const [isLoadingLicGrid,  setIsLoadingLicGrid]  = useState(false);
 
   // ─── Tab 3: Subscription History ─────────────────────────────────────────
@@ -149,7 +154,8 @@ export default function SubscriptionsClient({ mode = 'client-side', initialData 
   const [historyGridData,   setHistoryGridData]   = useState([]);
   const [historyGridTotal,  setHistoryGridTotal]  = useState(0);
   const [histDataState,     setHistDataState]     = useState({ skip: 0, take: 20 });
-  const [histProduct,       setHistProduct]       = useState('');
+  const [histProduct,       setHistProduct]       = useState([]);
+  const [histOfferOptions,  setHistOfferOptions]  = useState([]);
   const [histCommitment,    setHistCommitment]    = useState({ label: 'Monthly', value: 'Monthly' });
   const [commitmentOpts,    setCommitmentOpts]    = useState([{ label: 'Monthly', value: 'Monthly' }, { label: 'Annual', value: 'Annual' }]);
   const [showChangedOnly,   setShowChangedOnly]   = useState(false);
@@ -173,14 +179,28 @@ export default function SubscriptionsClient({ mode = 'client-side', initialData 
     setCcxLink(summary.ccxJumpLink || '');
     setTopNProducts(summary.topNProducts || []);
     setExpiringChart(processExpiringChartData(summary.expiring?.countPeriod || []));
-    const pTotal = summary.totals?.find(t => t.label === 'Products')?.value || 0;
-    setTotalProducts(pTotal);
+    setIsReseller(summary.isReseller || false);
+    // KPI totals directly from summary response
+    setTotalProducts(summary.totals?.find(t => t.label === 'Products')?.value || 0);
+    setTotalSubs(summary.totals?.find(t => t.label === 'Subscriptions')?.value || 0);
+    setTotalLicenses(summary.totals?.find(t => t.label === 'Licenses')?.value || 0);
+
     const statusList = getSelectList(summary.selectLists, 'Status');
     if (statusList.length) setStatusOptions(statusList.map(i => ({ label: i.label, value: i.value })));
+
+    const offerList = getSelectList(summary.selectLists, 'offername');
+    if (offerList.length) setOfferOptions(offerList.map(i => ({ label: i.label, value: i.value })));
+
+    // No "All" option — placeholder text handles that
     const renewalList = getSelectList(summary.selectLists, 'renewalperiod');
-    if (renewalList.length) setRenewalOptions([{ label: 'All', value: '' }, ...renewalList.map(i => ({ label: i.label, value: i.value }))]);
+    if (renewalList.length) setRenewalOptions(renewalList.map(i => ({ label: i.label, value: i.value })));
+
     const arList = getSelectList(summary.selectLists, 'autorenew');
-    if (arList.length) setAutoRenewOptions([{ label: 'All', value: '' }, ...arList.map(i => ({ label: i.label, value: i.value }))]);
+    if (arList.length) setAutoRenewOptions(arList.map(i => ({ label: i.label, value: i.value })));
+
+    // Tenant options for resellers — exclude the "All" placeholder item
+    const tenantList = getSelectList(summary.selectLists, 'tenantId');
+    setTenantOptions(tenantList.filter(i => i.value !== 'All').map(i => ({ label: i.label, value: i.value })));
   }, []);
 
   // ─── Apply SSR initial data ──────────────────────────────────────────────
@@ -190,12 +210,10 @@ export default function SubscriptionsClient({ mode = 'client-side', initialData 
     if (initialData.subscriptions) {
       setSubData(initialData.subscriptions.content || []);
       setSubTotal(initialData.subscriptions.totalElements || 0);
-      setTotalSubs(initialData.subscriptions.totalElements || 0);
     }
     if (initialData.licenses) {
       setLicData(initialData.licenses.content || []);
       setLicTotal(initialData.licenses.totalElements || 0);
-      setTotalLicenses(sumLicenses(initialData.licenses.content));
     }
     setLoading(false);
   }, [mode, initialData, applySummary]);
@@ -217,12 +235,10 @@ export default function SubscriptionsClient({ mode = 'client-side', initialData 
         if (d.subscriptions) {
           setSubData(d.subscriptions.content || []);
           setSubTotal(d.subscriptions.totalElements || 0);
-          setTotalSubs(d.subscriptions.totalElements || 0);
         }
         if (d.licenses) {
           setLicData(d.licenses.content || []);
           setLicTotal(d.licenses.totalElements || 0);
-          setTotalLicenses(sumLicenses(d.licenses.content));
         }
       } finally {
         setLoading(false);
@@ -234,8 +250,9 @@ export default function SubscriptionsClient({ mode = 'client-side', initialData 
   const handleStatusChange = useCallback(async (e) => {
     const newStatus = e.value;
     setStatusFilter(newStatus);
-    setFilterProduct(''); setFilterRenewal(null); setFilterAutoRenew(null);
-    setFilterLicProduct('');
+    setFilterProduct([]); setFilterRenewal([]); setFilterAutoRenew([]);
+    setFilterLicProduct([]);
+    setSelectedCustomer(null);
     setSubDataState({ skip: 0, take: 20 });
     setLicDataState({ skip: 0, take: 20 });
     historyLoaded.current = false;
@@ -248,17 +265,50 @@ export default function SubscriptionsClient({ mode = 'client-side', initialData 
       if (d.subscriptions) {
         setSubData(d.subscriptions.content || []);
         setSubTotal(d.subscriptions.totalElements || 0);
-        setTotalSubs(d.subscriptions.totalElements || 0);
       }
       if (d.licenses) {
         setLicData(d.licenses.content || []);
         setLicTotal(d.licenses.totalElements || 0);
-        setTotalLicenses(sumLicenses(d.licenses.content));
       }
     } finally {
       setLoading(false);
     }
-  }, [applySummary]);
+  }, [soldToId, applySummary]);
+
+  // ─── Customer (tenant) filter change ────────────────────────────────────
+  const handleCustomerChange = useCallback(async (e) => {
+    const customer = e.value;
+    setSelectedCustomer(customer);
+    setFilterProduct([]); setFilterRenewal([]); setFilterAutoRenew([]);
+    setFilterLicProduct([]);
+    setSubDataState({ skip: 0, take: 20 });
+    setLicDataState({ skip: 0, take: 20 });
+    setIsLoadingSubGrid(true);
+    try {
+      const [subRes, licRes] = await Promise.all([
+        fetchSubscriptionDetail(soldToId, {
+          status: statusFilter.value,
+          tenantId: customer?.value,
+          page: 0, size: 20,
+        }),
+        fetchLicenseDetail(soldToId, {
+          status: statusFilter.value,
+          tenantId: customer?.value,
+          page: 0, size: 100,
+        }),
+      ]);
+      if (!subRes.error) {
+        setSubData(subRes.data?.content || []);
+        setSubTotal(subRes.data?.totalElements || 0);
+      }
+      if (!licRes.error) {
+        setLicData(licRes.data?.content || []);
+        setLicTotal(licRes.data?.totalElements || 0);
+      }
+    } finally {
+      setIsLoadingSubGrid(false);
+    }
+  }, [soldToId, statusFilter.value]);
 
   // ─── Tab 1: Apply subscription filters ──────────────────────────────────
   const handleApplySubFilters = useCallback(async () => {
@@ -267,9 +317,10 @@ export default function SubscriptionsClient({ mode = 'client-side', initialData 
     try {
       const res = await fetchSubscriptionDetail(soldToId, {
         status: statusFilter.value,
-        productName: filterProduct || undefined,
-        renewalPeriod: filterRenewal?.value || undefined,
-        autoRenew: filterAutoRenew?.value || undefined,
+        productNames: filterProduct.length ? filterProduct.map(i => i.value) : undefined,
+        renewalPeriods: filterRenewal.length ? filterRenewal.map(i => i.value) : undefined,
+        autoRenews: filterAutoRenew.length ? filterAutoRenew.map(i => i.value) : undefined,
+        tenantId: selectedCustomer?.value,
         page: 0, size: 20,
       });
       if (!res.error) {
@@ -279,7 +330,7 @@ export default function SubscriptionsClient({ mode = 'client-side', initialData 
     } finally {
       setIsApplyingSub(false);
     }
-  }, [soldToId, statusFilter.value, filterProduct, filterRenewal, filterAutoRenew]);
+  }, [soldToId, statusFilter.value, filterProduct, filterRenewal, filterAutoRenew, selectedCustomer]);
 
   // ─── Tab 1: Grid page change ─────────────────────────────────────────────
   const handleSubDataStateChange = useCallback(async (e) => {
@@ -289,9 +340,10 @@ export default function SubscriptionsClient({ mode = 'client-side', initialData 
     try {
       const res = await fetchSubscriptionDetail(soldToId, {
         status: statusFilter.value,
-        productName: filterProduct || undefined,
-        renewalPeriod: filterRenewal?.value || undefined,
-        autoRenew: filterAutoRenew?.value || undefined,
+        productNames: filterProduct.length ? filterProduct.map(i => i.value) : undefined,
+        renewalPeriods: filterRenewal.length ? filterRenewal.map(i => i.value) : undefined,
+        autoRenews: filterAutoRenew.length ? filterAutoRenew.map(i => i.value) : undefined,
+        tenantId: selectedCustomer?.value,
         page: ds.skip / ds.take,
         size: ds.take,
       });
@@ -302,7 +354,7 @@ export default function SubscriptionsClient({ mode = 'client-side', initialData 
     } finally {
       setIsLoadingSubGrid(false);
     }
-  }, [soldToId, statusFilter.value, filterProduct, filterRenewal, filterAutoRenew]);
+  }, [soldToId, statusFilter.value, filterProduct, filterRenewal, filterAutoRenew, selectedCustomer]);
 
   // ─── Tab 2: Apply license filters ────────────────────────────────────────
   const handleApplyLicFilters = useCallback(async () => {
@@ -311,18 +363,18 @@ export default function SubscriptionsClient({ mode = 'client-side', initialData 
     try {
       const res = await fetchLicenseDetail(soldToId, {
         status: statusFilter.value,
-        productName: filterLicProduct || undefined,
+        productNames: filterLicProduct.length ? filterLicProduct.map(i => i.value) : undefined,
+        tenantId: selectedCustomer?.value,
         page: 0, size: 20,
       });
       if (!res.error) {
         setLicData(res.data.content || []);
         setLicTotal(res.data.totalElements || 0);
-        setTotalLicenses(sumLicenses(res.data.content));
       }
     } finally {
       setIsApplyingLic(false);
     }
-  }, [soldToId, statusFilter.value, filterLicProduct]);
+  }, [soldToId, statusFilter.value, filterLicProduct, selectedCustomer]);
 
   // ─── Tab 2: Grid page change ─────────────────────────────────────────────
   const handleLicDataStateChange = useCallback(async (e) => {
@@ -332,7 +384,8 @@ export default function SubscriptionsClient({ mode = 'client-side', initialData 
     try {
       const res = await fetchLicenseDetail(soldToId, {
         status: statusFilter.value,
-        productName: filterLicProduct || undefined,
+        productNames: filterLicProduct.length ? filterLicProduct.map(i => i.value) : undefined,
+        tenantId: selectedCustomer?.value,
         page: ds.skip / ds.take,
         size: ds.take,
       });
@@ -343,14 +396,14 @@ export default function SubscriptionsClient({ mode = 'client-side', initialData 
     } finally {
       setIsLoadingLicGrid(false);
     }
-  }, [statusFilter.value, filterLicProduct]);
+  }, [soldToId, statusFilter.value, filterLicProduct, selectedCustomer]);
 
   // ─── Tab 3: Load history data ────────────────────────────────────────────
   const loadHistoryData = useCallback(async (opts = {}) => {
     const {
       status = statusFilter.value,
       commitment = histCommitment.value,
-      product = histProduct,
+      products = histProduct,
       period = histPeriod,
       changed = showChangedOnly,
       page = 0,
@@ -361,7 +414,7 @@ export default function SubscriptionsClient({ mode = 'client-side', initialData 
     const filters = {
       status,
       commitmentPeriod: commitment,
-      productName: product || undefined,
+      productNames: products.length ? products.map(i => i.value) : undefined,
       lookbackMonths: lookbackFromPeriod(period),
       includeUnchanged: !changed,
     };
@@ -380,6 +433,11 @@ export default function SubscriptionsClient({ mode = 'client-side', initialData 
           const cpList = summaryRes.data?.selectLists?.find(l => l.name === 'CommitmentPeriod');
           if (cpList?.items?.length) {
             setCommitmentOpts(cpList.items.map(i => ({ label: i.label, value: i.value })));
+          }
+          // Refresh offer options for history product filter
+          const offerList = summaryRes.data?.selectLists?.find(l => l.name === 'offerName');
+          if (offerList?.items?.length) {
+            setHistOfferOptions(offerList.items.map(i => ({ label: i.label, value: i.value })));
           }
         }
         if (!detailRes.error) {
@@ -538,7 +596,7 @@ export default function SubscriptionsClient({ mode = 'client-side', initialData 
               </div>
             </div>
 
-            {/* Status filter */}
+            {/* Status + Customer filters */}
             <div className="sub-status-row">
               <label className="sub-status-label">Status</label>
               <DropDownList
@@ -550,6 +608,21 @@ export default function SubscriptionsClient({ mode = 'client-side', initialData 
                 style={{ width: 240 }}
                 disabled={loading}
               />
+              {isReseller && tenantOptions.length > 0 && (
+                <>
+                  <label className="sub-status-label" style={{ marginLeft: 16 }}>Customer Name</label>
+                  <DropDownList
+                    data={tenantOptions}
+                    textField="label"
+                    dataItemKey="value"
+                    value={selectedCustomer}
+                    onChange={handleCustomerChange}
+                    defaultItem={{ label: 'All Customers', value: null }}
+                    style={{ width: 260 }}
+                    disabled={loading}
+                  />
+                </>
+              )}
             </div>
           </div>
 
@@ -579,7 +652,10 @@ export default function SubscriptionsClient({ mode = 'client-side', initialData 
                 <div className="sub-filters-row">
                   <div className="sub-filter-group">
                     <label>Product Name</label>
-                    <Input
+                    <MultiSelect
+                      data={offerOptions}
+                      textField="label"
+                      dataItemKey="value"
                       value={filterProduct}
                       onChange={e => setFilterProduct(e.value)}
                       placeholder="All"
@@ -588,28 +664,26 @@ export default function SubscriptionsClient({ mode = 'client-side', initialData 
                   </div>
                   <div className="sub-filter-group">
                     <label>Renewal Range</label>
-                    <DropDownList
+                    <MultiSelect
                       data={renewalOptions}
                       textField="label"
                       dataItemKey="value"
                       value={filterRenewal}
                       onChange={e => setFilterRenewal(e.value)}
-                      defaultItem={{ label: 'All', value: '' }}
+                      placeholder="All"
                       disabled={isApplyingSub || loading}
-                      style={{ width: '100%' }}
                     />
                   </div>
                   <div className="sub-filter-group">
                     <label>Auto Renew</label>
-                    <DropDownList
+                    <MultiSelect
                       data={autoRenewOptions}
                       textField="label"
                       dataItemKey="value"
                       value={filterAutoRenew}
                       onChange={e => setFilterAutoRenew(e.value)}
-                      defaultItem={{ label: 'All', value: '' }}
+                      placeholder="All"
                       disabled={isApplyingSub || loading}
-                      style={{ width: '100%' }}
                     />
                   </div>
                   <div className="sub-filter-actions">
@@ -660,7 +734,10 @@ export default function SubscriptionsClient({ mode = 'client-side', initialData 
                 <div className="sub-filters-row">
                   <div className="sub-filter-group">
                     <label>Product Name</label>
-                    <Input
+                    <MultiSelect
+                      data={offerOptions}
+                      textField="label"
+                      dataItemKey="value"
                       value={filterLicProduct}
                       onChange={e => setFilterLicProduct(e.value)}
                       placeholder="All"
@@ -708,7 +785,10 @@ export default function SubscriptionsClient({ mode = 'client-side', initialData 
                 <div className="sub-filters-row sub-history-filters">
                   <div className="sub-filter-group">
                     <label>Product Name</label>
-                    <Input
+                    <MultiSelect
+                      data={histOfferOptions}
+                      textField="label"
+                      dataItemKey="value"
                       value={histProduct}
                       onChange={e => setHistProduct(e.value)}
                       placeholder="All"
